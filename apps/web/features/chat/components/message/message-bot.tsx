@@ -137,6 +137,7 @@ function resolveEditableImageAttachment(
 
 type ChatMessageBotProps = {
   item: ChatAreaMessage;
+  modelDisplayName?: string;
   busy?: boolean;
   reaction: AssistantReaction;
   onRetryAssistantMessage: (message: ChatAreaMessage) => Promise<void> | void;
@@ -171,6 +172,7 @@ type ChatMessageBotProps = {
 
 export function ChatMessageBot({
   item,
+  modelDisplayName,
   busy = false,
   reaction,
   onRetryAssistantMessage,
@@ -469,6 +471,7 @@ export function ChatMessageBot({
 
       <AssistantMessageMeta
         item={item}
+        modelDisplayName={modelDisplayName}
         busy={busy}
         reaction={reaction}
         onCycleBranch={onCycleMessageBranch}

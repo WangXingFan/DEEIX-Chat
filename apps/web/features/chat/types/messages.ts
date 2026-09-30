@@ -147,6 +147,7 @@ export type ChatAreaMessage = {
   status?: string;
   runID?: string;
   platformModelName?: string;
+  upstreamModelName?: string;
   serverMessageID?: number;
   createdAt?: string;
   updatedAt?: string;

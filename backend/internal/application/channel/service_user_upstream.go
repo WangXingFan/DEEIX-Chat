@@ -67,40 +67,79 @@ func (s *Service) UpdateUserUpstream(ctx context.Context, userID uint, upstreamI
 			return nil, ErrInvalidUpstreamBaseURL
 		}
 	}
-	return s.UpdateUpstream(ctx, upstreamID, input)
+	err := s.repo.WithinTransaction(ctx, func(repo repository.ChannelRepository) error {
+		upstream, err := repo.GetUpstreamByID(ctx, upstreamID)
+		if err != nil {
+			return err
+		}
+		if upstream.OwnerUserID != userID {
+			return ErrUpstreamNotFound
+		}
+		protocolChanged := input.Compatible != nil && normalizeCompatible(*input.Compatible) != upstream.Compatible
+		if protocolChanged && input.ProtocolDefaultsJSON == nil {
+			input.ProtocolDefaultsJSON = stringPtr(protocolDefaultsForCompatible(*input.Compatible))
+		}
+		if err := s.saveUpstream(ctx, repo, upstreamID, input); err != nil {
+			return err
+		}
+		if input.Name == nil && !protocolChanged && input.ProtocolDefaultsJSON == nil {
+			return nil
+		}
+		upstream, err = repo.GetUpstreamByID(ctx, upstreamID)
+		if err != nil {
+			return err
+		}
+		return refreshUserUpstreamBindings(ctx, repo, upstream, protocolChanged || input.ProtocolDefaultsJSON != nil)
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.InvalidateModelCatalog()
+	view, err := s.getUpstreamView(ctx, upstreamID)
+	if err != nil {
+		return nil, err
+	}
+	return &view, nil
 }
 
 func (s *Service) DeleteUserUpstream(ctx context.Context, userID uint, upstreamID uint) error {
 	if err := s.ownedUpstream(ctx, userID, upstreamID); err != nil {
 		return err
 	}
-	rows, _, err := s.repo.ListUpstreamModels(ctx, upstreamID, repository.ListChannelUpstreamModelsInput{Offset: 0, Limit: 5000, Sort: "id_asc"})
+	err := s.repo.WithinTransaction(ctx, func(repo repository.ChannelRepository) error {
+		rows, err := listAllUpstreamModelRows(ctx, repo, upstreamID)
+		if err != nil {
+			return err
+		}
+		models := make(map[uint]string)
+		for _, row := range rows {
+			if row.PlatformModelID == 0 {
+				continue
+			}
+			model, err := repo.GetModelByID(ctx, row.PlatformModelID)
+			if err != nil {
+				return err
+			}
+			if model.OwnerUserID != userID {
+				return ErrModelAccessDenied
+			}
+			models[model.ID] = model.PlatformModelName
+		}
+		if err := repo.DeleteUpstreamCascade(ctx, upstreamID); err != nil {
+			return err
+		}
+		for modelID, name := range models {
+			if err := deleteUnreferencedUserModel(ctx, repo, modelID, name); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	modelIDs := make([]uint, 0, len(rows))
-	seen := make(map[uint]struct{}, len(rows))
-	for _, row := range rows {
-		if row.PlatformModelID == 0 {
-			continue
-		}
-		model, modelErr := s.repo.GetModelByID(ctx, row.PlatformModelID)
-		if modelErr != nil || model.OwnerUserID != userID {
-			continue
-		}
-		if _, exists := seen[model.ID]; !exists {
-			seen[model.ID] = struct{}{}
-			modelIDs = append(modelIDs, model.ID)
-		}
-	}
-	if err := s.DeleteUpstream(ctx, upstreamID); err != nil {
-		return err
-	}
-	for _, modelID := range modelIDs {
-		if err := s.repo.DeleteModelCascade(ctx, modelID); err != nil && !errors.Is(err, ErrModelNotFound) {
-			return err
-		}
-	}
+	s.localAPIKeyCounters.Delete(upstreamID)
+	s.InvalidateModelCatalog()
 	return nil
 }
 
@@ -116,41 +155,39 @@ func (s *Service) DeleteUserUpstreamModel(ctx context.Context, userID uint, upst
 	if err := s.ownedUpstream(ctx, userID, upstreamID); err != nil {
 		return err
 	}
-	route, err := s.repo.GetPlatformModelRouteByID(ctx, routeID, upstreamID)
-	if err != nil {
-		return err
-	}
-	model, err := s.repo.GetModelByID(ctx, route.PlatformModelID)
-	if err != nil {
-		return err
-	}
-	if model.OwnerUserID != userID {
-		return ErrModelNotFound
-	}
-	if err := s.repo.DeletePlatformModelRoute(ctx, routeID, upstreamID); err != nil {
-		return err
-	}
-	if s.platformModelRouteUnreferenced(ctx, upstreamID, model.ID) {
-		if err := s.repo.DeleteModelCascade(ctx, model.ID); err != nil && !errors.Is(err, ErrModelNotFound) {
+	err := s.repo.WithinTransaction(ctx, func(repo repository.ChannelRepository) error {
+		route, err := repo.GetPlatformModelRouteByID(ctx, routeID, upstreamID)
+		if err != nil {
 			return err
 		}
+		model, err := repo.GetModelByID(ctx, route.PlatformModelID)
+		if err != nil {
+			return err
+		}
+		if model.OwnerUserID != userID {
+			return ErrModelNotFound
+		}
+		if err := repo.DeletePlatformModelRoute(ctx, routeID, upstreamID); err != nil {
+			return err
+		}
+		return deleteUnreferencedUserModel(ctx, repo, model.ID, model.PlatformModelName)
+	})
+	if err != nil {
+		return err
 	}
 	s.InvalidateModelCatalog()
 	return nil
 }
 
-// platformModelRouteUnreferenced 判断平台模型是否已没有任何上游路由引用。
-func (s *Service) platformModelRouteUnreferenced(ctx context.Context, upstreamID uint, platformModelID uint) bool {
-	rows, _, err := s.repo.ListUpstreamModels(ctx, upstreamID, repository.ListChannelUpstreamModelsInput{Offset: 0, Limit: 5000, Sort: "id_asc"})
+func deleteUnreferencedUserModel(ctx context.Context, repo repository.ChannelRepository, modelID uint, name string) error {
+	_, total, err := repo.ListModelUpstreamSources(ctx, name, 0, 1)
 	if err != nil {
-		return false
+		return err
 	}
-	for _, row := range rows {
-		if row.PlatformModelID == platformModelID {
-			return false
-		}
+	if total == 0 {
+		return repo.DeleteModelCascade(ctx, modelID)
 	}
-	return true
+	return nil
 }
 
 func (s *Service) ListUserModels(ctx context.Context, userID uint) ([]ModelView, error) {

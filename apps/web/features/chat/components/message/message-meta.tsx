@@ -1010,6 +1010,7 @@ function QuickMemoryPin({ disabled }: { disabled?: boolean }) {
 
 export function AssistantMessageMeta({
   item,
+  modelDisplayName,
   busy,
   reaction,
   onCycleBranch,
@@ -1033,6 +1034,7 @@ export function AssistantMessageMeta({
 }: {
   item: ChatMetaMessage;
   busy: boolean;
+  modelDisplayName?: string;
   reaction: AssistantReaction;
   onCycleBranch: (parentPublicID: string | null, direction: "previous" | "next") => void;
   onRetry: () => void;
@@ -1105,7 +1107,7 @@ export function AssistantMessageMeta({
       <div className="flex min-w-0 max-w-full flex-col items-start gap-1.5 pt-0.5">
         {hasDetailBadges ? (
           <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
-            {showModelInfo ? <ModelBadge label={item.platformModelName?.trim() || ""} /> : null}
+            {showModelInfo ? <ModelBadge label={modelDisplayName?.trim() || item.platformModelName?.trim() || ""} /> : null}
             {showTokenUsage ? (
               <TokenBadge
                 inputTokens={item.inputTokens}

@@ -239,7 +239,7 @@ export function useChatRuntime({
     currentLeafMessage: branchState.currentLeafMessage,
     visibleMessages: branchState.visibleMessages,
     combinedMessages: branchState.combinedMessages,
-    serverMessagePublicIDs: branchState.serverMessagePublicIDs,
+    settledServerMessagePublicIDs: branchState.settledServerMessagePublicIDs,
     activeGenerationRunsRef,
     activeGenerationRunsRevision,
     onActiveGenerationRunsChange,

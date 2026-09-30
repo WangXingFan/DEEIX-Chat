@@ -22,6 +22,7 @@ var allowedKeys = map[string]string{
 	"chat.show_process_trace":                   "true",
 	"chat.default_model":                        "",
 	"chat.auto_generate_title":                  "true",
+	"chat.title_model":                          "follow",
 	"chat.auto_generate_labels":                 "true",
 	"chat.delete_conversation_files_by_default": "false",
 	"chat.context_compact_auto":                 "true",
@@ -67,6 +68,9 @@ var enumKeys = map[string]map[string]bool{
 
 // validateValue 校验 key 对应 value 的合法性。
 func validateValue(key, value string) error {
+	if key == "chat.title_model" && (strings.TrimSpace(value) != value || value == "" || len(value) > 128) {
+		return settingValidationError(ErrInvalidSettingValue, "title model must be 'follow' or a model identifier of at most 128 bytes")
+	}
 	if key == "chat.default_mcp_tool_ids" {
 		return validateDefaultMCPToolIDs(value, key)
 	}

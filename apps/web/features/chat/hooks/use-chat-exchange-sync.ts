@@ -11,14 +11,14 @@ export function useChatExchangeSync({
   conversationScopeKey,
   pendingExchanges,
   setPendingExchanges,
-  serverMessagePublicIDs,
+  settledServerMessagePublicIDs,
   combinedMessages,
   setBranchSelections,
 }: {
   conversationScopeKey: string;
   pendingExchanges: PendingExchangeMap;
   setPendingExchanges: React.Dispatch<React.SetStateAction<PendingExchangeMap>>;
-  serverMessagePublicIDs: Set<string>;
+  settledServerMessagePublicIDs: Set<string>;
   combinedMessages: ChatAreaMessage[];
   setBranchSelections: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
@@ -47,7 +47,7 @@ export function useChatExchangeSync({
   React.useEffect(() => {
     const { completedKeys, completedBranches } = collectSettledExchanges(
       pendingExchanges,
-      serverMessagePublicIDs,
+      settledServerMessagePublicIDs,
       combinedMessages,
     );
     if (completedBranches.length > 0) {
@@ -81,7 +81,7 @@ export function useChatExchangeSync({
   }, [
     combinedMessages,
     pendingExchanges,
-    serverMessagePublicIDs,
+    settledServerMessagePublicIDs,
     setBranchSelections,
     setPendingExchanges,
   ]);

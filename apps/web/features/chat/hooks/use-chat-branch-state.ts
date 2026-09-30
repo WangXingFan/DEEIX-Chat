@@ -258,6 +258,12 @@ export function useChatBranchState({
     () => new Set(serverTreeMessages.map((item) => item.publicID).filter(Boolean)),
     [serverTreeMessages],
   );
+  const settledServerMessagePublicIDs = React.useMemo(
+    () => new Set(serverTreeMessages
+      .filter((item) => !item.isPending && !item.isStreaming && item.status !== "pending")
+      .map((item) => item.publicID).filter(Boolean)),
+    [serverTreeMessages],
+  );
 
   const combinedMessages = React.useMemo(
     () =>
@@ -300,6 +306,7 @@ export function useChatBranchState({
     combinedMessages,
     currentLeafMessage,
     serverMessagePublicIDs,
+    settledServerMessagePublicIDs,
     visibleMessageCount,
     visibleMessages,
   };

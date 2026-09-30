@@ -19,6 +19,7 @@ export type ChatSettings = {
   autoExpandThinking: boolean;
   autoExpandToolCalls: boolean;
   autoGenerateTitle: boolean;
+  titleModel: string;
   autoGenerateLabels: boolean;
   deleteFilesByDefault: boolean;
   contextCompactAuto: boolean;

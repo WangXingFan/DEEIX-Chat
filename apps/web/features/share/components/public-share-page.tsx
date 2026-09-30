@@ -79,6 +79,7 @@ function toReadOnlyMessageDTO(item: PublicSharedMessageDTO): MessageDTO {
     parentMessageID: null,
     parentPublicID: item.parentPublicID,
     runID: item.runID,
+    upstreamModelName: item.upstreamModelName,
     role: item.role,
     contentType: item.contentType,
     content: item.content,

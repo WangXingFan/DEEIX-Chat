@@ -564,8 +564,19 @@ func renderConversationMetadataPrompt(raw string, fallback string, messages stri
 // callConversationMetadataLLM 使用内部文本任务路由生成会话标题或标签。
 // 即使会话当前模型是图片模型，也只会解析聊天路由。
 func (s *Service) callConversationMetadataLLM(ctx context.Context, input conversationMetadataLLMInput) (*conversationMetadataLLMResult, error) {
+	if input.ServiceCode == "title" {
+		model, err := s.repo.GetUserSettingValue(ctx, input.UserID, "chat.title_model")
+		if err != nil {
+			return nil, fmt.Errorf("read title model preference: %w", err)
+		}
+		input.ConfiguredModel = strings.TrimSpace(model)
+		if input.ConfiguredModel == "" {
+			input.ConfiguredModel = textTaskFollowModel
+		}
+	}
 	routes, err := s.resolveTextTaskRouteCandidates(ctx, textTaskRouteInput{
 		ConfiguredModel:   input.ConfiguredModel,
+		UserSelectedModel: input.ServiceCode == "title",
 		ConversationModel: input.ConversationModel,
 		UserID:            input.UserID,
 		ConversationID:    input.ConversationID,

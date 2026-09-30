@@ -34,7 +34,7 @@ func (LLMUpstream) TableName() string {
 type LLMPlatformModel struct {
 	ControlPlaneModel
 	OwnerUserID        uint   `gorm:"not null;default:0;index:idx_llm_platform_models_owner"`
-	DisplayName        string `gorm:"size:256;not null;default:''"`
+	DisplayName        string `gorm:"size:512;not null;default:''"`
 	Name               string `gorm:"size:128;not null;default:'';uniqueIndex:idx_llm_platform_models_name;comment:平台模型名"`
 	Vendor             string `gorm:"size:64;not null;default:'';index:idx_llm_platform_models_vendor;comment:平台模型技术厂商标识"`
 	DisplayGroupID     *uint  `gorm:"index:idx_llm_platform_models_display_group;comment:可选展示分组ID，为空时按技术厂商展示"`

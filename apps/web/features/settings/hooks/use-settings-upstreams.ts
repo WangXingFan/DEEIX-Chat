@@ -36,6 +36,7 @@ export type UserUpstreamFormInput = {
 };
 
 const DEFAULT_PAGE_SIZE = 20;
+const MODEL_IMPORT_BATCH_SIZE = 100;
 
 export function useSettingsUpstreams() {
   const { accessToken } = useAuthSession();
@@ -54,6 +55,7 @@ export function useSettingsUpstreams() {
   const [page, setPageState] = React.useState(1);
   const [pageSize, setPageSizeState] = React.useState(DEFAULT_PAGE_SIZE);
   const requestSeqRef = React.useRef(0);
+  const syncInFlightRef = React.useRef(false);
 
   const reload = React.useCallback(async () => {
     const requestSeq = requestSeqRef.current + 1;
@@ -70,7 +72,7 @@ export function useSettingsUpstreams() {
         sort: sortValue,
       });
       if (requestSeq !== requestSeqRef.current) {
-        return;
+        return false;
       }
       const models = await Promise.all(
         result.results.map(async (upstream): Promise<[number, UserUpstreamModelDTO[]]> => {
@@ -79,16 +81,18 @@ export function useSettingsUpstreams() {
         }),
       );
       if (requestSeq !== requestSeqRef.current) {
-        return;
+        return false;
       }
       setUpstreams(result.results);
       setTotal(result.total);
       setAddedModels(Object.fromEntries(models));
+      return true;
     } catch (error) {
       if (requestSeq !== requestSeqRef.current) {
-        return;
+        return false;
       }
       setLoadError(resolveErrorMessage(error));
+      return false;
     } finally {
       if (requestSeq === requestSeqRef.current) {
         setLoading(false);
@@ -153,16 +157,48 @@ export function useSettingsUpstreams() {
     return result.items;
   }, [accessToken]);
 
-  const addModels = React.useCallback(
-    (id: number, modelNames: string[]) => mutate(() => importUserModels(accessToken, id, modelNames), t("modelsAdded")),
-    [accessToken, mutate, t],
-  );
-
-  const removeModel = React.useCallback(
-    (upstreamID: number, routeID: number) =>
-      mutate(() => deleteUserUpstreamModel(accessToken, upstreamID, routeID), t("modelRemoved")),
-    [accessToken, mutate, t],
-  );
+  const syncModels = React.useCallback(async (upstreamID: number, modelNames: string[]) => {
+    if (syncInFlightRef.current) {
+      return false;
+    }
+    syncInFlightRef.current = true;
+    setSaving(true);
+    let success = false;
+    try {
+      // 每次同步重新读取绑定，重试时只提交尚未完成的变更。
+      const { items } = await listUserUpstreamModels(accessToken, upstreamID);
+      const selectedNames = new Set(modelNames);
+      const boundNames = new Set(items.map((model) => model.upstreamModelName));
+      const additions = [...selectedNames].filter((name) => !boundNames.has(name));
+      const removedRouteIDs = new Set(items
+        .filter((model) => !selectedNames.has(model.upstreamModelName) && model.routeID > 0)
+        .map((model) => model.routeID));
+      for (let offset = 0; offset < additions.length; offset += MODEL_IMPORT_BATCH_SIZE) {
+        await importUserModels(accessToken, upstreamID, additions.slice(offset, offset + MODEL_IMPORT_BATCH_SIZE));
+      }
+      // 图片等模型可以对应多条协议路由，取消模型时需要全部解除。
+      for (const routeID of removedRouteIDs) {
+        await deleteUserUpstreamModel(accessToken, upstreamID, routeID);
+      }
+      success = true;
+    } catch (error) {
+      toast.error(t("syncFailed"), { description: resolveErrorMessage(error) });
+    } finally {
+      // 部分操作成功后也刷新实际状态，保留弹窗中的选择供用户重试。
+      const refreshed = await reload();
+      if (success && !refreshed) {
+        toast.error(t("loadFailed"));
+        success = false;
+      }
+      window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
+      setSaving(false);
+      syncInFlightRef.current = false;
+    }
+    if (success) {
+      toast.success(t("modelsSynced"));
+    }
+    return success;
+  }, [accessToken, reload, resolveErrorMessage, t]);
 
   return {
     upstreams,
@@ -188,8 +224,7 @@ export function useSettingsUpstreams() {
     addUpstream,
     editUpstream,
     discover,
-    addModels,
-    removeModel,
+    syncModels,
     remove,
   };
 }

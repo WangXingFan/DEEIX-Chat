@@ -14,6 +14,7 @@ const textTaskFollowModel = "follow"
 
 type textTaskRouteInput struct {
 	ConfiguredModel   string
+	UserSelectedModel bool
 	ConversationModel string
 	UserID            uint
 	ConversationID    uint
@@ -40,11 +41,15 @@ func (s *Service) resolveTextTaskRouteCandidates(ctx context.Context, input text
 		return nil, ErrModelRouteNotConfigured
 	}
 	value := strings.TrimSpace(input.ConfiguredModel)
+	scope := channel.RouteScopeInternal
+	if input.UserSelectedModel {
+		scope = channel.RouteScopeUser
+	}
 	if value != "" && !strings.EqualFold(value, textTaskFollowModel) {
 		route, err := s.routeResolver.ResolveRoute(ctx, channel.ResolveRouteInput{
 			PlatformModelName: value,
 			TaskType:          channel.TaskTypeChat,
-			Scope:             channel.RouteScopeInternal,
+			Scope:             scope,
 			UserID:            input.UserID,
 			ConversationID:    input.ConversationID,
 			RequestID:         strings.TrimSpace(input.RequestID),
@@ -63,12 +68,15 @@ func (s *Service) resolveTextTaskRouteCandidates(ctx context.Context, input text
 		route, err := s.routeResolver.ResolveRoute(ctx, channel.ResolveRouteInput{
 			PlatformModelName: modelName,
 			TaskType:          channel.TaskTypeChat,
-			Scope:             channel.RouteScopeInternal,
+			Scope:             scope,
 			UserID:            input.UserID,
 			ConversationID:    input.ConversationID,
 			RequestID:         strings.TrimSpace(input.RequestID),
 		})
 		if err == nil {
+			if route.UserConfigured {
+				return []*channel.ResolvedRoute{route}, nil
+			}
 			routes = append(routes, route)
 		} else if routeErr == nil {
 			routeErr = err
@@ -77,11 +85,12 @@ func (s *Service) resolveTextTaskRouteCandidates(ctx context.Context, input text
 
 	if resolver, ok := s.routeResolver.(defaultRouteResolver); ok {
 		route, err := resolver.ResolveDefaultRoute(ctx, channel.ResolveRouteInput{
-			TaskType:       channel.TaskTypeChat,
-			Scope:          channel.RouteScopeInternal,
-			UserID:         input.UserID,
-			ConversationID: input.ConversationID,
-			RequestID:      strings.TrimSpace(input.RequestID),
+			PlatformModelName: input.ConversationModel,
+			TaskType:          channel.TaskTypeChat,
+			Scope:             scope,
+			UserID:            input.UserID,
+			ConversationID:    input.ConversationID,
+			RequestID:         strings.TrimSpace(input.RequestID),
 		})
 		if err != nil {
 			if len(routes) == 0 {

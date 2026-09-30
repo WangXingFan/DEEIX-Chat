@@ -204,6 +204,18 @@ func (s *Service) CreateUpstream(ctx context.Context, input CreateUpstreamInput)
 
 // UpdateUpstream 更新上游配置。
 func (s *Service) UpdateUpstream(ctx context.Context, upstreamID uint, input UpdateUpstreamInput) (*UpstreamView, error) {
+	if err := s.saveUpstream(ctx, s.repo, upstreamID, input); err != nil {
+		return nil, err
+	}
+	s.InvalidateModelCatalog()
+	view, err := s.getUpstreamView(ctx, upstreamID)
+	if err != nil {
+		return nil, err
+	}
+	return &view, nil
+}
+
+func (s *Service) saveUpstream(ctx context.Context, repo repository.ChannelRepository, upstreamID uint, input UpdateUpstreamInput) error {
 	updateInput := repository.UpdateChannelUpstreamInput{}
 	if input.Name != nil {
 		name := strings.TrimSpace(*input.Name)
@@ -212,14 +224,14 @@ func (s *Service) UpdateUpstream(ctx context.Context, upstreamID uint, input Upd
 	if input.BaseURL != nil {
 		baseURL := strings.TrimSpace(*input.BaseURL)
 		if err := s.validateUpstreamBaseURL(baseURL); err != nil {
-			return nil, err
+			return err
 		}
 		updateInput.BaseURL = &baseURL
 	}
 	if input.Compatible != nil {
 		compatible := normalizeCompatible(*input.Compatible)
 		if compatible == "" {
-			return nil, ErrInvalidCompatible
+			return ErrInvalidCompatible
 		}
 		updateInput.Compatible = &compatible
 	}
@@ -231,37 +243,37 @@ func (s *Service) UpdateUpstream(ctx context.Context, upstreamID uint, input Upd
 		normalized, err := normalizeProtocolDefaultsJSON(protocolDefaults)
 		if err != nil {
 			if errors.Is(err, ErrInvalidJSONConfig) {
-				return nil, ErrInvalidProtocolDefaultsConfig
+				return ErrInvalidProtocolDefaultsConfig
 			}
-			return nil, err
+			return err
 		}
 		updateInput.ProtocolDefaultsJSON = &normalized
 	}
 	if input.APIKeys != nil {
 		if err := validateAPIKeys(*input.APIKeys); err != nil {
-			return nil, ErrInvalidAPIKeysConfig
+			return ErrInvalidAPIKeysConfig
 		}
 		apiKeysEnc, err := encryptAPIKeys(s.cfg.Snapshot().DataEncryptionKey, *input.APIKeys)
 		if err != nil {
-			return nil, ErrInvalidAPIKeysConfig
+			return ErrInvalidAPIKeysConfig
 		}
 		updateInput.APIKeysEnc = &apiKeysEnc
 	} else if input.AddAPIKeys != nil || len(input.DeleteAPIKeyIDs) > 0 {
-		item, err := s.repo.GetUpstreamByID(ctx, upstreamID)
+		item, err := repo.GetUpstreamByID(ctx, upstreamID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		rawAPIKeys, err := s.decryptAPIKeys(item.APIKeysEnc)
 		if err != nil {
-			return nil, ErrInvalidAPIKeysConfig
+			return ErrInvalidAPIKeysConfig
 		}
 		nextAPIKeys, err := updateAPIKeysByIDs(rawAPIKeys, input.DeleteAPIKeyIDs, input.AddAPIKeys, s.cfg.Snapshot().DataEncryptionKey)
 		if err != nil {
-			return nil, ErrInvalidAPIKeysConfig
+			return ErrInvalidAPIKeysConfig
 		}
 		apiKeysEnc, err := encryptAPIKeys(s.cfg.Snapshot().DataEncryptionKey, nextAPIKeys)
 		if err != nil {
-			return nil, ErrInvalidAPIKeysConfig
+			return ErrInvalidAPIKeysConfig
 		}
 		updateInput.APIKeysEnc = &apiKeysEnc
 	}
@@ -299,28 +311,16 @@ func (s *Service) UpdateUpstream(ctx context.Context, upstreamID uint, input Upd
 	}
 	if input.HeadersJSON != nil {
 		if err := validateOptionalJSON(strings.TrimSpace(*input.HeadersJSON)); err != nil {
-			return nil, ErrInvalidHeadersConfig
+			return ErrInvalidHeadersConfig
 		}
 		headersJSON := strings.TrimSpace(*input.HeadersJSON)
 		updateInput.HeadersJSON = &headersJSON
 	}
 
-	if !updateInput.IsZero() {
-		if err := s.repo.UpdateUpstream(ctx, upstreamID, updateInput); err != nil {
-			return nil, err
-		}
-		s.InvalidateModelCatalog()
+	if updateInput.IsZero() {
+		return nil
 	}
-
-	item, err := s.repo.GetUpstreamByID(ctx, upstreamID)
-	if err != nil {
-		return nil, err
-	}
-	view, err := s.getUpstreamView(ctx, item.ID)
-	if err != nil {
-		return nil, err
-	}
-	return &view, nil
+	return repo.UpdateUpstream(ctx, upstreamID, updateInput)
 }
 
 func (s *Service) getUpstreamView(ctx context.Context, upstreamID uint) (UpstreamView, error) {

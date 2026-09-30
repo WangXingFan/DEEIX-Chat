@@ -108,7 +108,7 @@ export function useChatMessageSubmit({
   currentLeafMessage,
   visibleMessages,
   combinedMessages,
-  serverMessagePublicIDs,
+  settledServerMessagePublicIDs,
   enqueueUpstreamThinkDelta,
   enqueueStreamText,
   flushStreamTextNow,
@@ -161,7 +161,7 @@ export function useChatMessageSubmit({
   currentLeafMessage: ChatAreaMessage | null;
   visibleMessages: ChatAreaMessage[];
   combinedMessages: ChatAreaMessage[];
-  serverMessagePublicIDs: Set<string>;
+  settledServerMessagePublicIDs: Set<string>;
   enqueueUpstreamThinkDelta: (exchangeKey: string, event: Extract<StreamMessageEvent, { type: "upstream_think_delta" }>) => void;
   enqueueStreamText: (exchangeKey: string, delta: string) => void;
   flushStreamTextNow: (exchangeKey: string) => void;
@@ -261,7 +261,7 @@ export function useChatMessageSubmit({
     conversationScopeKey,
     pendingExchanges,
     setPendingExchanges,
-    serverMessagePublicIDs,
+    settledServerMessagePublicIDs,
     combinedMessages,
     setBranchSelections,
   });

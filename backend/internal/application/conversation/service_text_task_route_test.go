@@ -12,12 +12,15 @@ import (
 )
 
 type textTaskRouteResolverStub struct {
-	routes       map[string]*channel.ResolvedRoute
-	defaultRoute *channel.ResolvedRoute
-	fail         map[string]error
+	inputs        []channel.ResolveRouteInput
+	defaultInputs []channel.ResolveRouteInput
+	routes        map[string]*channel.ResolvedRoute
+	defaultRoute  *channel.ResolvedRoute
+	fail          map[string]error
 }
 
 func (r *textTaskRouteResolverStub) ResolveRoute(_ context.Context, input channel.ResolveRouteInput) (*channel.ResolvedRoute, error) {
+	r.inputs = append(r.inputs, input)
 	if err := r.fail[input.PlatformModelName]; err != nil {
 		return nil, err
 	}
@@ -28,7 +31,8 @@ func (r *textTaskRouteResolverStub) ResolveRoute(_ context.Context, input channe
 	return route, nil
 }
 
-func (r *textTaskRouteResolverStub) ResolveDefaultRoute(context.Context, channel.ResolveRouteInput) (*channel.ResolvedRoute, error) {
+func (r *textTaskRouteResolverStub) ResolveDefaultRoute(_ context.Context, input channel.ResolveRouteInput) (*channel.ResolvedRoute, error) {
+	r.defaultInputs = append(r.defaultInputs, input)
 	if r.defaultRoute == nil {
 		return nil, errors.New("default route not found")
 	}

@@ -55,7 +55,7 @@ export function useChatSubmitStream({
   currentLeafMessage,
   visibleMessages,
   combinedMessages,
-  serverMessagePublicIDs,
+  settledServerMessagePublicIDs,
   activeGenerationRunsRef,
   activeGenerationRunsRevision,
   onActiveGenerationRunsChange,
@@ -101,7 +101,7 @@ export function useChatSubmitStream({
   currentLeafMessage: ChatAreaMessage | null;
   visibleMessages: ChatAreaMessage[];
   combinedMessages: ChatAreaMessage[];
-  serverMessagePublicIDs: Set<string>;
+  settledServerMessagePublicIDs: Set<string>;
   activeGenerationRunsRef?: React.RefObject<Set<string>>;
   activeGenerationRunsRevision: number;
   onActiveGenerationRunsChange?: () => void;
@@ -152,7 +152,7 @@ export function useChatSubmitStream({
     currentLeafMessage,
     visibleMessages,
     combinedMessages,
-    serverMessagePublicIDs,
+    settledServerMessagePublicIDs,
     enqueueUpstreamThinkDelta: streamBuffer.enqueueUpstreamThinkDelta,
     enqueueStreamText: streamBuffer.enqueueStreamText,
     flushStreamTextNow: streamBuffer.flushStreamTextNow,

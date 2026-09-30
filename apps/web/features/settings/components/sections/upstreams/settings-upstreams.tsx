@@ -257,8 +257,7 @@ export function SettingsUpstreams() {
         addedModels={modelsTarget ? upstreams.addedModels[modelsTarget.id] ?? [] : []}
         saving={upstreams.saving}
         onDiscover={upstreams.discover}
-        onAddModels={upstreams.addModels}
-        onRemoveModel={upstreams.removeModel}
+        onSyncModels={upstreams.syncModels}
       />
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>

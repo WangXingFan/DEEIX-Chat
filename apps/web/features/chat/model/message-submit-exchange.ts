@@ -194,7 +194,7 @@ export function failPendingExchange(
 
 export function collectSettledExchanges(
   pendingExchanges: PendingExchangeMap,
-  serverMessagePublicIDs: Set<string>,
+  settledServerMessagePublicIDs: Set<string>,
   combinedMessages: ChatAreaMessage[],
 ): {
   completedKeys: string[];
@@ -211,20 +211,24 @@ export function collectSettledExchanges(
     assistantPublicID: string;
   }> = [];
   for (const [exchangeKey, exchange] of Object.entries(pendingExchanges)) {
+    // A saved placeholder is not the final response. Keep live text until both sides settle.
+    if (exchange.assistantPending || exchange.assistantStreaming) {
+      continue;
+    }
     const userPublicID = exchange.userPublicID || exchange.tempUserPublicID;
     const assistantPublicID = exchange.assistantPublicID || exchange.tempAssistantPublicID;
-    if (serverMessagePublicIDs.has(userPublicID) && serverMessagePublicIDs.has(assistantPublicID)) {
+    if (settledServerMessagePublicIDs.has(userPublicID) && settledServerMessagePublicIDs.has(assistantPublicID)) {
       completedKeys.push(exchangeKey);
       continue;
     }
-    if (exchange.assistantPending || !exchange.runID?.trim()) {
+    if (!exchange.runID?.trim()) {
       continue;
     }
     const serverAssistant = combinedMessages.find(
       (item) =>
         item.role === "assistant" &&
         item.runID === exchange.runID &&
-        serverMessagePublicIDs.has(item.publicID) &&
+        settledServerMessagePublicIDs.has(item.publicID) &&
         !item.isPending &&
         !item.isStreaming &&
         item.status !== "pending",

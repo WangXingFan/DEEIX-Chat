@@ -632,7 +632,7 @@ function ThinkingSegmentBlock({
               plugins={plugins}
               rehypePlugins={STREAMDOWN_REHYPE_PLUGINS}
               remend={STREAMDOWN_REMEND}
-              mode={active ? "streaming" : "static"}
+              mode="streaming"
               normalizeHtmlIndentation
               parseIncompleteMarkdown={active}
               shikiTheme={["github-light", "github-dark"]}
@@ -802,7 +802,8 @@ export const StreamdownRender = React.memo(function StreamdownRender({
                 remend={STREAMDOWN_REMEND}
                 linkSafety={STREAMDOWN_LINK_SAFETY}
                 caret={streaming ? STREAMDOWN_CARET : undefined}
-                mode={streaming ? "streaming" : "static"}
+                // Keep assistant blocks mounted when generation ends; isAnimating controls live behavior.
+                mode={sourcePositions || variant === "user" ? "static" : "streaming"}
                 normalizeHtmlIndentation
                 parseIncompleteMarkdown={streaming}
                 shikiTheme={["github-light", "github-dark"]}

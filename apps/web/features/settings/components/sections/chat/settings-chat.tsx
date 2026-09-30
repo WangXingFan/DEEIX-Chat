@@ -397,6 +397,17 @@ export function SettingsChat() {
     [modelGroups, t],
   );
 
+  const titleModelOptions = React.useMemo<ModelOption[]>(() => {
+    const options = [
+      { label: t("defaultModel.titleModelFollow"), value: "follow", iconUrl: null },
+      ...modelOptions.filter((option) => option.value !== SYSTEM_RECOMMENDED_MODEL),
+    ];
+    if (!options.some((option) => option.value === settings.titleModel)) {
+      options.push({ label: t("defaultModel.titleModelUnavailable"), value: settings.titleModel, iconUrl: null });
+    }
+    return options;
+  }, [modelOptions, settings.titleModel, t]);
+
   React.useEffect(() => {
     setModifierLabel(platformModifierLabel());
     setModifierShortcut(platformSendShortcut());
@@ -451,6 +462,21 @@ export function SettingsChat() {
                 aria-label={t("defaultModel.autoTitle")}
               />
             </SettingsFieldRow>
+            {settings.autoGenerateTitle ? (
+              <SettingsFieldRow
+                title={t("defaultModel.titleModel")}
+                description={t("defaultModel.titleModelDescription")}
+              >
+                <ModelSelect
+                  value={settings.titleModel}
+                  fallbackValue="follow"
+                  options={titleModelOptions}
+                  contentClassName="min-w-[min(320px,calc(100vw-2rem))]"
+                  onChange={handleEnum("chat.title_model")}
+                  disabled={loading}
+                />
+              </SettingsFieldRow>
+            ) : null}
             <SettingsFieldRow
               title={t("defaultModel.autoLabels")}
               description={t("defaultModel.autoLabelsDescription")}

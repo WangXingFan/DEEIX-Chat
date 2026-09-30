@@ -31,6 +31,7 @@ import { ChatScreenshotSelectionBar } from "@/features/chat/components/sections/
 import { useChatMessageFeedback } from "@/features/chat/hooks/use-chat-message-feedback";
 import type { OpenCodeArtifactInput } from "@/features/chat/model/chat-artifacts";
 import { areChatAreaMessagesRenderEqual } from "@/features/chat/model/chat-message-render";
+import { resolveMessageModelName } from "@/features/chat/model/chat-message-model-name";
 import { MAX_SCREENSHOT_MESSAGES } from "@/features/chat/model/conversation-screenshot";
 import type { ChatModelOption } from "@/features/chat/types/chat-runtime";
 import type { ChatAreaMessage, MessageAttachment, UserMessageEditMode } from "@/features/chat/types/messages";
@@ -404,6 +405,7 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
     return (
       <ChatMessageBot
         item={item}
+        modelDisplayName={screenshotMetaModelName}
         busy={busy}
         reaction={reaction}
         onRetryAssistantMessage={onRetryAssistantMessage}
@@ -561,6 +563,10 @@ export function ChatArea({
   const shareLabel = shareActive ? t("manageShare") : t("shareConversation");
   const shareExportLabel = t("labelMenu.shareAndExport");
   const tScreenshot = useTranslations("chat.screenshot");
+  const modelDisplayNames = React.useMemo(
+    () => new Map(modelOptions.map((model) => [model.platformModelName, model.displayName])),
+    [modelOptions],
+  );
   const timeT = useTranslations("common.time");
   const selectableMessagePublicIDs = React.useMemo(
     () =>
@@ -720,7 +726,11 @@ export function ChatArea({
                       billingDisplayUsdToCnyRate={billingDisplayUsdToCnyRate}
                       contentWidthClassName={contentWidthClassName}
                       screenshotMetaAlign={item.role === "user" ? "end" : "start"}
-                      screenshotMetaModelName={item.role === "assistant" ? item.platformModelName?.trim() || "" : ""}
+                      screenshotMetaModelName={item.role === "assistant" ? resolveMessageModelName(
+                        item.platformModelName,
+                        item.upstreamModelName,
+                        modelDisplayNames.get(item.platformModelName ?? ""),
+                      ) : ""}
                       screenshotMetaTimestamp={screenshotTimestamp}
                     />
                   );
