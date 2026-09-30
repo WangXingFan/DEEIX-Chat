@@ -9,10 +9,23 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/models"
 	channelrepo "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/postgres/channel"
+	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/schema"
+	"gorm.io/gorm"
 )
 
-func TestImportedUserModelsAppearOnlyInOwnerCatalog(t *testing.T) {
+// openUserUpstreamTestDB 在渠道测试库上补播种生产启动时会写入的内置厂商目录。
+// 平台模型写入要求厂商标识已存在于 llm_model_vendors，否则会以 ErrModelVendorNotFound 失败。
+func openUserUpstreamTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db := openModelProtocolsTestDB(t)
+	if err := schema.SeedModelVendors(db); err != nil {
+		t.Fatalf("seed model vendors: %v", err)
+	}
+	return db
+}
+
+func TestImportedUserModelsAppearOnlyInOwnerCatalog(t *testing.T) {
+	db := openUserUpstreamTestDB(t)
 	upstream := models.LLMUpstream{OwnerUserID: 7, Name: "my-provider", Compatible: "openai", Status: "active"}
 	if err := db.Create(&upstream).Error; err != nil {
 		t.Fatal(err)
@@ -49,7 +62,7 @@ func TestImportedUserModelsAppearOnlyInOwnerCatalog(t *testing.T) {
 }
 
 func TestUserModelCatalogLoadsEveryPage(t *testing.T) {
-	db := openModelProtocolsTestDB(t)
+	db := openUserUpstreamTestDB(t)
 	upstream := models.LLMUpstream{OwnerUserID: 7, Name: "many-models", Compatible: "openai", Status: "active"}
 	if err := db.Create(&upstream).Error; err != nil {
 		t.Fatal(err)
