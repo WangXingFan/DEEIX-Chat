@@ -345,6 +345,7 @@ function toChatModelOption(
   const nativeTools = resolveNativeTools(item.capabilitiesJSON);
   return {
     platformModelName: item.platformModelName,
+    displayName: item.displayName,
     icon: item.icon,
     vendor: item.vendor,
     vendorName: item.vendorName,

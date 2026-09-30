@@ -15,6 +15,7 @@ export type ViewerProfile = {
 
 export type ChatModelOption = {
   platformModelName: string;
+  displayName?: string;
   icon: string;
   vendor: string;
   vendorName: string;

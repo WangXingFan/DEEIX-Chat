@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useAuthSession } from "@/shared/auth/auth-session-context";
 import { MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
-import { createUserUpstream, deleteUserUpstream, importUserModels, listUserRemoteModels, listUserUpstreams } from "@/shared/api/upstreams";
+import { createUserUpstream, deleteUserUpstream, importUserModels, listUserRemoteModels, listUserUpstreams, updateUserUpstream } from "@/shared/api/upstreams";
 import type { UserRemoteModelDTO, UserUpstreamDTO } from "@/shared/api/upstreams-types";
 
 export function useSettingsUpstreams() {
@@ -38,7 +38,15 @@ export function useSettingsUpstreams() {
   const discover = React.useCallback(async (id: number) => {
     const result = await listUserRemoteModels(accessToken, id);
     setRemoteModels((current) => ({ ...current, [id]: result.items }));
+    return result.items;
   }, [accessToken]);
+
+  const editUpstream = React.useCallback(async (id: number, input: Partial<{ name: string; baseURL: string; compatible: string; apiKeys: string }>) => {
+    await updateUserUpstream(accessToken, id, input);
+    await reload();
+    window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
+    toast.success("Upstream updated");
+  }, [accessToken, reload]);
 
   const addModels = React.useCallback(async (id: number, modelNames: string[]) => {
     await importUserModels(accessToken, id, modelNames);
@@ -55,5 +63,5 @@ export function useSettingsUpstreams() {
     toast.success("Upstream deleted");
   }, [accessToken, reload]);
 
-  return { upstreams, remoteModels, loading, reload, addUpstream, discover, addModels, remove };
+  return { upstreams, remoteModels, loading, reload, addUpstream, editUpstream, discover, addModels, remove };
 }

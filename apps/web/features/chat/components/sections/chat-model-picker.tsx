@@ -76,6 +76,7 @@ function ChatModelIdentity({
   density?: "default" | "compact";
 }) {
   const platformModelName = model.platformModelName.trim();
+  const modelLabel = model.displayName?.trim() || platformModelName;
   const identity = React.useMemo(
     () =>
       resolveModelIdentity({
@@ -90,7 +91,7 @@ function ChatModelIdentity({
 
   return (
     <div className={cn("flex min-w-0 items-center", compact ? "gap-2" : "gap-2.5")}>
-      <ModelIcon iconUrl={iconURL} label={platformModelName} />
+      <ModelIcon iconUrl={iconURL} label={modelLabel} />
       <div className="min-w-0 flex-1 overflow-hidden">
         <div className={cn("flex items-center", compact ? "gap-1" : "gap-1.5")}>
           <p
@@ -99,7 +100,7 @@ function ChatModelIdentity({
               compact ? "text-[12.5px] leading-4" : "text-[13px] leading-4.5",
             )}
           >
-            {platformModelName}
+            {modelLabel}
           </p>
         </div>
       </div>
@@ -443,6 +444,7 @@ function ChatModelMenuItem({
   buttonRef?: React.Ref<HTMLButtonElement>;
 }) {
   const platformModelName = model.platformModelName.trim();
+  const modelLabel = model.displayName?.trim() || platformModelName;
   const identity = React.useMemo(
     () =>
       resolveModelIdentity({
@@ -465,9 +467,9 @@ function ChatModelMenuItem({
         className="flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md bg-transparent py-0 pl-2 pr-1 text-left text-[11px] font-medium leading-none text-inherit outline-none"
         onClick={onSelect}
       >
-        <ModelIcon iconUrl={iconURL} label={platformModelName} />
+        <ModelIcon iconUrl={iconURL} label={modelLabel} />
         <span className="min-w-0 flex-1 truncate leading-4">
-          {platformModelName}
+          {modelLabel}
         </span>
         <span className="flex size-3 shrink-0 items-center justify-center">
           {selected ? <Check className="size-3 text-current" strokeWidth={1.7} /> : null}

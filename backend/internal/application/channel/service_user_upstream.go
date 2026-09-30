@@ -118,7 +118,6 @@ func (s *Service) ListUserModels(ctx context.Context, userID uint) ([]ModelView,
 	items, _, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
 		OwnerUserID:    &userID,
 		OnlyActive:     true,
-		OnlyAvailable:  true,
 		Sort:           "sortOrder_asc",
 	})
 	if err != nil {
@@ -126,6 +125,9 @@ func (s *Service) ListUserModels(ctx context.Context, userID uint) ([]ModelView,
 	}
 	views := make([]ModelView, 0, len(items))
 	for _, item := range items {
+		if item.ActiveSourceCount <= 0 {
+			continue
+		}
 		views = append(views, s.toModelView(item))
 	}
 	return views, nil

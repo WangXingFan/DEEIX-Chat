@@ -2,22 +2,82 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { SettingsPage, SettingsSection } from "@/shared/components/settings-layout";
 import { useSettingsUpstreams } from "@/features/settings/hooks/use-settings-upstreams";
+import type { UserRemoteModelDTO, UserUpstreamDTO } from "@/shared/api/upstreams-types";
 
 export function SettingsUpstreams() {
   const t = useTranslations("settings.upstreamsPage");
-  const { upstreams, remoteModels, loading, addUpstream, discover, addModels, remove } = useSettingsUpstreams();
+  const { upstreams, remoteModels, loading, addUpstream, editUpstream, discover, addModels, remove } = useSettingsUpstreams();
   const [name, setName] = React.useState("");
   const [baseURL, setBaseURL] = React.useState("");
   const [compatible, setCompatible] = React.useState("openai");
   const [apiKeys, setApiKeys] = React.useState("");
   const [modelInputs, setModelInputs] = React.useState<Record<number, string>>({});
+  const [editingUpstream, setEditingUpstream] = React.useState<UserUpstreamDTO | null>(null);
+  const [editName, setEditName] = React.useState("");
+  const [editBaseURL, setEditBaseURL] = React.useState("");
+  const [editCompatible, setEditCompatible] = React.useState("openai");
+  const [editAPIKey, setEditAPIKey] = React.useState("");
+  const [discoveringUpstreamID, setDiscoveringUpstreamID] = React.useState<number | null>(null);
+  const [selectedModels, setSelectedModels] = React.useState<Record<number, string[]>>({});
+
+  function openEdit(upstream: UserUpstreamDTO) {
+    setEditingUpstream(upstream);
+    setEditName(upstream.name);
+    setEditBaseURL(upstream.baseURL);
+    setEditCompatible(upstream.compatible);
+    setEditAPIKey("");
+  }
+
+  async function submitEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingUpstream) return;
+    const input: { name: string; baseURL: string; compatible: string; apiKeys?: string } = {
+      name: editName,
+      baseURL: editBaseURL,
+      compatible: editCompatible,
+    };
+    if (editAPIKey.trim()) {
+      input.apiKeys = JSON.stringify({ strategy: "failover", keys: [{ key: editAPIKey.trim(), status: "active" }] });
+    }
+    await editUpstream(editingUpstream.id, input);
+    setEditingUpstream(null);
+  }
+
+  async function openDiscover(upstreamID: number) {
+    setDiscoveringUpstreamID(upstreamID);
+    const items = await discover(upstreamID);
+    setSelectedModels((current) => ({
+      ...current,
+      [upstreamID]: items.filter((item) => !item.alreadyBound).map((item) => item.upstreamModelName),
+    }));
+  }
+
+  function toggleModel(upstreamID: number, model: UserRemoteModelDTO, checked: boolean) {
+    if (model.alreadyBound) return;
+    setSelectedModels((current) => {
+      const selected = new Set(current[upstreamID] ?? []);
+      if (checked) selected.add(model.upstreamModelName);
+      else selected.delete(model.upstreamModelName);
+      return { ...current, [upstreamID]: Array.from(selected) };
+    });
+  }
+
+  async function importSelectedModels() {
+    if (discoveringUpstreamID === null) return;
+    const names = selectedModels[discoveringUpstreamID] ?? [];
+    if (names.length === 0) return;
+    await addModels(discoveringUpstreamID, names);
+    setDiscoveringUpstreamID(null);
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,16 +112,44 @@ export function SettingsUpstreams() {
             const discovered = remoteModels[upstream.id] ?? [];
             const input = modelInputs[upstream.id] ?? "";
             return <Card key={upstream.id}>
-              <CardHeader className="flex-row items-center justify-between gap-3"><CardTitle className="text-sm">{upstream.name}</CardTitle><Button aria-label={t("delete")} onClick={() => window.confirm(t("confirmDelete")) && void remove(upstream.id)} size="icon-sm" variant="ghost"><Trash2 /></Button></CardHeader>
+              <CardHeader className="flex-row items-center justify-between gap-3"><CardTitle className="text-sm">{upstream.name}</CardTitle><div className="flex items-center gap-1"><Button aria-label={t("edit")} onClick={() => openEdit(upstream)} size="icon-sm" variant="ghost"><Pencil /></Button><Button aria-label={t("delete")} onClick={() => window.confirm(t("confirmDelete")) && void remove(upstream.id)} size="icon-sm" variant="ghost"><Trash2 /></Button></div></CardHeader>
               <CardContent className="space-y-3 text-xs text-muted-foreground">
                 <div>{upstream.baseURL} · {upstream.compatible}</div>
-                <div className="flex gap-2"><Button onClick={() => void discover(upstream.id)} size="sm" variant="outline"><RefreshCw />{t("discover")}</Button></div>
-                {discovered.length > 0 ? <div className="space-y-2"><div>{discovered.filter((item) => !item.alreadyBound).map((item) => item.upstreamModelName).join(", ")}</div><Input value={input} onChange={(event) => setModelInputs((current) => ({ ...current, [upstream.id]: event.target.value }))} placeholder={t("modelsPlaceholder")} /><Button disabled={!input.trim()} onClick={() => void addModels(upstream.id, input.split(",").map((item) => item.trim()).filter(Boolean))} size="sm"><Plus />{t("addModels")}</Button></div> : null}
+                <div className="flex gap-2"><Button onClick={() => void openDiscover(upstream.id)} size="sm" variant="outline"><RefreshCw />{t("discover")}</Button></div>
+                <div className="space-y-2"><Input value={input} onChange={(event) => setModelInputs((current) => ({ ...current, [upstream.id]: event.target.value }))} placeholder={t("modelsPlaceholder")} /><Button disabled={!input.trim()} onClick={() => void addModels(upstream.id, input.split(",").map((item) => item.trim()).filter(Boolean))} size="sm"><Plus />{t("addModels")}</Button></div>
               </CardContent>
             </Card>;
           })}
         </div>
       </SettingsSection>
+      <Dialog open={editingUpstream !== null} onOpenChange={(open) => !open && setEditingUpstream(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("editTitle")}</DialogTitle><DialogDescription>{t("editDescription")}</DialogDescription></DialogHeader>
+          <form className="grid gap-3" onSubmit={submitEdit}>
+            <Input value={editName} onChange={(event) => setEditName(event.target.value)} placeholder={t("name")} required />
+            <Input value={editBaseURL} onChange={(event) => setEditBaseURL(event.target.value)} placeholder={t("baseURL")} type="url" required />
+            <Input value={editCompatible} onChange={(event) => setEditCompatible(event.target.value)} placeholder={t("compatible")} required />
+            <Input value={editAPIKey} onChange={(event) => setEditAPIKey(event.target.value)} placeholder={t("apiKeyOptional")} type="password" />
+            <DialogFooter><Button type="submit">{t("save")}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={discoveringUpstreamID !== null} onOpenChange={(open) => !open && setDiscoveringUpstreamID(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("discoverTitle")}</DialogTitle><DialogDescription>{t("discoverDescription")}</DialogDescription></DialogHeader>
+          <div className="max-h-[min(55vh,420px)] space-y-2 overflow-y-auto">
+            {(discoveringUpstreamID === null ? [] : remoteModels[discoveringUpstreamID] ?? []).map((model) => {
+              const checked = model.alreadyBound || (selectedModels[discoveringUpstreamID ?? 0] ?? []).includes(model.upstreamModelName);
+              return <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border/60 px-3 py-2 text-sm" key={model.upstreamModelName}>
+                <Checkbox checked={checked} disabled={model.alreadyBound} onCheckedChange={(value) => toggleModel(discoveringUpstreamID ?? 0, model, value === true)} />
+                <span className="min-w-0 flex-1 truncate">{model.upstreamModelName}</span>
+                {model.alreadyBound ? <span className="text-xs text-muted-foreground">{t("added")}</span> : null}
+              </label>;
+            })}
+          </div>
+          <DialogFooter><Button disabled={(selectedModels[discoveringUpstreamID ?? 0] ?? []).length === 0} onClick={() => void importSelectedModels()}><Plus />{t("addSelected")}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SettingsPage>
   );
 }
