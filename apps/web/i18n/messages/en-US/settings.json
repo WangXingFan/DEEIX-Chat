@@ -22,6 +22,8 @@
     "loading": "Loading…",
     "empty": "No upstreams yet",
     "delete": "Delete",
+    "deleteTitle": "Delete upstream",
+    "cancel": "Cancel",
     "confirmDelete": "Delete this upstream and its private models?",
     "discover": "Discover models",
     "discoverTitle": "Select models to add",

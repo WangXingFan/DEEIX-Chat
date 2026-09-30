@@ -22,6 +22,8 @@
     "loading": "加载中…",
     "empty": "还没有上游",
     "delete": "删除",
+    "deleteTitle": "删除上游",
+    "cancel": "取消",
     "confirmDelete": "确定删除这个上游及其私有模型吗？",
     "discover": "发现模型",
     "discoverTitle": "选择要添加的模型",

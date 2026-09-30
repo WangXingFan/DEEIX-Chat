@@ -101,6 +101,9 @@ func (s *Service) filterModelsByUpstreamOwner(ctx context.Context, userID uint, 
 	}
 	results := make([]ModelView, 0, len(views))
 	for _, view := range views {
+		if view.OwnerUserID != 0 {
+			continue
+		}
 		routes, err := s.repo.ListActiveRoutesByModel(ctx, view.PlatformModelName)
 		if err != nil {
 			return nil, err
@@ -217,11 +220,11 @@ func (s *Service) listAllActiveModelRows(ctx context.Context) ([]repository.Chan
 	results := make([]repository.ChannelModelListRow, 0)
 	for offset := 0; ; offset += batchSize {
 		items, _, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
-			Offset:     offset,
-			Limit:      batchSize,
-			OnlyActive: true,
+			Offset:      offset,
+			Limit:       batchSize,
+			OnlyActive:  true,
 			OwnerUserID: &publicOwnerID,
-			Sort:       "sortOrder_asc",
+			Sort:        "sortOrder_asc",
 		})
 		if err != nil {
 			return nil, err

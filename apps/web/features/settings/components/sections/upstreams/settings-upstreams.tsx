@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +29,7 @@ export function SettingsUpstreams() {
   const [editAPIKey, setEditAPIKey] = React.useState("");
   const [discoveringUpstreamID, setDiscoveringUpstreamID] = React.useState<number | null>(null);
   const [selectedModels, setSelectedModels] = React.useState<Record<number, string[]>>({});
+  const [deletingUpstream, setDeletingUpstream] = React.useState<UserUpstreamDTO | null>(null);
 
   function openEdit(upstream: UserUpstreamDTO) {
     setEditingUpstream(upstream);
@@ -79,6 +81,12 @@ export function SettingsUpstreams() {
     setDiscoveringUpstreamID(null);
   }
 
+  async function confirmRemove() {
+    if (!deletingUpstream) return;
+    await remove(deletingUpstream.id);
+    setDeletingUpstream(null);
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await addUpstream({ name, baseURL, compatible, apiKeys: JSON.stringify({ strategy: "failover", keys: [{ key: apiKeys, status: "active" }] }) });
@@ -109,10 +117,9 @@ export function SettingsUpstreams() {
         {!loading && upstreams.length === 0 ? <p className="text-sm text-muted-foreground">{t("empty")}</p> : null}
         <div className="grid gap-4">
           {upstreams.map((upstream) => {
-            const discovered = remoteModels[upstream.id] ?? [];
             const input = modelInputs[upstream.id] ?? "";
             return <Card key={upstream.id}>
-              <CardHeader className="flex-row items-center justify-between gap-3"><CardTitle className="text-sm">{upstream.name}</CardTitle><div className="flex items-center gap-1"><Button aria-label={t("edit")} onClick={() => openEdit(upstream)} size="icon-sm" variant="ghost"><Pencil /></Button><Button aria-label={t("delete")} onClick={() => window.confirm(t("confirmDelete")) && void remove(upstream.id)} size="icon-sm" variant="ghost"><Trash2 /></Button></div></CardHeader>
+              <CardHeader className="flex-row items-center justify-between gap-3"><CardTitle className="text-sm">{upstream.name}</CardTitle><div className="flex items-center gap-1"><Button aria-label={t("edit")} onClick={() => openEdit(upstream)} size="icon-sm" variant="ghost"><Pencil /></Button><Button aria-label={t("delete")} onClick={() => setDeletingUpstream(upstream)} size="icon-sm" variant="ghost"><Trash2 /></Button></div></CardHeader>
               <CardContent className="space-y-3 text-xs text-muted-foreground">
                 <div>{upstream.baseURL} · {upstream.compatible}</div>
                 <div className="flex gap-2"><Button onClick={() => void openDiscover(upstream.id)} size="sm" variant="outline"><RefreshCw />{t("discover")}</Button></div>
@@ -122,6 +129,12 @@ export function SettingsUpstreams() {
           })}
         </div>
       </SettingsSection>
+      <AlertDialog open={deletingUpstream !== null} onOpenChange={(open) => !open && setDeletingUpstream(null)}>
+        <AlertDialogContent size="compact">
+          <AlertDialogHeader><AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle><AlertDialogDescription>{t("confirmDelete")}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{t("cancel")}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => void confirmRemove()}>{t("delete")}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={editingUpstream !== null} onOpenChange={(open) => !open && setEditingUpstream(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t("editTitle")}</DialogTitle><DialogDescription>{t("editDescription")}</DialogDescription></DialogHeader>

@@ -116,9 +116,9 @@ func (s *Service) ListUserModels(ctx context.Context, userID uint) ([]ModelView,
 		return []ModelView{}, nil
 	}
 	items, _, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
-		OwnerUserID:    &userID,
-		OnlyActive:     true,
-		Sort:           "sortOrder_asc",
+		OwnerUserID: &userID,
+		OnlyActive:  true,
+		Sort:        "sortOrder_asc",
 	})
 	if err != nil {
 		return nil, err

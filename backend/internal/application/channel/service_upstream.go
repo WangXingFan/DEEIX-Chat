@@ -25,10 +25,10 @@ import (
 // ListUpstreamsInput 定义上游列表筛选排序条件。
 type ListUpstreamsInput struct {
 	OwnerUserID *uint
-	Query      string
-	Status     string
-	Compatible string
-	Sort       string
+	Query       string
+	Status      string
+	Compatible  string
+	Sort        string
 }
 
 // ListUpstreams 分页查询上游列表。
@@ -45,13 +45,13 @@ func (s *Service) ListUpstreams(ctx context.Context, page int, pageSize int, inp
 		return s.listCircuitOpenUpstreams(ctx, offset, limit, input)
 	}
 	items, total, err := s.repo.ListUpstreams(ctx, repository.ListChannelUpstreamsInput{
-		Offset:     offset,
-		Limit:      limit,
+		Offset:      offset,
+		Limit:       limit,
 		OwnerUserID: input.OwnerUserID,
-		Query:      input.Query,
-		Status:     input.Status,
-		Compatible: input.Compatible,
-		Sort:       input.Sort,
+		Query:       input.Query,
+		Status:      input.Status,
+		Compatible:  input.Compatible,
+		Sort:        input.Sort,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -65,12 +65,12 @@ func (s *Service) ListUpstreams(ctx context.Context, page int, pageSize int, inp
 
 func (s *Service) listCircuitOpenUpstreams(ctx context.Context, offset int, limit int, input ListUpstreamsInput) ([]UpstreamView, int64, error) {
 	items, _, err := s.repo.ListUpstreams(ctx, repository.ListChannelUpstreamsInput{
-		Offset:     0,
-		Limit:      5000,
+		Offset:      0,
+		Limit:       5000,
 		OwnerUserID: input.OwnerUserID,
-		Query:      input.Query,
-		Compatible: input.Compatible,
-		Sort:       input.Sort,
+		Query:       input.Query,
+		Compatible:  input.Compatible,
+		Sort:        input.Sort,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -309,9 +309,7 @@ func (s *Service) UpdateUpstream(ctx context.Context, upstreamID uint, input Upd
 		if err := s.repo.UpdateUpstream(ctx, upstreamID, updateInput); err != nil {
 			return nil, err
 		}
-		if input.Status != nil {
-			s.InvalidateModelCatalog()
-		}
+		s.InvalidateModelCatalog()
 	}
 
 	item, err := s.repo.GetUpstreamByID(ctx, upstreamID)
