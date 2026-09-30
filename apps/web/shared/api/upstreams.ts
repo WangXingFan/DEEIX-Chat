@@ -4,8 +4,25 @@ import type { UserRemoteModelDTO, UserUpstreamDTO, UserUpstreamModelDTO } from "
 type ListResponse = { total: number; results: UserUpstreamDTO[] };
 type RemoteResponse = { total: number; items: UserRemoteModelDTO[]; snapshotID: string };
 
-export function listUserUpstreams(accessToken: string) {
-  return authedRequest<ListResponse>("/api/v1/upstreams?page=1&page_size=100", { accessToken }, true);
+export type ListUserUpstreamsOptions = {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  status?: string;
+  compatible?: string;
+  sort?: string;
+};
+
+export function listUserUpstreams(accessToken: string, options: ListUserUpstreamsOptions = {}) {
+  const page = options.page && options.page > 0 ? options.page : 1;
+  const pageSize = options.pageSize && options.pageSize > 0 ? options.pageSize : 20;
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  const query = options.query?.trim();
+  if (query) params.set("q", query);
+  if (options.status) params.set("status", options.status);
+  if (options.compatible) params.set("compatible", options.compatible);
+  if (options.sort) params.set("sort", options.sort);
+  return authedRequest<ListResponse>(`/api/v1/upstreams?${params.toString()}`, { accessToken }, true);
 }
 
 export function createUserUpstream(accessToken: string, input: { name: string; baseURL: string; compatible: string; apiKeys: string }) {
@@ -38,4 +55,12 @@ export function importUserModels(accessToken: string, id: number, modelNames: st
     method: "POST",
     body: { modelNames },
   }, true);
+}
+
+export function listUserUpstreamModels(accessToken: string, id: number) {
+  return authedRequest<{ items: UserUpstreamModelDTO[] }>(`/api/v1/upstreams/${id}/models`, { accessToken }, true);
+}
+
+export function deleteUserUpstreamModel(accessToken: string, id: number, routeID: number) {
+  return authedRequest<unknown>(`/api/v1/upstreams/${id}/models/${routeID}`, { accessToken, method: "DELETE" }, true);
 }

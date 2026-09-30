@@ -13,6 +13,7 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/dberror"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/models"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
+	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/pagination"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -167,11 +168,19 @@ func (r *Repo) ListUpstreams(ctx context.Context, input repository.ListChannelUp
 	if err := listQuery.
 		Order(upstreamListOrder(input.Sort)).
 		Offset(input.Offset).
-		Limit(input.Limit).
+		Limit(resolveListLimit(input.Limit)).
 		Scan(&items).Error; err != nil {
 		return nil, 0, dberror.Translate(err)
 	}
 	return items, total, nil
+}
+
+// resolveListLimit 防御调用方漏设分页大小：Limit<=0 会被 SQL 当成 LIMIT 0 而静默返回空列表。
+func resolveListLimit(limit int) int {
+	if limit <= 0 {
+		return pagination.DefaultPageSize
+	}
+	return limit
 }
 
 func (r *Repo) GetUpstreamListRowByID(ctx context.Context, upstreamID uint) (*UpstreamListRow, error) {
@@ -492,7 +501,7 @@ func (r *Repo) ListModels(ctx context.Context, input repository.ListChannelModel
 	if err := listQuery.
 		Order(modelListOrder(input.Sort)).
 		Offset(input.Offset).
-		Limit(input.Limit).
+		Limit(resolveListLimit(input.Limit)).
 		Scan(&items).Error; err != nil {
 		return nil, 0, dberror.Translate(err)
 	}

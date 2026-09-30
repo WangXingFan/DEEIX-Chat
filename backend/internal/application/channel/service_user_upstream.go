@@ -111,26 +111,92 @@ func (s *Service) ListUserRemoteModels(ctx context.Context, userID uint, upstrea
 	return s.ListRemoteModels(ctx, upstreamID)
 }
 
+// DeleteUserUpstreamModel 解除用户私有上游上的单个模型绑定，并在该平台模型不再被任何路由引用时清理它。
+func (s *Service) DeleteUserUpstreamModel(ctx context.Context, userID uint, upstreamID uint, routeID uint) error {
+	if err := s.ownedUpstream(ctx, userID, upstreamID); err != nil {
+		return err
+	}
+	route, err := s.repo.GetPlatformModelRouteByID(ctx, routeID, upstreamID)
+	if err != nil {
+		return err
+	}
+	model, err := s.repo.GetModelByID(ctx, route.PlatformModelID)
+	if err != nil {
+		return err
+	}
+	if model.OwnerUserID != userID {
+		return ErrModelNotFound
+	}
+	if err := s.repo.DeletePlatformModelRoute(ctx, routeID, upstreamID); err != nil {
+		return err
+	}
+	if s.platformModelRouteUnreferenced(ctx, upstreamID, model.ID) {
+		if err := s.repo.DeleteModelCascade(ctx, model.ID); err != nil && !errors.Is(err, ErrModelNotFound) {
+			return err
+		}
+	}
+	s.InvalidateModelCatalog()
+	return nil
+}
+
+// platformModelRouteUnreferenced 判断平台模型是否已没有任何上游路由引用。
+func (s *Service) platformModelRouteUnreferenced(ctx context.Context, upstreamID uint, platformModelID uint) bool {
+	rows, _, err := s.repo.ListUpstreamModels(ctx, upstreamID, repository.ListChannelUpstreamModelsInput{Offset: 0, Limit: 5000, Sort: "id_asc"})
+	if err != nil {
+		return false
+	}
+	for _, row := range rows {
+		if row.PlatformModelID == platformModelID {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Service) ListUserModels(ctx context.Context, userID uint) ([]ModelView, error) {
 	if userID == 0 {
 		return []ModelView{}, nil
 	}
-	items, _, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
-		OwnerUserID: &userID,
-		OnlyActive:  true,
-		Sort:        "sortOrder_asc",
-	})
-	if err != nil {
+	const batchSize = 500
+	views := make([]ModelView, 0)
+	for offset := 0; ; offset += batchSize {
+		items, _, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
+			OwnerUserID: &userID,
+			Offset:      offset,
+			Limit:       batchSize,
+			OnlyActive:  true,
+			Sort:        "sortOrder_asc",
+		})
+		if err != nil {
+			return nil, err
+		}
+		views = append(views, s.filterPublicRoutableModels(items)...)
+		if len(items) < batchSize {
+			return views, nil
+		}
+	}
+}
+
+func (s *Service) ListUserUpstreamModels(ctx context.Context, userID uint, upstreamID uint) ([]UpstreamModelView, error) {
+	if err := s.ownedUpstream(ctx, userID, upstreamID); err != nil {
 		return nil, err
 	}
-	views := make([]ModelView, 0, len(items))
-	for _, item := range items {
-		if item.ActiveSourceCount <= 0 {
-			continue
+	const batchSize = 500
+	results := make([]UpstreamModelView, 0)
+	for page := 1; ; page++ {
+		items, total, err := s.ListUpstreamModels(ctx, upstreamID, page, batchSize, ListUpstreamModelsInput{Sort: "id_asc"})
+		if err != nil {
+			return nil, err
 		}
-		views = append(views, s.toModelView(item))
+		for _, item := range items {
+			if item.RouteID != 0 {
+				results = append(results, item)
+			}
+		}
+		if int64(page*batchSize) >= total {
+			return results, nil
+		}
 	}
-	return views, nil
 }
 
 func userModelPlatformName(userID uint, upstreamID uint, modelName string) string {

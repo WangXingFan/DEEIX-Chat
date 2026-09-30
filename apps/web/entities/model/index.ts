@@ -31,4 +31,5 @@ export {
   nativeToolPayloadSignature,
 } from "@/entities/model/lib/native-tool-payload";
 export { parseKindsJSON, stringifyKinds } from "@/entities/model/model/llm-schema";
+export { UPSTREAM_COMPATIBLE_OPTIONS } from "@/entities/model/model/upstream-compatible";
 export type { ModelSelectOption } from "@/entities/model/types/model-select";

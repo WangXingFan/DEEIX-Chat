@@ -13,8 +13,10 @@ import (
 
 func userUpstreamError(c *gin.Context, err error) {
 	switch {
-	case errors.Is(err, appchannel.ErrUpstreamNotFound), errors.Is(err, appchannel.ErrModelAccessDenied):
+	case errors.Is(err, appchannel.ErrUpstreamNotFound), errors.Is(err, appchannel.ErrModelAccessDenied), errors.Is(err, appchannel.ErrModelNotFound):
 		response.ErrorFrom(c, http.StatusNotFound, errUpstreamNotFound)
+	case errors.Is(err, appchannel.ErrUpstreamModelNotFound):
+		response.ErrorFrom(c, http.StatusNotFound, errUpstreamModelNotFound)
 	case errors.Is(err, appchannel.ErrInvalidUpstreamBaseURL), errors.Is(err, appchannel.ErrInvalidHeadersConfig), errors.Is(err, appchannel.ErrInvalidAPIKeysConfig), errors.Is(err, appchannel.ErrInvalidProtocolDefaultsConfig), errors.Is(err, appchannel.ErrInvalidJSONConfig), errors.Is(err, appchannel.ErrUserUpstreamLimit), errors.Is(err, appchannel.ErrUserModelLimit):
 		response.ErrorFrom(c, http.StatusBadRequest, err)
 	case errors.Is(err, appchannel.ErrNoActiveKey):
@@ -113,6 +115,42 @@ func (h *Handler) ListUserRemoteModels(c *gin.Context) {
 		return
 	}
 	response.Success(c, toUpstreamRemoteModelsResponse(*data))
+}
+
+func (h *Handler) ListUserUpstreamModels(c *gin.Context) {
+	upstreamID, err := uintParam(c, "id")
+	if err != nil {
+		response.ErrorFrom(c, http.StatusBadRequest, errInvalidUpstreamID)
+		return
+	}
+	items, err := h.service.ListUserUpstreamModels(c.Request.Context(), middleware.MustUserID(c), upstreamID)
+	if err != nil {
+		userUpstreamError(c, err)
+		return
+	}
+	results := make([]UpstreamModelResponse, 0, len(items))
+	for _, item := range items {
+		results = append(results, toUpstreamModelResponse(item))
+	}
+	response.Success(c, gin.H{"items": results})
+}
+
+func (h *Handler) DeleteUserUpstreamModel(c *gin.Context) {
+	upstreamID, err := uintParam(c, "id")
+	if err != nil {
+		response.ErrorFrom(c, http.StatusBadRequest, errInvalidUpstreamID)
+		return
+	}
+	routeID, err := uintParam(c, "route_id")
+	if err != nil {
+		response.ErrorFrom(c, http.StatusBadRequest, errInvalidRouteID)
+		return
+	}
+	if err := h.service.DeleteUserUpstreamModel(c.Request.Context(), middleware.MustUserID(c), upstreamID, routeID); err != nil {
+		userUpstreamError(c, err)
+		return
+	}
+	response.Success(c, gin.H{})
 }
 
 func (h *Handler) ImportUserModels(c *gin.Context) {

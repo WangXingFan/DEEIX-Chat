@@ -21,7 +21,7 @@ import { listVisibleSkills } from "@/shared/api/skills";
 import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { readSessionRevision } from "@/shared/auth/session";
-import { resolveModelPresentationGroup } from "@/entities/model";
+import { resolveModelOptionLabel, resolveModelPresentationGroup } from "@/entities/model";
 
 const DEFAULT_MENTION_MENU_KINDS: readonly ChatMentionMenuKind[] = ["model", "file", "tool", "skill", "prompt"];
 const MENTION_TRIGGER_KINDS: readonly ChatMentionMenuKind[] = ["model", "file", "tool"];
@@ -344,13 +344,22 @@ function filterModels(
 ): ChatMentionModelMenuItem[] {
   return modelOptions
     .filter((model) =>
-      itemMatchesQuery([model.platformModelName, model.vendor], query),
+      itemMatchesQuery(
+        [
+          resolveModelOptionLabel(model.platformModelName, model.displayName),
+          model.platformModelName,
+          model.vendorName,
+          model.vendor,
+          model.displayGroupName,
+        ],
+        query,
+      ),
     )
     .map((model) => ({
       id: `model:${model.platformModelName}`,
       kind: "model" as const,
-      label: model.platformModelName,
-      description: model.vendor,
+      label: resolveModelOptionLabel(model.platformModelName, model.displayName),
+      description: model.vendorName?.trim() || model.vendor,
       model,
       selected: model.platformModelName === selectedPlatformModelName,
     }));

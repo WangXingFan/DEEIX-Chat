@@ -2048,3 +2048,39 @@ func containsUint(items []uint, target uint) bool {
 	}
 	return false
 }
+
+// TestListModelsSQLiteFallsBackToDefaultLimit 守护分页大小缺省：Limit<=0 若透传为 SQL 的 LIMIT 0，
+// 查询会静默返回空列表（用户私有模型目录曾因此看不到任何模型）。
+func TestListModelsSQLiteFallsBackToDefaultLimit(t *testing.T) {
+	db := openChannelSQLiteTestDB(t)
+	ctx := context.Background()
+	upstream := model.LLMUpstream{Name: "limit-upstream", Status: "active"}
+	if err := db.Create(&upstream).Error; err != nil {
+		t.Fatalf("create upstream: %v", err)
+	}
+	platformModel := model.LLMPlatformModel{Name: "limit-model", Vendor: "openai", Status: "active"}
+	if err := db.Create(&platformModel).Error; err != nil {
+		t.Fatalf("create platform model: %v", err)
+	}
+	upstreamModel := model.LLMUpstreamModel{UpstreamID: upstream.ID, BindingCode: "limit-binding", UpstreamModelName: "limit-model", Status: "active"}
+	if err := db.Create(&upstreamModel).Error; err != nil {
+		t.Fatalf("create upstream model: %v", err)
+	}
+	route := model.LLMPlatformModelRoute{
+		PlatformModelID: platformModel.ID,
+		UpstreamModelID: upstreamModel.ID,
+		Protocol:        "openai_chat_completions",
+		Status:          "active",
+	}
+	if err := db.Create(&route).Error; err != nil {
+		t.Fatalf("create route: %v", err)
+	}
+
+	items, total, err := NewRepo(db).ListModels(ctx, repository.ListChannelModelsInput{Sort: "sortOrder_asc"})
+	if err != nil {
+		t.Fatalf("ListModels() error = %v", err)
+	}
+	if total != 1 || len(items) != 1 {
+		t.Fatalf("expected unset limit to fall back to the default page, total=%d items=%d", total, len(items))
+	}
+}

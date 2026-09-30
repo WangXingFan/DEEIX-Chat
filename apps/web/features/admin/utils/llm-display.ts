@@ -1,4 +1,5 @@
 import type { AdminLLMAdapter } from "@/features/admin/api/llm-types";
+import { UPSTREAM_COMPATIBLE_OPTIONS } from "@/entities/model";
 
 // Model kind enum; display labels always go through i18n (kinds.* in the adminModels/adminUpstreams namespaces), so no English labels are kept here.
 export const MODEL_KINDS = [
@@ -11,14 +12,7 @@ export const MODEL_KINDS = [
 ] as const;
 
 // Brand names are proper nouns and are not translated; "custom" is resolved by callers via i18n (compatible.custom).
-export const COMPATIBLE_OPTIONS = [
-  { label: "OpenAI", value: "openai" },
-  { label: "Anthropic", value: "anthropic" },
-  { label: "Google", value: "google" },
-  { label: "xAI", value: "xai" },
-  { label: "OpenRouter", value: "openrouter" },
-  { label: "Custom", value: "custom" },
-] as const;
+export const COMPATIBLE_OPTIONS = UPSTREAM_COMPATIBLE_OPTIONS;
 
 type ProtocolOption = {
   value: AdminLLMAdapter;

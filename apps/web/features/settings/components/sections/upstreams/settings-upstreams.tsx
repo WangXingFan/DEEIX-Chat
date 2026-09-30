@@ -1,168 +1,288 @@
 "use client";
 
+import { MoreHorizontal, Pencil, Plus, RefreshCw, Settings2, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import * as React from "react";
-import { useTranslations } from "next-intl";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmptyRow,
+  TableHead,
+  TableHeader,
+  TableLoadingRow,
+  TableRow,
+} from "@/components/ui/table";
+import { TablePagination, TableToolbar } from "@/components/ui/table-tools";
+import { UPSTREAM_COMPATIBLE_OPTIONS } from "@/entities/model";
+import { useSettingsUpstreams, USER_UPSTREAM_SORT_OPTIONS } from "@/features/settings/hooks/use-settings-upstreams";
+import type { UserUpstreamDTO } from "@/shared/api/upstreams-types";
 import { SettingsPage, SettingsSection } from "@/shared/components/settings-layout";
-import { useSettingsUpstreams } from "@/features/settings/hooks/use-settings-upstreams";
-import type { UserRemoteModelDTO, UserUpstreamDTO } from "@/shared/api/upstreams-types";
+import { UpstreamsModelsDialog } from "./upstreams-models-dialog";
+import { UpstreamsSheet } from "./upstreams-sheet";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
+function formatDateTime(value: string, locale: string): string {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
 
 export function SettingsUpstreams() {
   const t = useTranslations("settings.upstreamsPage");
-  const { upstreams, remoteModels, loading, addUpstream, editUpstream, discover, addModels, remove } = useSettingsUpstreams();
-  const [name, setName] = React.useState("");
-  const [baseURL, setBaseURL] = React.useState("");
-  const [compatible, setCompatible] = React.useState("openai");
-  const [apiKeys, setApiKeys] = React.useState("");
-  const [modelInputs, setModelInputs] = React.useState<Record<number, string>>({});
-  const [editingUpstream, setEditingUpstream] = React.useState<UserUpstreamDTO | null>(null);
-  const [editName, setEditName] = React.useState("");
-  const [editBaseURL, setEditBaseURL] = React.useState("");
-  const [editCompatible, setEditCompatible] = React.useState("openai");
-  const [editAPIKey, setEditAPIKey] = React.useState("");
-  const [discoveringUpstreamID, setDiscoveringUpstreamID] = React.useState<number | null>(null);
-  const [selectedModels, setSelectedModels] = React.useState<Record<number, string[]>>({});
-  const [deletingUpstream, setDeletingUpstream] = React.useState<UserUpstreamDTO | null>(null);
+  const locale = useLocale();
+  const upstreams = useSettingsUpstreams();
+  const [sheetTarget, setSheetTarget] = React.useState<UserUpstreamDTO | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [modelsTarget, setModelsTarget] = React.useState<UserUpstreamDTO | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<UserUpstreamDTO | null>(null);
+
+  const resolveCompatibleLabel = React.useCallback(
+    (compatible: string) =>
+      UPSTREAM_COMPATIBLE_OPTIONS.find((option) => option.value === compatible)?.label ?? (compatible || "-"),
+    [],
+  );
+
+  function openCreate() {
+    setSheetTarget(null);
+    setSheetOpen(true);
+  }
 
   function openEdit(upstream: UserUpstreamDTO) {
-    setEditingUpstream(upstream);
-    setEditName(upstream.name);
-    setEditBaseURL(upstream.baseURL);
-    setEditCompatible(upstream.compatible);
-    setEditAPIKey("");
+    setSheetTarget(upstream);
+    setSheetOpen(true);
   }
 
-  async function submitEdit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!editingUpstream) return;
-    const input: { name: string; baseURL: string; compatible: string; apiKeys?: string } = {
-      name: editName,
-      baseURL: editBaseURL,
-      compatible: editCompatible,
-    };
-    if (editAPIKey.trim()) {
-      input.apiKeys = JSON.stringify({ strategy: "failover", keys: [{ key: editAPIKey.trim(), status: "active" }] });
-    }
-    await editUpstream(editingUpstream.id, input);
-    setEditingUpstream(null);
-  }
-
-  async function openDiscover(upstreamID: number) {
-    setDiscoveringUpstreamID(upstreamID);
-    const items = await discover(upstreamID);
-    setSelectedModels((current) => ({
-      ...current,
-      [upstreamID]: items.filter((item) => !item.alreadyBound).map((item) => item.upstreamModelName),
-    }));
-  }
-
-  function toggleModel(upstreamID: number, model: UserRemoteModelDTO, checked: boolean) {
-    if (model.alreadyBound) return;
-    setSelectedModels((current) => {
-      const selected = new Set(current[upstreamID] ?? []);
-      if (checked) selected.add(model.upstreamModelName);
-      else selected.delete(model.upstreamModelName);
-      return { ...current, [upstreamID]: Array.from(selected) };
-    });
-  }
-
-  async function importSelectedModels() {
-    if (discoveringUpstreamID === null) return;
-    const names = selectedModels[discoveringUpstreamID] ?? [];
-    if (names.length === 0) return;
-    await addModels(discoveringUpstreamID, names);
-    setDiscoveringUpstreamID(null);
-  }
-
-  async function confirmRemove() {
-    if (!deletingUpstream) return;
-    await remove(deletingUpstream.id);
-    setDeletingUpstream(null);
-  }
-
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await addUpstream({ name, baseURL, compatible, apiKeys: JSON.stringify({ strategy: "failover", keys: [{ key: apiKeys, status: "active" }] }) });
-    setName("");
-    setBaseURL("");
-    setApiKeys("");
-  }
+  const initialLoading = upstreams.loading && upstreams.upstreams.length === 0;
 
   return (
     <SettingsPage>
       <SettingsSection title={t("title")}>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
-        <Card>
-          <CardHeader><CardTitle className="text-sm">{t("addTitle")}</CardTitle></CardHeader>
-          <CardContent>
-            <form className="grid gap-3 md:grid-cols-2" onSubmit={submit}>
-              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("name")} required />
-              <Input value={baseURL} onChange={(event) => setBaseURL(event.target.value)} placeholder={t("baseURL")} type="url" required />
-              <Input value={compatible} onChange={(event) => setCompatible(event.target.value)} placeholder={t("compatible")} required />
-              <Input value={apiKeys} onChange={(event) => setApiKeys(event.target.value)} placeholder={t("apiKey")} type="password" required />
-              <Button className="md:col-span-2" type="submit"><Plus />{t("add")}</Button>
-            </form>
-          </CardContent>
-        </Card>
+
+        <TableToolbar
+          query={upstreams.query}
+          onQueryChange={upstreams.setQuery}
+          queryPlaceholder={t("table.searchPlaceholder")}
+          filters={[
+            {
+              key: "status",
+              label: t("table.status"),
+              value: upstreams.statusFilter,
+              onValueChange: upstreams.setStatusFilter,
+              options: [
+                { label: t("allStatus"), value: "" },
+                { label: t("status.active"), value: "active" },
+                { label: t("status.inactive"), value: "inactive" },
+              ],
+            },
+            {
+              key: "compatible",
+              label: t("table.compatible"),
+              value: upstreams.compatibleFilter,
+              onValueChange: upstreams.setCompatibleFilter,
+              options: [
+                { label: t("allCompatible"), value: "" },
+                ...UPSTREAM_COMPATIBLE_OPTIONS.map((option) => ({
+                  label: option.value === "custom" ? t("compatibleCustom") : option.label,
+                  value: option.value,
+                })),
+              ],
+            },
+          ]}
+          sort={{
+            value: upstreams.sortValue,
+            onValueChange: (value) => {
+              const option = USER_UPSTREAM_SORT_OPTIONS.find((item) => item.value === value);
+              if (option) {
+                upstreams.setSortValue(option.value);
+              }
+            },
+            options: USER_UPSTREAM_SORT_OPTIONS.map((option) => ({ label: t(option.labelKey), value: option.value })),
+          }}
+          loading={upstreams.loading}
+          onRefresh={() => void upstreams.reload()}
+        >
+          <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={openCreate} disabled={upstreams.loading}>
+            <Plus className="size-3.5 stroke-1" />
+            {t("addTitle")}
+          </Button>
+        </TableToolbar>
+
+        {upstreams.loadError ? (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2">
+            <span className="min-w-0 truncate text-xs text-destructive">{t("loadFailed")}</span>
+            <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => void upstreams.reload()}>
+              <RefreshCw className="size-3.5 stroke-1" />
+              {t("retry")}
+            </Button>
+          </div>
+        ) : null}
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("table.name")}</TableHead>
+              <TableHead>{t("table.url")}</TableHead>
+              <TableHead>{t("table.compatible")}</TableHead>
+              <TableHead>{t("table.models")}</TableHead>
+              <TableHead className="text-center">{t("table.status")}</TableHead>
+              <TableHead>{t("table.updatedAt")}</TableHead>
+              <TableHead className="w-[56px]" stickyEnd />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {initialLoading ? <TableLoadingRow colSpan={7} /> : null}
+            {!upstreams.loading && upstreams.upstreams.length === 0 ? (
+              <TableEmptyRow colSpan={7}>{t("empty")}</TableEmptyRow>
+            ) : null}
+            {upstreams.upstreams.map((upstream) => (
+              <TableRow key={upstream.id}>
+                <TableCell className="whitespace-nowrap">
+                  <div className="max-w-[18rem] truncate font-medium">{upstream.name}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="max-w-[16rem] truncate text-xs text-muted-foreground" title={upstream.baseURL}>
+                    {upstream.baseURL}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge variant="secondary">
+                    {upstream.compatible === "custom" ? t("compatibleCustom") : resolveCompatibleLabel(upstream.compatible)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                  {t("modelCountSummary", { active: upstream.activeModelsCount, total: upstream.modelsCount })}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Badge variant={upstream.status === "active" ? "secondary" : "outline"}>
+                      {upstream.status === "active" ? t("status.active") : t("status.inactive")}
+                    </Badge>
+                    {upstream.circuitOpen ? <Badge variant="destructive">{t("status.circuitOpen")}</Badge> : null}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                  {formatDateTime(upstream.updatedAt, locale)}
+                </TableCell>
+                <TableCell className="w-[56px] whitespace-nowrap" stickyEnd>
+                  <div className="flex items-center justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon-xs" className="text-muted-foreground shadow-none">
+                          <MoreHorizontal className="size-3.5 stroke-1" />
+                          <span className="sr-only">{t("table.actions")}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => openEdit(upstream)}>
+                          <Pencil className="size-3.5 stroke-1" />
+                          {t("actions.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setModelsTarget(upstream)}>
+                          <Settings2 className="size-3.5 stroke-1" />
+                          {t("actions.manageModels")}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget(upstream)}>
+                          <Trash2 className="size-3.5 stroke-1" />
+                          {t("actions.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        <TablePagination
+          total={upstreams.total}
+          page={upstreams.page}
+          pageCount={upstreams.pageCount}
+          pageSize={upstreams.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={upstreams.setPage}
+          onPageSizeChange={upstreams.setPageSize}
+          loading={upstreams.loading}
+        />
       </SettingsSection>
-      <SettingsSection title={t("yourUpstreams")}>
-        {loading ? <p className="text-sm text-muted-foreground">{t("loading")}</p> : null}
-        {!loading && upstreams.length === 0 ? <p className="text-sm text-muted-foreground">{t("empty")}</p> : null}
-        <div className="grid gap-4">
-          {upstreams.map((upstream) => {
-            const input = modelInputs[upstream.id] ?? "";
-            return <Card key={upstream.id}>
-              <CardHeader className="flex-row items-center justify-between gap-3"><CardTitle className="text-sm">{upstream.name}</CardTitle><div className="flex items-center gap-1"><Button aria-label={t("edit")} onClick={() => openEdit(upstream)} size="icon-sm" variant="ghost"><Pencil /></Button><Button aria-label={t("delete")} onClick={() => setDeletingUpstream(upstream)} size="icon-sm" variant="ghost"><Trash2 /></Button></div></CardHeader>
-              <CardContent className="space-y-3 text-xs text-muted-foreground">
-                <div>{upstream.baseURL} · {upstream.compatible}</div>
-                <div className="flex gap-2"><Button onClick={() => void openDiscover(upstream.id)} size="sm" variant="outline"><RefreshCw />{t("discover")}</Button></div>
-                <div className="space-y-2"><Input value={input} onChange={(event) => setModelInputs((current) => ({ ...current, [upstream.id]: event.target.value }))} placeholder={t("modelsPlaceholder")} /><Button disabled={!input.trim()} onClick={() => void addModels(upstream.id, input.split(",").map((item) => item.trim()).filter(Boolean))} size="sm"><Plus />{t("addModels")}</Button></div>
-              </CardContent>
-            </Card>;
-          })}
-        </div>
-      </SettingsSection>
-      <AlertDialog open={deletingUpstream !== null} onOpenChange={(open) => !open && setDeletingUpstream(null)}>
+
+      <UpstreamsSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        upstream={sheetTarget}
+        saving={upstreams.saving}
+        onCreate={upstreams.addUpstream}
+        onUpdate={upstreams.editUpstream}
+      />
+
+      <UpstreamsModelsDialog
+        open={modelsTarget !== null}
+        onOpenChange={(open) => !open && setModelsTarget(null)}
+        upstream={modelsTarget}
+        addedModels={modelsTarget ? upstreams.addedModels[modelsTarget.id] ?? [] : []}
+        saving={upstreams.saving}
+        onDiscover={upstreams.discover}
+        onAddModels={upstreams.addModels}
+        onRemoveModel={upstreams.removeModel}
+      />
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent size="compact">
-          <AlertDialogHeader><AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle><AlertDialogDescription>{t("confirmDelete")}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{t("cancel")}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => void confirmRemove()}>{t("delete")}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmDelete")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (deleteTarget) {
+                  void upstreams.remove(deleteTarget.id);
+                }
+                setDeleteTarget(null);
+              }}
+            >
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={editingUpstream !== null} onOpenChange={(open) => !open && setEditingUpstream(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t("editTitle")}</DialogTitle><DialogDescription>{t("editDescription")}</DialogDescription></DialogHeader>
-          <form className="grid gap-3" onSubmit={submitEdit}>
-            <Input value={editName} onChange={(event) => setEditName(event.target.value)} placeholder={t("name")} required />
-            <Input value={editBaseURL} onChange={(event) => setEditBaseURL(event.target.value)} placeholder={t("baseURL")} type="url" required />
-            <Input value={editCompatible} onChange={(event) => setEditCompatible(event.target.value)} placeholder={t("compatible")} required />
-            <Input value={editAPIKey} onChange={(event) => setEditAPIKey(event.target.value)} placeholder={t("apiKeyOptional")} type="password" />
-            <DialogFooter><Button type="submit">{t("save")}</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={discoveringUpstreamID !== null} onOpenChange={(open) => !open && setDiscoveringUpstreamID(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t("discoverTitle")}</DialogTitle><DialogDescription>{t("discoverDescription")}</DialogDescription></DialogHeader>
-          <div className="max-h-[min(55vh,420px)] space-y-2 overflow-y-auto">
-            {(discoveringUpstreamID === null ? [] : remoteModels[discoveringUpstreamID] ?? []).map((model) => {
-              const checked = model.alreadyBound || (selectedModels[discoveringUpstreamID ?? 0] ?? []).includes(model.upstreamModelName);
-              return <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border/60 px-3 py-2 text-sm" key={model.upstreamModelName}>
-                <Checkbox checked={checked} disabled={model.alreadyBound} onCheckedChange={(value) => toggleModel(discoveringUpstreamID ?? 0, model, value === true)} />
-                <span className="min-w-0 flex-1 truncate">{model.upstreamModelName}</span>
-                {model.alreadyBound ? <span className="text-xs text-muted-foreground">{t("added")}</span> : null}
-              </label>;
-            })}
-          </div>
-          <DialogFooter><Button disabled={(selectedModels[discoveringUpstreamID ?? 0] ?? []).length === 0} onClick={() => void importSelectedModels()}><Plus />{t("addSelected")}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </SettingsPage>
   );
 }

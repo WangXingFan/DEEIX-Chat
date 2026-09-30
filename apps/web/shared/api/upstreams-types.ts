@@ -7,6 +7,9 @@ export type UserUpstreamDTO = {
   status: string;
   modelsCount: number;
   activeModelsCount: number;
+  circuitOpen: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type UserUpstreamModelDTO = {
@@ -15,6 +18,9 @@ export type UserUpstreamModelDTO = {
   upstreamID: number;
   routeID: number;
   protocol: string;
+  routeStatus: string;
+  upstreamModelStatus: string;
+  circuitOpen: boolean;
 };
 
 export type UserRemoteModelDTO = {

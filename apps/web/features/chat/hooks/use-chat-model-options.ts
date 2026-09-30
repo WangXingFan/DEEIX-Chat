@@ -457,11 +457,11 @@ export function useChatModelOptions({
 
   React.useEffect(() => {
     const handleCatalogChanged = () => {
-      void refreshModelCatalog();
+      void refreshModelCatalog().catch(() => setModelsErrorMsg(t("loadFailed")));
     };
     window.addEventListener(MODEL_CATALOG_CHANGED_EVENT, handleCatalogChanged);
     return () => window.removeEventListener(MODEL_CATALOG_CHANGED_EVENT, handleCatalogChanged);
-  }, [refreshModelCatalog]);
+  }, [refreshModelCatalog, t]);
 
   const refreshModelOption = React.useCallback(async (platformModelName: string): Promise<ChatModelOption | null> => {
     const normalizedName = platformModelName.trim();

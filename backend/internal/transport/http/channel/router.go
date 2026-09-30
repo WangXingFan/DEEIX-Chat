@@ -15,7 +15,9 @@ func (m *Module) RegisterRoutes(authRequired *gin.RouterGroup) {
 	authRequired.PATCH("/upstreams/:id", m.Handler.UpdateUserUpstream)
 	authRequired.DELETE("/upstreams/:id", m.Handler.DeleteUserUpstream)
 	authRequired.GET("/upstreams/:id/models/remote", m.Handler.ListUserRemoteModels)
+	authRequired.GET("/upstreams/:id/models", m.Handler.ListUserUpstreamModels)
 	authRequired.POST("/upstreams/:id/models", m.Handler.ImportUserModels)
+	authRequired.DELETE("/upstreams/:id/models/:route_id", m.Handler.DeleteUserUpstreamModel)
 }
 
 // RegisterAdminRoutes 注册管理员侧上游配置路由。

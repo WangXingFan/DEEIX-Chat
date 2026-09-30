@@ -62,6 +62,7 @@ import { Badge } from "@/components/ui/badge";
 import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
 import { ApiError } from "@/shared/api/http-client";
 import { useDialogSnapshot } from "@/shared/hooks/use-dialog-snapshot";
+import { UpstreamModelsDialogContent } from "@/shared/components/upstream-models-dialog-content";
 import { isOneOf } from "@/shared/lib/type-guards";
 import { cn } from "@/lib/utils";
 import type {
@@ -1308,10 +1309,7 @@ export function UpstreamModelsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className="w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0 md:w-[calc(100vw-8rem)] sm:max-w-[860px]"
-        >
-          <DialogHeightTransition contentClassName="max-h-[min(86vh,760px)]">
+        <UpstreamModelsDialogContent>
             <DialogHeader className="shrink-0 px-4 py-4">
               <DialogTitle>{t("modelsDialog.manageTitle")}</DialogTitle>
               <DialogDescription>
@@ -1541,8 +1539,7 @@ export function UpstreamModelsDialog({
                 {saving ? <SpinnerLabel>{t("sheet.saving")}</SpinnerLabel> : commonT("actions.save")}
               </Button>
             </DialogFooter>
-          </DialogHeightTransition>
-        </DialogContent>
+        </UpstreamModelsDialogContent>
       </Dialog>
 
       {stableUpstream && (
