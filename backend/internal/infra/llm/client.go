@@ -37,8 +37,9 @@ const upstreamRequestIDHeaderTemplate = "${DEEIX_UPSTREAM_REQUEST_ID}"
 
 // Client 负责跨厂商共享的 HTTP client、adapter 路由和上游调试能力。
 type Client struct {
-	httpClients *outboundhttp.Pool
-	adapters    map[string]transportAdapter
+	httpClients       *outboundhttp.Pool
+	strictHTTPClients *outboundhttp.Pool
+	adapters          map[string]transportAdapter
 }
 
 func normalizeConnectTimeoutMS(ms int) int {
@@ -511,6 +512,10 @@ func NewClient(outboundPolicy security.OutboundPolicy) *Client {
 	client.httpClients = outboundhttp.NewPool(outboundPolicy, outboundhttp.DefaultCacheLimit, func(policy security.OutboundPolicy, trustedOrigin string, variant string) (outboundhttp.ManagedClient, error) {
 		return newRouteHTTPClient(policy, outboundPolicy, trustedOrigin, variant)
 	})
+	strictPolicy := security.NewStrictOutboundPolicy(true)
+	client.strictHTTPClients = outboundhttp.NewPool(strictPolicy, outboundhttp.DefaultCacheLimit, func(policy security.OutboundPolicy, trustedOrigin string, variant string) (outboundhttp.ManagedClient, error) {
+		return newRouteHTTPClient(policy, strictPolicy, trustedOrigin, variant)
+	})
 	client.adapters = map[string]transportAdapter{
 		portllm.AdapterOpenAIResponses:        &openAIResponsesAdapter{client: client},
 		portllm.AdapterOpenRouterChat:         &openRouterChatCompletionsAdapter{client: client},
@@ -559,9 +564,7 @@ func newRouteHTTPClient(policy security.OutboundPolicy, redirectPolicy security.
 		Timeout:   0,
 		Transport: platformtracing.NewHTTPTransport(transport),
 	}
-	if trustedOrigin != "" {
-		client.CheckRedirect = outboundhttp.NewRedirectPolicy(redirectPolicy, trustedOrigin, "model provider")
-	}
+	client.CheckRedirect = outboundhttp.NewRedirectPolicy(redirectPolicy, trustedOrigin, "model provider")
 	return outboundhttp.ManagedClient{Client: client, CloseIdleConnections: transport.CloseIdleConnections}, nil
 }
 
@@ -570,7 +573,13 @@ func (c *Client) doRouteRequest(route portllm.RouteConfig, request *http.Request
 		return nil, fmt.Errorf("model provider request is nil")
 	}
 	connectTimeoutMS := normalizeConnectTimeoutMS(route.ConnectTimeoutMS)
-	return c.httpClients.Do(request, route.BaseURL, strconv.Itoa(connectTimeoutMS))
+	pool := c.httpClients
+	endpoint := route.BaseURL
+	if route.UserConfigured {
+		pool = c.strictHTTPClients
+		endpoint = ""
+	}
+	return pool.Do(request, endpoint, strconv.Itoa(connectTimeoutMS))
 }
 
 func (c *Client) doRouteGenerationRequest(route portllm.RouteConfig, request *http.Request) (*http.Response, error) {
@@ -579,7 +588,13 @@ func (c *Client) doRouteGenerationRequest(route portllm.RouteConfig, request *ht
 	}
 	connectTimeoutMS := normalizeConnectTimeoutMS(route.ConnectTimeoutMS)
 	return doGenerationRequest(func(tracedRequest *http.Request) (*http.Response, error) {
-		return c.httpClients.Do(tracedRequest, route.BaseURL, strconv.Itoa(connectTimeoutMS))
+		pool := c.httpClients
+		endpoint := route.BaseURL
+		if route.UserConfigured {
+			pool = c.strictHTTPClients
+			endpoint = ""
+		}
+		return pool.Do(tracedRequest, endpoint, strconv.Itoa(connectTimeoutMS))
 	}, request)
 }
 
@@ -587,6 +602,9 @@ func (c *Client) doRouteGenerationRequest(route portllm.RouteConfig, request *ht
 func (c *Client) CloseIdleConnections() {
 	if c != nil && c.httpClients != nil {
 		c.httpClients.CloseIdleConnections()
+	}
+	if c != nil && c.strictHTTPClients != nil {
+		c.strictHTTPClients.CloseIdleConnections()
 	}
 }
 

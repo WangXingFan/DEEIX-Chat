@@ -10,6 +10,12 @@ func (m *Module) RegisterPublicRoutes(public *gin.RouterGroup) {
 // RegisterRoutes 注册用户侧模型目录路由。
 func (m *Module) RegisterRoutes(authRequired *gin.RouterGroup) {
 	authRequired.GET("/models", m.Handler.ListPublicModels)
+	authRequired.GET("/upstreams", m.Handler.ListUserUpstreams)
+	authRequired.POST("/upstreams", m.Handler.CreateUserUpstream)
+	authRequired.PATCH("/upstreams/:id", m.Handler.UpdateUserUpstream)
+	authRequired.DELETE("/upstreams/:id", m.Handler.DeleteUserUpstream)
+	authRequired.GET("/upstreams/:id/models/remote", m.Handler.ListUserRemoteModels)
+	authRequired.POST("/upstreams/:id/models", m.Handler.ImportUserModels)
 }
 
 // RegisterAdminRoutes 注册管理员侧上游配置路由。

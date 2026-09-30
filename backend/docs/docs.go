@@ -27076,6 +27076,7 @@ const docTemplate = `{
                 "displayGroupID",
                 "displayGroupIcon",
                 "displayGroupName",
+                "displayName",
                 "icon",
                 "kindsJSON",
                 "platformModelName",
@@ -27102,6 +27103,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "displayGroupName": {
+                    "type": "string"
+                },
+                "displayName": {
                     "type": "string"
                 },
                 "icon": {

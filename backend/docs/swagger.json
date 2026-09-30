@@ -27069,6 +27069,7 @@
                 "displayGroupID",
                 "displayGroupIcon",
                 "displayGroupName",
+                "displayName",
                 "icon",
                 "kindsJSON",
                 "platformModelName",
@@ -27095,6 +27096,9 @@
                     "type": "string"
                 },
                 "displayGroupName": {
+                    "type": "string"
+                },
+                "displayName": {
                     "type": "string"
                 },
                 "icon": {

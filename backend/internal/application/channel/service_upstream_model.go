@@ -67,6 +67,13 @@ func (s *Service) ListUpstreamModels(ctx context.Context, upstreamID uint, page 
 
 // UpsertUpstreamModel 新增或更新平台模型到上游真实模型的路由绑定。
 func (s *Service) UpsertUpstreamModel(ctx context.Context, upstreamID uint, input UpsertUpstreamModelInput) (*UpstreamModelView, error) {
+	upstreamOwner, ownerErr := s.repo.GetUpstreamByID(ctx, upstreamID)
+	if ownerErr != nil {
+		return nil, ownerErr
+	}
+	if upstreamOwner.OwnerUserID != 0 && input.OwnerUserID != upstreamOwner.OwnerUserID {
+		return nil, ErrUpstreamNotFound
+	}
 	platformModelName, err := normalizePlatformModelName(input.PlatformModelName)
 	if err != nil {
 		return nil, err
@@ -102,7 +109,7 @@ func (s *Service) UpsertUpstreamModel(ctx context.Context, upstreamID uint, inpu
 			return txErr
 		}
 
-		platformModel, platformModelCreated, txErr := ensurePlatformModel(ctx, txRepo, platformModelName, kindsJSON, upstreamModelName)
+		platformModel, platformModelCreated, txErr := ensurePlatformModel(ctx, txRepo, platformModelName, kindsJSON, input.OwnerUserID, input.DisplayName, upstreamModelName)
 		if txErr != nil {
 			return txErr
 		}
@@ -280,14 +287,19 @@ func applyRouteOverrides(route *domainchannel.PlatformModelRoute, input UpsertUp
 	}
 }
 
-func ensurePlatformModel(ctx context.Context, repo repository.ChannelRepository, platformModelName string, kindsJSON string, candidates ...string) (*domainchannel.PlatformModel, bool, error) {
+func ensurePlatformModel(ctx context.Context, repo repository.ChannelRepository, platformModelName string, kindsJSON string, ownerUserID uint, displayName string, candidates ...string) (*domainchannel.PlatformModel, bool, error) {
 	if item, err := repo.GetModelByName(ctx, platformModelName); err == nil {
+		if item.OwnerUserID != ownerUserID {
+			return nil, false, ErrModelAccessDenied
+		}
 		return item, false, nil
 	} else if !errors.Is(err, ErrModelNotFound) {
 		return nil, false, err
 	}
 
 	item := &domainchannel.PlatformModel{
+		OwnerUserID:       ownerUserID,
+		DisplayName:       strings.TrimSpace(displayName),
 		PlatformModelName: platformModelName,
 		Vendor:            normalizeModelVendor("", platformModelName, strings.Join(candidates, " ")),
 		KindsJSON:         kindsJSON,
@@ -303,6 +315,9 @@ func ensurePlatformModel(ctx context.Context, repo repository.ChannelRepository,
 		item, err = repo.GetModelByName(ctx, platformModelName)
 		if err != nil {
 			return nil, false, err
+		}
+		if item.OwnerUserID != ownerUserID {
+			return nil, false, ErrModelAccessDenied
 		}
 		return item, false, nil
 	}

@@ -636,6 +636,7 @@ type CircuitResetResponse struct {
 // PublicModelResponse 面向前端的可用模型展示 DTO。
 type PublicModelResponse struct {
 	PlatformModelName string                      `json:"platformModelName"`
+	DisplayName       string                      `json:"displayName"`
 	Vendor            string                      `json:"vendor"`
 	VendorName        string                      `json:"vendorName"`
 	VendorIcon        string                      `json:"vendorIcon"`
@@ -842,6 +843,7 @@ func toLLMSettingResponse(v domainchannel.LLMSetting) LLMSettingResponse {
 func toPublicModelResponse(v appchannel.ModelView) PublicModelResponse {
 	return PublicModelResponse{
 		PlatformModelName: v.PlatformModelName,
+		DisplayName:       v.DisplayName,
 		Vendor:            v.Vendor,
 		VendorName:        v.VendorName,
 		VendorIcon:        v.VendorIcon,

@@ -5,6 +5,7 @@ import "time"
 // LLMUpstream 存储上游配置。
 type LLMUpstream struct {
 	ControlPlaneModel
+	OwnerUserID          uint   `gorm:"not null;default:0;index:idx_llm_upstreams_owner_user_id;comment:所属用户ID，公共上游为0"`
 	Name                 string `gorm:"size:128;not null;default:'';comment:上游名称"`
 	BaseURL              string `gorm:"size:512;not null;default:'';comment:上游服务地址"`
 	Compatible           string `gorm:"size:32;not null;default:'openai';index:idx_llm_upstreams_compatible;comment:上游API兼容风格"`
@@ -32,6 +33,8 @@ func (LLMUpstream) TableName() string {
 // Name 是用户请求、公开模型列表、会话默认模型和计费配置使用的唯一模型名。
 type LLMPlatformModel struct {
 	ControlPlaneModel
+	OwnerUserID        uint   `gorm:"not null;default:0;index:idx_llm_platform_models_owner"`
+	DisplayName        string `gorm:"size:256;not null;default:''"`
 	Name               string `gorm:"size:128;not null;default:'';uniqueIndex:idx_llm_platform_models_name;comment:平台模型名"`
 	Vendor             string `gorm:"size:64;not null;default:'';index:idx_llm_platform_models_vendor;comment:平台模型技术厂商标识"`
 	DisplayGroupID     *uint  `gorm:"index:idx_llm_platform_models_display_group;comment:可选展示分组ID，为空时按技术厂商展示"`

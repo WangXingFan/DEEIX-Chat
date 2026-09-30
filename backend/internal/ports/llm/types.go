@@ -31,6 +31,7 @@ const (
 type RouteConfig struct {
 	Protocol            string
 	BaseURL             string
+	UserConfigured      bool
 	APIKey              string
 	HeadersJSON         string
 	ConnectTimeoutMS    int // TCP 建连超时（默认 10s）

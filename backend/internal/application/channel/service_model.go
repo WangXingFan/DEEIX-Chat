@@ -26,6 +26,7 @@ const maxSystemPromptChars = 20000
 
 // ListModelsInput 定义模型列表筛选排序条件。
 type ListModelsInput struct {
+	OwnerUserID   *uint
 	OnlyActive    bool
 	OnlyAvailable bool
 	Query         string
@@ -38,10 +39,15 @@ type ListModelsInput struct {
 
 // ListModels 分页查询模型目录。
 func (s *Service) ListModels(ctx context.Context, page int, pageSize int, input ListModelsInput) ([]ModelView, int64, error) {
+	if input.OwnerUserID == nil {
+		publicOwnerID := uint(0)
+		input.OwnerUserID = &publicOwnerID
+	}
 	offset, limit := pagination.Offset(page, pageSize)
 	items, total, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
 		Offset:        offset,
 		Limit:         limit,
+		OwnerUserID:   input.OwnerUserID,
 		OnlyActive:    input.OnlyActive,
 		OnlyAvailable: input.OnlyAvailable,
 		Query:         input.Query,
@@ -72,7 +78,41 @@ func (s *Service) ListActiveModels(ctx context.Context, userID uint) ([]ModelVie
 	if err != nil {
 		return nil, err
 	}
-	return s.filterModelsByPermission(ctx, userID, views)
+	views, err = s.filterModelsByPermission(ctx, userID, views)
+	if err != nil {
+		return nil, err
+	}
+	views, err = s.filterModelsByUpstreamOwner(ctx, userID, views)
+	if err != nil || userID == 0 {
+		return views, err
+	}
+	privateModels, err := s.ListUserModels(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return append(views, privateModels...), nil
+}
+
+// filterModelsByUpstreamOwner hides private upstream models from every other
+// user while keeping public upstream routes available to all users.
+func (s *Service) filterModelsByUpstreamOwner(ctx context.Context, userID uint, views []ModelView) ([]ModelView, error) {
+	if userID == 0 || len(views) == 0 {
+		return views, nil
+	}
+	results := make([]ModelView, 0, len(views))
+	for _, view := range views {
+		routes, err := s.repo.ListActiveRoutesByModel(ctx, view.PlatformModelName)
+		if err != nil {
+			return nil, err
+		}
+		for _, route := range routes {
+			if route.UpstreamOwnerUserID == 0 {
+				results = append(results, view)
+				break
+			}
+		}
+	}
+	return results, nil
 }
 
 func (s *Service) listActiveModelViews(ctx context.Context) ([]ModelView, error) {
@@ -173,12 +213,14 @@ func (s *Service) filterModelsByPermission(ctx context.Context, userID uint, vie
 
 func (s *Service) listAllActiveModelRows(ctx context.Context) ([]repository.ChannelModelListRow, error) {
 	const batchSize = 500
+	publicOwnerID := uint(0)
 	results := make([]repository.ChannelModelListRow, 0)
 	for offset := 0; ; offset += batchSize {
 		items, _, err := s.repo.ListModels(ctx, repository.ListChannelModelsInput{
 			Offset:     offset,
 			Limit:      batchSize,
 			OnlyActive: true,
+			OwnerUserID: &publicOwnerID,
 			Sort:       "sortOrder_asc",
 		})
 		if err != nil {
@@ -330,6 +372,7 @@ func (s *Service) ResolvePlatformModelIdentity(ctx context.Context, platformMode
 	}
 	return appbilling.PlatformModelIdentity{
 		PlatformModelID:   item.ID,
+		OwnerUserID:       item.OwnerUserID,
 		PlatformModelName: item.PlatformModelName,
 		ModelVendor:       strings.TrimSpace(item.Vendor),
 		ModelIcon:         strings.TrimSpace(item.Icon),

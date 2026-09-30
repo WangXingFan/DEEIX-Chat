@@ -3133,6 +3133,7 @@ export interface PublicModelResponse {
   displayGroupID: number | null;
   displayGroupIcon: string;
   displayGroupName: string;
+  displayName: string;
   icon: string;
   kindsJSON: string;
   platformModelName: string;

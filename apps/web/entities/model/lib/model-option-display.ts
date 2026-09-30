@@ -24,8 +24,8 @@ export function isRoutableChatPlatformModel(model: {
   return kinds.includes("chat");
 }
 
-export function resolveModelOptionLabel(platformModelName: string): string {
-  return platformModelName.trim();
+export function resolveModelOptionLabel(platformModelName: string, displayName?: string | null): string {
+	return displayName?.trim() || platformModelName.trim();
 }
 
 export function resolveModelOptionIconUrl({

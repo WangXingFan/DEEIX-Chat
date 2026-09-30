@@ -6991,6 +6991,8 @@ definitions:
         type: string
       displayGroupName:
         type: string
+      displayName:
+        type: string
       icon:
         type: string
       kindsJSON:
@@ -7018,6 +7020,7 @@ definitions:
     - displayGroupID
     - displayGroupIcon
     - displayGroupName
+    - displayName
     - icon
     - kindsJSON
     - platformModelName

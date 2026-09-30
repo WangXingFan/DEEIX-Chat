@@ -32,6 +32,7 @@ type RateLimitDefaults struct {
 // Upstream 表示上游配置。
 type Upstream struct {
 	ID                   uint
+	OwnerUserID          uint
 	Name                 string
 	BaseURL              string
 	Compatible           string
@@ -54,6 +55,8 @@ type Upstream struct {
 // PlatformModel 表示平台对用户提供和计费的模型。
 type PlatformModel struct {
 	ID                 uint
+	OwnerUserID        uint
+	DisplayName        string
 	PlatformModelName  string
 	Vendor             string
 	DisplayGroupID     *uint

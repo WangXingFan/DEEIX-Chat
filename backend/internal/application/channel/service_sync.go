@@ -538,6 +538,7 @@ func (s *Service) fetchRemoteModels(ctx context.Context, up *domainchannel.Upstr
 	items, err := s.llmClient.ListModels(ctx, llm.RouteConfig{
 		Protocol:           protocol,
 		BaseURL:            up.BaseURL,
+		UserConfigured:     up.OwnerUserID != 0,
 		APIKey:             apiKey,
 		HeadersJSON:        up.HeadersJSON,
 		ConnectTimeoutMS:   up.ConnectTimeoutMS,

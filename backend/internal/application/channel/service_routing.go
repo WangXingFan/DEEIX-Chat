@@ -36,10 +36,13 @@ func (s *Service) ResolveRoute(ctx context.Context, input ResolveRouteInput) (*R
 	if err != nil {
 		return nil, err
 	}
+	if platformModel.OwnerUserID != 0 && platformModel.OwnerUserID != input.UserID {
+		return nil, ErrModelAccessDenied
+	}
 	if !routeScopeAllowsModelAccess(input.Scope, platformModel.AccessScope) {
 		return nil, ErrModelAccessDenied
 	}
-	if normalizeRouteScope(input.Scope) == RouteScopeUser && input.UserID > 0 {
+	if platformModel.OwnerUserID == 0 && normalizeRouteScope(input.Scope) == RouteScopeUser && input.UserID > 0 {
 		accessible, err := s.isModelAccessible(ctx, platformModel.ID, input.UserID)
 		if err != nil {
 			return nil, err
@@ -60,6 +63,10 @@ func (s *Service) ResolveRoute(ctx context.Context, input ResolveRouteInput) (*R
 	excludedRouteIDs := makeRouteIDSet(input.ExcludedRouteIDs)
 	available := make([]repository.ChannelUpstreamRouteRow, 0, len(rows))
 	for _, row := range rows {
+		if row.UpstreamOwnerUserID != platformModel.OwnerUserID ||
+			(row.UpstreamOwnerUserID != 0 && row.UpstreamOwnerUserID != input.UserID) {
+			continue
+		}
 		if _, excluded := excludedRouteIDs[row.RouteID]; excluded {
 			continue
 		}
@@ -403,6 +410,7 @@ func buildResolvedRoute(row repository.ChannelUpstreamRouteRow, apiKey string) *
 		BindingCode:                     strings.TrimSpace(row.BindingCode),
 		Protocol:                        row.Protocol,
 		BaseURL:                         strings.TrimSpace(row.BaseURL),
+		UserConfigured:                  row.UpstreamOwnerUserID != 0,
 		APIKey:                          apiKey,
 		ConnectTimeoutMS:                row.ConnectTimeoutMS,
 		ReadTimeoutMS:                   row.ReadTimeoutMS,

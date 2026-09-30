@@ -11,6 +11,7 @@ var (
 	ErrPeriodCreditExceeded = apperr.New("billing.period_credit_exceeded", "period usage credit exceeded")
 	// ErrModelPricingRequired 付费模型缺少有效单价。
 	ErrModelPricingRequired = apperr.New("billing.pricing_required", "model pricing is required")
+	ErrModelAccessDenied    = apperr.NewMasked("billing.model_access_denied", "model access denied", "model access denied")
 	// ErrInvalidModelPricing 表示模型定价输入非法或目标平台模型不存在。
 	ErrInvalidModelPricing = apperr.New("billing.invalid_model_pricing", "invalid model pricing")
 	// ErrPaymentRequired 付费套餐必须先完成支付。

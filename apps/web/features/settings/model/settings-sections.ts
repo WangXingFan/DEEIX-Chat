@@ -5,6 +5,7 @@ import type { Feature } from "@deeix/core";
 export const SETTINGS_SECTIONS = [
   { id: "general", labelKey: "general", href: "/general" },
   { id: "chat", labelKey: "chat", href: "/chat" },
+  { id: "upstreams", labelKey: "upstreams", href: "/upstreams" },
   { id: "subscription", labelKey: "subscription", href: "/subscription", feature: "billingGating" },
   { id: "account", labelKey: "account", href: "/account" },
   { id: "about", labelKey: "about", href: "/about" },

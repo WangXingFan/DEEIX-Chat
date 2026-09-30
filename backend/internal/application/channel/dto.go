@@ -124,6 +124,7 @@ type ImportUpstreamModelResultView struct {
 // UpstreamView 上游展示数据（内部传输，不携带序列化标记）。
 type UpstreamView struct {
 	ID                   uint
+	OwnerUserID          uint
 	Name                 string
 	BaseURL              string
 	Compatible           string
@@ -160,6 +161,8 @@ type UpstreamAPIKeyView struct {
 // ModelView 模型展示数据（内部传输，不携带序列化标记）。
 type ModelView struct {
 	ID                 uint
+	OwnerUserID        uint
+	DisplayName        string
 	PlatformModelName  string
 	Vendor             string
 	VendorName         string

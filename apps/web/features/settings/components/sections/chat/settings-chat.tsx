@@ -384,7 +384,7 @@ export function SettingsChat() {
         items
           .filter((model) => model.platformModelName.trim() && parseKindsJSON(model.kindsJSON).includes("chat"))
           .map((model) => ({
-            label: resolveModelOptionLabel(model.platformModelName),
+			label: resolveModelOptionLabel(model.platformModelName, model.displayName),
             value: model.platformModelName,
             iconUrl: resolveModelOptionIconUrl({
               platformModelName: model.platformModelName,

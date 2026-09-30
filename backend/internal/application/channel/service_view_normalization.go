@@ -20,6 +20,7 @@ import (
 func toUpstreamView(item repository.ChannelUpstreamListRow) UpstreamView {
 	return UpstreamView{
 		ID:                   item.ID,
+		OwnerUserID:          item.OwnerUserID,
 		Name:                 item.Name,
 		BaseURL:              item.BaseURL,
 		Compatible:           item.Compatible,
@@ -75,6 +76,8 @@ func (s *Service) toModelView(item repository.ChannelModelListRow) ModelView {
 	resolvedCaps := domainchannel.ResolveModelCapsFromCapabilitiesWithFallback(item.PlatformModelName, item.CapabilitiesJSON, fallbackContextWindow)
 	return ModelView{
 		ID:                 item.ID,
+		OwnerUserID:        item.OwnerUserID,
+		DisplayName:        item.DisplayName,
 		PlatformModelName:  item.PlatformModelName,
 		Vendor:             item.Vendor,
 		VendorName:         item.VendorName,

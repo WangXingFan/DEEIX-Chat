@@ -207,6 +207,9 @@ func upstreamListStatsJoinSQL() string {
 }
 
 func applyUpstreamListFilters(query *gorm.DB, input repository.ListChannelUpstreamsInput) *gorm.DB {
+	if input.OwnerUserID != nil {
+		query = query.Where("owner_user_id = ?", *input.OwnerUserID)
+	}
 	if keyword := strings.TrimSpace(input.Query); keyword != "" {
 		like := "%" + strings.ToLower(keyword) + "%"
 		query = query.Where("LOWER(name) LIKE ? OR LOWER(base_url) LIKE ?", like, like)
@@ -275,6 +278,9 @@ func (r *Repo) UpdateModel(ctx context.Context, modelID uint, input repository.U
 	updates := make(map[string]any)
 	if input.PlatformModelName != nil {
 		updates["name"] = *input.PlatformModelName
+	}
+	if input.DisplayName != nil {
+		updates["display_name"] = *input.DisplayName
 	}
 	if input.Vendor != nil {
 		updates["vendor"] = *input.Vendor
@@ -499,7 +505,7 @@ func (r *Repo) ListModels(ctx context.Context, input repository.ListChannelModel
 func (r *Repo) modelListQuery(ctx context.Context) *gorm.DB {
 	return r.modelListBaseQuery(ctx).
 		Select(
-			"m.id, m.name AS platform_model_name, m.vendor, m.display_group_id, m.kinds_json, m.icon, m.capabilities_json, m.system_prompt, m.access_scope, m.status, m.description, m.cb_policy_mode, m.cb_failure_threshold, m.cb_duration_min, m.cb_window_min, m.sort_order, m.created_at, m.updated_at, " +
+			"m.id, m.owner_user_id, m.display_name, m.name AS platform_model_name, m.vendor, m.display_group_id, m.kinds_json, m.icon, m.capabilities_json, m.system_prompt, m.access_scope, m.status, m.description, m.cb_policy_mode, m.cb_failure_threshold, m.cb_duration_min, m.cb_window_min, m.sort_order, m.created_at, m.updated_at, " +
 				"COALESCE(v.name, m.vendor) AS vendor_name, COALESCE(v.icon, '') AS vendor_icon, COALESCE(g.name, '') AS display_group_name, COALESCE(g.icon, '') AS display_group_icon, " +
 				"COALESCE(stats.source_count, 0) AS source_count, COALESCE(stats.active_source_count, 0) AS active_source_count, '[]' AS protocols_json, '[]' AS upstream_names_json",
 		).
@@ -611,6 +617,9 @@ func sortedStringSetValues(values map[string]struct{}) []string {
 }
 
 func applyModelListFilters(query *gorm.DB, input repository.ListChannelModelsInput) *gorm.DB {
+	if input.OwnerUserID != nil {
+		query = query.Where("m.owner_user_id = ?", *input.OwnerUserID)
+	}
 	if input.OnlyAvailable {
 		query = query.Where("m.status = ?", "active")
 		query = query.Where("COALESCE(NULLIF(TRIM(m.access_scope), ''), 'public') = ?", "public")
@@ -1793,8 +1802,10 @@ type routeScanRow struct {
 	RouteID                         uint
 	UpstreamModelID                 uint
 	UpstreamID                      uint
+	UpstreamOwnerUserID             uint
 	UpstreamName                    string
 	PlatformModelID                 uint
+	ModelOwnerUserID                uint
 	PlatformModelName               string
 	ModelVendor                     string
 	ModelIcon                       string
@@ -1833,8 +1844,8 @@ func (r *Repo) ListActiveRoutesByModel(ctx context.Context, platformModelName st
 	if err := r.db.WithContext(ctx).
 		Table("llm_model_routes AS r").
 		Select(
-			"r.id AS route_id, um.id AS upstream_model_id, u.id AS upstream_id, u.name AS upstream_name, "+
-				"pm.id AS platform_model_id, pm.name AS platform_model_name, pm.vendor AS model_vendor, pm.icon AS model_icon, pm.kinds_json AS model_kinds_json, pm.capabilities_json AS model_capabilities_json, pm.system_prompt AS model_system_prompt, "+
+			"r.id AS route_id, um.id AS upstream_model_id, u.id AS upstream_id, u.owner_user_id AS upstream_owner_user_id, u.name AS upstream_name, "+
+				"pm.id AS platform_model_id, pm.owner_user_id AS model_owner_user_id, pm.name AS platform_model_name, pm.vendor AS model_vendor, pm.icon AS model_icon, pm.kinds_json AS model_kinds_json, pm.capabilities_json AS model_capabilities_json, pm.system_prompt AS model_system_prompt, "+
 				"r.protocol, u.base_url, u.api_keys_enc, "+
 				"u.connect_timeout_ms, u.read_timeout_ms, u.stream_idle_timeout_ms, "+
 				"u.headers_json, r.headers_json AS route_headers_json, "+
@@ -1867,8 +1878,10 @@ func (r *Repo) ListActiveRoutesByModel(ctx context.Context, platformModelName st
 			RouteID:                         s.RouteID,
 			UpstreamModelID:                 s.UpstreamModelID,
 			UpstreamID:                      s.UpstreamID,
+			UpstreamOwnerUserID:             s.UpstreamOwnerUserID,
 			UpstreamName:                    s.UpstreamName,
 			PlatformModelID:                 s.PlatformModelID,
+			ModelOwnerUserID:                s.ModelOwnerUserID,
 			PlatformModelName:               s.PlatformModelName,
 			ModelVendor:                     s.ModelVendor,
 			ModelIcon:                       s.ModelIcon,
@@ -2049,6 +2062,7 @@ func (r *Repo) DeleteModelCascade(ctx context.Context, modelID uint) error {
 func toUpstreamDomain(item models.LLMUpstream) domainchannel.Upstream {
 	return domainchannel.Upstream{
 		ID:                   item.ID,
+		OwnerUserID:          item.OwnerUserID,
 		Name:                 item.Name,
 		BaseURL:              item.BaseURL,
 		Compatible:           item.Compatible,
@@ -2074,6 +2088,7 @@ func toUpstreamModel(item *domainchannel.Upstream) models.LLMUpstream {
 		return models.LLMUpstream{}
 	}
 	return models.LLMUpstream{
+		OwnerUserID:          item.OwnerUserID,
 		Name:                 item.Name,
 		BaseURL:              item.BaseURL,
 		Compatible:           item.Compatible,
@@ -2095,6 +2110,8 @@ func toUpstreamModel(item *domainchannel.Upstream) models.LLMUpstream {
 func toPlatformModelDomain(item models.LLMPlatformModel) domainchannel.PlatformModel {
 	return domainchannel.PlatformModel{
 		ID:                 item.ID,
+		OwnerUserID:        item.OwnerUserID,
+		DisplayName:        item.DisplayName,
 		PlatformModelName:  item.Name,
 		Vendor:             item.Vendor,
 		DisplayGroupID:     item.DisplayGroupID,
@@ -2120,6 +2137,8 @@ func toPlatformModelModel(item *domainchannel.PlatformModel) models.LLMPlatformM
 		return models.LLMPlatformModel{}
 	}
 	return models.LLMPlatformModel{
+		OwnerUserID:        item.OwnerUserID,
+		DisplayName:        item.DisplayName,
 		Name:               item.PlatformModelName,
 		Vendor:             item.Vendor,
 		DisplayGroupID:     item.DisplayGroupID,

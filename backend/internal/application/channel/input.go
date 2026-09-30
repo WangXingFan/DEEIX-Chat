@@ -2,6 +2,7 @@ package channel
 
 // CreateUpstreamInput 定义创建上游入参。
 type CreateUpstreamInput struct {
+	OwnerUserID          uint
 	Name                 string
 	BaseURL              string
 	Compatible           string
@@ -112,6 +113,8 @@ type UpdateModelDisplayGroupInput struct {
 // UpsertUpstreamModelInput 定义上游真实模型与平台路由保存入参。
 type UpsertUpstreamModelInput struct {
 	RouteIDs           []uint
+	OwnerUserID        uint
+	DisplayName        string
 	PlatformModelName  string
 	UpstreamModelName  string
 	Protocols          []string

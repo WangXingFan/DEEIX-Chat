@@ -8,4 +8,4 @@ export type PublicModelPricingTierDTO = PublicModelPricingTierResponse;
 
 export type PublicModelPricingDTO = PublicModelPricingResponse;
 
-export type PublicModelDTO = PublicModelResponse;
+export type PublicModelDTO = PublicModelResponse & { displayName?: string };

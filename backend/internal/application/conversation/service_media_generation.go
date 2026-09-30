@@ -343,6 +343,7 @@ func (s *Service) StreamMediaImage(ctx context.Context, input MediaImageInput) (
 	routeConfig := llm.RouteConfig{
 		Protocol:            route.Protocol,
 		BaseURL:             route.BaseURL,
+		UserConfigured:      route.UserConfigured,
 		APIKey:              route.APIKey,
 		HeadersJSON:         route.HeadersJSON,
 		ConnectTimeoutMS:    route.ConnectTimeoutMS,

@@ -45,6 +45,10 @@ type UpdateUpstreamRequest struct {
 	HeadersJSON          *string  `json:"headersJSON,omitempty" binding:"omitempty,max=10000"`
 }
 
+type UserUpstreamModelsRequest struct {
+	ModelNames []string `json:"modelNames" binding:"required,min=1,max=100,dive,min=1,max=256"`
+}
+
 // CreateModelRequest 创建模型请求。
 type CreateModelRequest struct {
 	PlatformModelName  string `json:"platformModelName" binding:"required,min=2,max=128"`

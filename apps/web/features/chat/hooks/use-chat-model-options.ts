@@ -13,7 +13,7 @@ import { parseSendShortcut, type SendShortcut } from "@/features/settings";
 import { getBillingConfig } from "@/shared/api/billing";
 import { listConversationRuns } from "@/shared/api/conversation";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
-import { listPublicModels } from "@/shared/api/model";
+import { listPublicModels, MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
 import type { PublicModelDTO } from "@/shared/api/model-types";
 import { getMCPPolicy, getModelOptionPolicy } from "@/shared/api/settings";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
@@ -453,6 +453,14 @@ export function useChatModelOptions({
     setModelsErrorMsg("");
     return catalog;
   }, [applyModelCatalog, loadModelCatalog]);
+
+  React.useEffect(() => {
+    const handleCatalogChanged = () => {
+      void refreshModelCatalog();
+    };
+    window.addEventListener(MODEL_CATALOG_CHANGED_EVENT, handleCatalogChanged);
+    return () => window.removeEventListener(MODEL_CATALOG_CHANGED_EVENT, handleCatalogChanged);
+  }, [refreshModelCatalog]);
 
   const refreshModelOption = React.useCallback(async (platformModelName: string): Promise<ChatModelOption | null> => {
     const normalizedName = platformModelName.trim();

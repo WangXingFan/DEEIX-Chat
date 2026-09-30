@@ -102,8 +102,10 @@ type ChannelUpstreamRouteRow struct {
 	RouteID                         uint
 	UpstreamModelID                 uint
 	UpstreamID                      uint
+	UpstreamOwnerUserID             uint
 	UpstreamName                    string
 	PlatformModelID                 uint
+	ModelOwnerUserID                uint
 	PlatformModelName               string
 	ModelVendor                     string
 	ModelIcon                       string
@@ -262,18 +264,20 @@ type ListChannelUpstreamModelsInput struct {
 
 // ListChannelUpstreamsInput 定义上游列表查询条件。
 type ListChannelUpstreamsInput struct {
-	Offset     int
-	Limit      int
-	Query      string
-	Status     string
-	Compatible string
-	Sort       string
+	Offset      int
+	Limit       int
+	OwnerUserID *uint
+	Query       string
+	Status      string
+	Compatible  string
+	Sort        string
 }
 
 // ListChannelModelsInput 定义模型列表查询条件。
 type ListChannelModelsInput struct {
 	Offset        int
 	Limit         int
+	OwnerUserID   *uint
 	OnlyActive    bool
 	OnlyAvailable bool
 	Query         string
@@ -287,6 +291,7 @@ type ListChannelModelsInput struct {
 // UpdateChannelModelInput 定义平台模型更新字段。
 type UpdateChannelModelInput struct {
 	PlatformModelName *string
+	DisplayName       *string
 	Vendor            *string
 	// DisplayGroupID 为 nil 时不更新；值为 0 时清空分组并恢复按技术厂商展示。
 	DisplayGroupID     *uint

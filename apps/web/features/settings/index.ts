@@ -18,3 +18,4 @@ export { SettingsAccount } from "@/features/settings/components/sections/account
 export { SettingsChat } from "@/features/settings/components/sections/chat/settings-chat";
 export { SettingsGeneral } from "@/features/settings/components/sections/general/settings-general";
 export { SettingsSubscription } from "@/features/settings/components/sections/subscription/settings-subscription";
+export { SettingsUpstreams } from "@/features/settings/components/sections/upstreams/settings-upstreams";

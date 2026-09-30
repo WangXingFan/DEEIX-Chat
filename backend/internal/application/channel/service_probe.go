@@ -327,6 +327,7 @@ func modelProbeRouteConfig(route *ResolvedRoute, attributionReferer string, attr
 	return llm.RouteConfig{
 		Protocol:            route.Protocol,
 		BaseURL:             route.BaseURL,
+		UserConfigured:      route.UserConfigured,
 		APIKey:              route.APIKey,
 		HeadersJSON:         route.HeadersJSON,
 		ConnectTimeoutMS:    route.ConnectTimeoutMS,

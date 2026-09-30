@@ -120,11 +120,14 @@ func (s *Service) callCompactLLM(ctx context.Context, platformModelName string, 
 	if strings.TrimSpace(code) == "" {
 		return "", errors.New("compact model not configured")
 	}
+	billingCtx, hasBillingContext := ctx.Value(basicServiceBillingContextKey{}).(basicServiceBillingContext)
 
 	route, err := s.routeResolver.ResolveRoute(ctx, channel.ResolveRouteInput{
 		PlatformModelName: code,
 		TaskType:          channel.TaskTypeChat,
 		Scope:             channel.RouteScopeInternal,
+		UserID:            billingCtx.UserID,
+		ConversationID:    billingCtx.ConversationID,
 	})
 	if err != nil {
 		return "", fmt.Errorf("compact route resolve: %w", err)
@@ -150,6 +153,7 @@ func (s *Service) callCompactLLM(ctx context.Context, platformModelName string, 
 	routeConfig := llm.RouteConfig{
 		Protocol:            route.Protocol,
 		BaseURL:             route.BaseURL,
+		UserConfigured:      route.UserConfigured,
 		APIKey:              route.APIKey,
 		HeadersJSON:         route.HeadersJSON,
 		ConnectTimeoutMS:    route.ConnectTimeoutMS,
@@ -163,7 +167,6 @@ func (s *Service) callCompactLLM(ctx context.Context, platformModelName string, 
 	startedAt := time.Now()
 	generateInput := buildTextTaskGenerateInput(route, s.cfg.Snapshot(), llmMsgs)
 	var authorization *domainbilling.UsageAuthorization
-	billingCtx, hasBillingContext := ctx.Value(basicServiceBillingContextKey{}).(basicServiceBillingContext)
 	if hasBillingContext {
 		authorization, err = s.authorizeBasicServiceUsage(ctx, billingCtx.UserID, route.PlatformModelName, "compact")
 		if err != nil {

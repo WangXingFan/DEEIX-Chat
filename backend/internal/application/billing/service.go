@@ -194,6 +194,7 @@ func upstreamUsageSnapshot(input UsagePricingInput) any {
 // PlatformModelIdentity 描述一次计费需要用到的平台模型身份。
 type PlatformModelIdentity struct {
 	PlatformModelID   uint
+	OwnerUserID       uint
 	PlatformModelName string
 	ModelVendor       string
 	ModelIcon         string
@@ -1248,6 +1249,13 @@ func (s *Service) RecordUsageWithAuthorization(ctx context.Context, usage *domai
 
 // AuthorizeUsage 固定请求开始时的计费模式，并为付费调用原子预留预算。
 func (s *Service) AuthorizeUsage(ctx context.Context, userID uint, platformModelName string, refNo string) (*domainbilling.UsageAuthorization, error) {
+	identity, identityErr := s.resolvePlatformModelIdentity(ctx, platformModelName)
+	if identityErr == nil && identity.OwnerUserID != 0 {
+		if identity.OwnerUserID != userID {
+			return nil, ErrModelAccessDenied
+		}
+		return &domainbilling.UsageAuthorization{Mode: "self", RefNo: strings.TrimSpace(refNo)}, nil
+	}
 	mode, err := s.repo.GetBillingMode(ctx)
 	if err != nil {
 		return nil, err
@@ -1356,6 +1364,12 @@ func (s *Service) EstimateUsageNanousd(ctx context.Context, userID uint, input U
 	identity, err := s.resolvePlatformModelIdentity(ctx, platformModelName)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return 0, err
+	}
+	if identity.OwnerUserID != 0 {
+		if identity.OwnerUserID != userID {
+			return 0, ErrModelAccessDenied
+		}
+		return 0, nil
 	}
 	pricing, err := s.getResolvedModelPricing(ctx, platformModelName)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
@@ -1713,9 +1727,18 @@ func (s *Service) BuildUsageLedger(ctx context.Context, input UsagePricingInput)
 	billingServiceTier := resolveBillingServiceTier(providerProtocol, usageServiceTier)
 	fastMode := isAnthropicFastMode(providerProtocol, usageSpeed, requestSpeed)
 	rateMultiplier := resolveUsageRateMultiplier(providerProtocol, platformModelName, input.UpstreamModelName, fastMode, billingServiceTier)
+	mode := ""
+	privateOwned := false
 	identity, err := s.resolvePlatformModelIdentity(ctx, platformModelName)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return nil, err
+	}
+	if identity.OwnerUserID != 0 {
+		privateOwned = true
+		if identity.OwnerUserID != input.UserID {
+			return nil, ErrModelAccessDenied
+		}
+		mode = "self"
 	}
 	cacheWriteTokens, cacheWrite5mTokens, cacheWrite1hTokens := normalizeCacheWriteTokenBreakdown(
 		input.CacheWriteTokens,
@@ -1724,11 +1747,13 @@ func (s *Service) BuildUsageLedger(ctx context.Context, input UsagePricingInput)
 		providerProtocol,
 		input.CacheTimeout,
 	)
-	mode := ""
 	refNo := ""
 	if input.Authorization != nil {
 		mode = strings.TrimSpace(input.Authorization.Mode)
 		refNo = strings.TrimSpace(input.Authorization.RefNo)
+	}
+	if privateOwned {
+		mode = "self"
 	}
 	if mode == "" {
 		mode, err = s.repo.GetBillingMode(ctx)

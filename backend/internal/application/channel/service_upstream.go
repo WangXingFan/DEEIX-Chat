@@ -24,6 +24,7 @@ import (
 
 // ListUpstreamsInput 定义上游列表筛选排序条件。
 type ListUpstreamsInput struct {
+	OwnerUserID *uint
 	Query      string
 	Status     string
 	Compatible string
@@ -32,6 +33,10 @@ type ListUpstreamsInput struct {
 
 // ListUpstreams 分页查询上游列表。
 func (s *Service) ListUpstreams(ctx context.Context, page int, pageSize int, input ListUpstreamsInput) ([]UpstreamView, int64, error) {
+	if input.OwnerUserID == nil {
+		publicOwnerID := uint(0)
+		input.OwnerUserID = &publicOwnerID
+	}
 	offset, limit := pagination.Offset(page, pageSize)
 	if strings.TrimSpace(input.Status) == "circuit" {
 		if s.cache == nil || !s.loadBreakerDefaults(ctx).Enabled {
@@ -42,6 +47,7 @@ func (s *Service) ListUpstreams(ctx context.Context, page int, pageSize int, inp
 	items, total, err := s.repo.ListUpstreams(ctx, repository.ListChannelUpstreamsInput{
 		Offset:     offset,
 		Limit:      limit,
+		OwnerUserID: input.OwnerUserID,
 		Query:      input.Query,
 		Status:     input.Status,
 		Compatible: input.Compatible,
@@ -61,6 +67,7 @@ func (s *Service) listCircuitOpenUpstreams(ctx context.Context, offset int, limi
 	items, _, err := s.repo.ListUpstreams(ctx, repository.ListChannelUpstreamsInput{
 		Offset:     0,
 		Limit:      5000,
+		OwnerUserID: input.OwnerUserID,
 		Query:      input.Query,
 		Compatible: input.Compatible,
 		Sort:       input.Sort,
@@ -170,6 +177,7 @@ func (s *Service) CreateUpstream(ctx context.Context, input CreateUpstreamInput)
 
 	item := &domainchannel.Upstream{
 		Name:                 strings.TrimSpace(input.Name),
+		OwnerUserID:          input.OwnerUserID,
 		BaseURL:              strings.TrimSpace(input.BaseURL),
 		Compatible:           compatible,
 		ProtocolDefaultsJSON: protocolDefaults,
