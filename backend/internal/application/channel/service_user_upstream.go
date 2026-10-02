@@ -260,6 +260,28 @@ func (s *Service) UpsertUserModel(ctx context.Context, userID uint, upstreamID u
 	}
 	displayName := fmt.Sprintf("%s · %s", modelName, upstream.Name)
 	platformName := userModelPlatformName(userID, upstreamID, modelName)
+	// Re-importing a private model must retain its verified native-search route.
+	// Explicit upstream protocol changes are handled by refreshUserUpstreamBindings.
+	if existing, findErr := s.repo.GetModelByName(ctx, platformName); findErr == nil {
+		if existing.OwnerUserID != userID {
+			return nil, ErrModelAccessDenied
+		}
+		sources, _, sourceErr := s.repo.ListModelUpstreamSources(ctx, platformName, 0, 100)
+		if sourceErr != nil {
+			return nil, sourceErr
+		}
+		preserved := make([]string, 0, len(sources))
+		for _, source := range sources {
+			if source.UpstreamID == upstreamID {
+				preserved = append(preserved, source.Protocol)
+			}
+		}
+		if len(preserved) > 0 {
+			protocols = preserved
+		}
+	} else if !errors.Is(findErr, ErrModelNotFound) {
+		return nil, findErr
+	}
 	return s.UpsertUpstreamModel(ctx, upstreamID, UpsertUpstreamModelInput{
 		OwnerUserID:       userID,
 		DisplayName:       displayName,

@@ -258,6 +258,9 @@ export function SettingsUpstreams() {
         saving={upstreams.saving}
         onDiscover={upstreams.discover}
         onSyncModels={upstreams.syncModels}
+        detectingSearch={upstreams.detectingSearch}
+        searchResults={upstreams.searchResults}
+        onDetectSearch={upstreams.detectSearch}
       />
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>

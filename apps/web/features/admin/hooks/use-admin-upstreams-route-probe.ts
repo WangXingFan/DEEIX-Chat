@@ -9,24 +9,46 @@ import type { AdminLLMModelProbeResult, AdminLLMUpstreamView } from "@/features/
 import type { RowDraft } from "@/features/admin/model/upstreams-models";
 import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
+import { configureNativeSearch } from "@/shared/api/native-search";
+import { MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
 
 type UseAdminUpstreamsRouteProbeOptions = {
   upstream: AdminLLMUpstreamView | null;
   /** Runs after a probed route was deleted and the success toast was shown. */
   onRouteDeleted: (result: AdminLLMModelProbeResult, upstream: AdminLLMUpstreamView) => void;
+  onSearchConfigured: () => void;
 };
 
 // Probe dialog state for single routes in the upstream models dialog.
-export function useAdminUpstreamsRouteProbe({ upstream, onRouteDeleted }: UseAdminUpstreamsRouteProbeOptions) {
+export function useAdminUpstreamsRouteProbe({ upstream, onRouteDeleted, onSearchConfigured }: UseAdminUpstreamsRouteProbeOptions) {
   const t = useTranslations("adminUpstreams");
   const modelT = useTranslations("adminModels");
   const resolveErrorMessage = useLocalizedErrorMessage();
   const [probeOpen, setProbeOpen] = React.useState(false);
   const [probeLoading, setProbeLoading] = React.useState(false);
+  const [searchChecking, setSearchChecking] = React.useState(false);
   const [probeTargetName, setProbeTargetName] = React.useState("");
   const [probeResults, setProbeResults] = React.useState<AdminLLMModelProbeResult[]>([]);
   const upstreamID = upstream?.id ?? null;
   const upstreamStatus = upstream?.status;
+
+  const checkSearch = React.useCallback(async (_row: RowDraft, routeID: number) => {
+    if (!upstreamID || searchChecking) return;
+    setSearchChecking(true);
+    try {
+      const token = await resolveAccessToken();
+      const result = await configureNativeSearch(token, upstreamID, routeID, true);
+      toast[result.status === "enabled" ? "success" : "info"](t(`nativeSearch.${result.status}`));
+      if (result.status === "enabled") {
+        window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
+        onSearchConfigured();
+      }
+    } catch (error) {
+      toast.error(t("toast.operationFailed"), { description: resolveErrorMessage(error) });
+    } finally {
+      setSearchChecking(false);
+    }
+  }, [onSearchConfigured, resolveErrorMessage, searchChecking, t, upstreamID]);
 
   const testRoute = React.useCallback(
     async (row: RowDraft, routeID: number) => {
@@ -84,6 +106,8 @@ export function useAdminUpstreamsRouteProbe({ upstream, onRouteDeleted }: UseAdm
     probeTargetName,
     probeResults,
     testRoute,
+    checkSearch,
+    searchChecking,
     deleteProbeRoute,
   };
 }

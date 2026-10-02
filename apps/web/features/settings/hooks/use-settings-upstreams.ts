@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
 import { MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
+import { configureNativeSearchBatch, type NativeSearchResult } from "@/shared/api/native-search";
 import {
   createUserUpstream,
   deleteUserUpstream,
@@ -47,6 +48,8 @@ export function useSettingsUpstreams() {
   const [addedModels, setAddedModels] = React.useState<Record<number, UserUpstreamModelDTO[]>>({});
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [detectingSearch, setDetectingSearch] = React.useState(false);
+  const [searchResults, setSearchResults] = React.useState<Record<string, NativeSearchResult>>({});
   const [loadError, setLoadError] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("");
@@ -173,13 +176,19 @@ export function useSettingsUpstreams() {
       const removedRouteIDs = new Set(items
         .filter((model) => !selectedNames.has(model.upstreamModelName) && model.routeID > 0)
         .map((model) => model.routeID));
+      const imported: UserUpstreamModelDTO[] = [];
       for (let offset = 0; offset < additions.length; offset += MODEL_IMPORT_BATCH_SIZE) {
-        await importUserModels(accessToken, upstreamID, additions.slice(offset, offset + MODEL_IMPORT_BATCH_SIZE));
+        const result = await importUserModels(accessToken, upstreamID, additions.slice(offset, offset + MODEL_IMPORT_BATCH_SIZE));
+        imported.push(...result.items);
       }
       // 图片等模型可以对应多条协议路由，取消模型时需要全部解除。
       for (const routeID of removedRouteIDs) {
         await deleteUserUpstreamModel(accessToken, upstreamID, routeID);
       }
+      setDetectingSearch(true);
+      await configureNativeSearchBatch(accessToken, upstreamID, imported, (model, result) => {
+        setSearchResults((previous) => ({ ...previous, [`${upstreamID}:${model.upstreamModelName}`]: result }));
+      });
       success = true;
     } catch (error) {
       toast.error(t("syncFailed"), { description: resolveErrorMessage(error) });
@@ -192,6 +201,7 @@ export function useSettingsUpstreams() {
       }
       window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
       setSaving(false);
+      setDetectingSearch(false);
       syncInFlightRef.current = false;
     }
     if (success) {
@@ -200,12 +210,37 @@ export function useSettingsUpstreams() {
     return success;
   }, [accessToken, reload, resolveErrorMessage, t]);
 
+  const detectSearch = React.useCallback(async (upstreamID: number, modelNames: string[]) => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+    setSaving(true);
+    setDetectingSearch(true);
+    try {
+      const { items } = await listUserUpstreamModels(accessToken, upstreamID);
+      const selected = new Set(modelNames);
+      await configureNativeSearchBatch(accessToken, upstreamID, items.filter((model) => selected.has(model.upstreamModelName)), (model, result) => {
+        setSearchResults((previous) => ({ ...previous, [`${upstreamID}:${model.upstreamModelName}`]: result }));
+      });
+    } catch (error) {
+      toast.error(t("searchDetectionFailed"), { description: resolveErrorMessage(error) });
+    } finally {
+      await reload();
+      window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
+      setSaving(false);
+      setDetectingSearch(false);
+      syncInFlightRef.current = false;
+    }
+  }, [accessToken, reload, resolveErrorMessage, t]);
+
   return {
     upstreams,
     total,
     addedModels,
     loading,
     saving,
+    detectingSearch,
+    searchResults,
+    detectSearch,
     loadError,
     query,
     setQuery,

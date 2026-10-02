@@ -5429,6 +5429,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/llm/upstreams/{id}/models/{route_id}/native-search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Channels"
+                ],
+                "summary": "检测并默认启用公共模型原生搜索",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "上游 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "路由 ID",
+                        "name": "route_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/NativeSearchResponseDoc"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/llm/upstreams/{id}/models/{route_id}/test": {
             "post": {
                 "security": [
@@ -16982,6 +17022,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/upstreams/{id}/models/{route_id}/native-search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User Upstreams"
+                ],
+                "summary": "检测并默认启用私有模型原生搜索",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "上游 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "路由 ID",
+                        "name": "route_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/NativeSearchResponseDoc"
+                        }
+                    }
+                }
+            }
+        },
         "/user/settings": {
             "get": {
                 "security": [
@@ -25611,6 +25691,47 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "NativeSearchResponse": {
+            "type": "object",
+            "required": [
+                "protocol",
+                "status"
+            ],
+            "properties": {
+                "protocol": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "enabled",
+                        "unavailable",
+                        "skipped"
+                    ]
+                },
+                "toolKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "NativeSearchResponseDoc": {
+            "type": "object",
+            "required": [
+                "data",
+                "errorMsg"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/NativeSearchResponse"
+                },
+                "errorMsg": {
                     "type": "string"
                 }
             }

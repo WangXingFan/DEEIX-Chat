@@ -1,4 +1,13 @@
 {
+  "nativeSearch": {
+    "summary": "Native search: {enabled} enabled by default, {unavailable} unverified and available to retry",
+    "detect": "Check and enable native search",
+    "checking": "Checking search…",
+    "description": "New models are checked for native search and enabled by default when supported. Checks may incur a small upstream usage charge.",
+    "enabled": "Native search is on by default",
+    "unavailable": "Native search is unverified. Chat remains available; retry later.",
+    "skipped": "Existing settings preserved. Configure multi-route or other unsupported models manually."
+  },
   "title": "Upstreams",
   "pageTitle": "Upstream management",
   "sync": "Sync models",

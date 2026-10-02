@@ -11,6 +11,7 @@ import { Dialog, DialogDescription, DialogFooter, DialogHeader, DialogTitle } fr
 import { Input } from "@/components/ui/input";
 import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
 import type { UserRemoteModelDTO, UserUpstreamDTO, UserUpstreamModelDTO } from "@/shared/api/upstreams-types";
+import type { NativeSearchResult } from "@/shared/api/native-search";
 import { UpstreamModelsDialogContent } from "@/shared/components/upstream-models-dialog-content";
 
 type ModelRow = {
@@ -32,6 +33,9 @@ export function UpstreamsModelsDialog({
   saving,
   onDiscover,
   onSyncModels,
+  detectingSearch,
+  searchResults,
+  onDetectSearch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +44,9 @@ export function UpstreamsModelsDialog({
   saving: boolean;
   onDiscover: (upstreamID: number) => Promise<UserRemoteModelDTO[]>;
   onSyncModels: (upstreamID: number, modelNames: string[]) => Promise<boolean>;
+  detectingSearch: boolean;
+  searchResults: Record<string, NativeSearchResult>;
+  onDetectSearch: (upstreamID: number, modelNames: string[]) => Promise<void>;
 }) {
   const t = useTranslations("settings.upstreamsPage");
   const resolveErrorMessage = useLocalizedErrorMessage();
@@ -168,7 +175,7 @@ export function UpstreamsModelsDialog({
       <UpstreamModelsDialogContent>
         <DialogHeader className="shrink-0 px-4 py-4">
           <DialogTitle>{t("manageModelsTitle", { name: upstream?.name ?? "" })}</DialogTitle>
-          <DialogDescription>{t("discoverDescription")}</DialogDescription>
+          <DialogDescription>{t("discoverDescription")} {t("nativeSearchDescription")}</DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-2">
           <div className="flex items-center gap-2">
@@ -229,6 +236,13 @@ export function UpstreamsModelsDialog({
                   <span className="min-w-0 flex-1 truncate" title={row.name}>
                     {row.name}
                   </span>
+                  {searchResults[`${upstreamID}:${row.name}`] ? (
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {t(`searchStatus.${searchResults[`${upstreamID}:${row.name}`].status === "skipped"
+                        ? searchResults[`${upstreamID}:${row.name}`].reason === "configured" ? "configured" : "skipped"
+                        : searchResults[`${upstreamID}:${row.name}`].status}`)}
+                    </span>
+                  ) : null}
                   {row.selected !== row.added ? (
                     <Badge variant="outline" className="shrink-0 text-[10px]">
                       {row.selected ? t("pendingAdd") : t("pendingRemove")}
@@ -264,10 +278,18 @@ export function UpstreamsModelsDialog({
         </div>
         <DialogFooter className="shrink-0 px-4 py-3">
           <span className="mr-auto text-[11px] text-muted-foreground" aria-live="polite">
-            {saving ? t("syncing") : hasChanges
+            {detectingSearch ? t("detectingSearch") : saving ? t("syncing") : hasChanges
               ? t("pendingChanges", { additions, removals })
               : t("selectedModels", { count: selectedCount })}
           </span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={saving || !rows.some((row) => row.added && row.selected)}
+            onClick={() => void onDetectSearch(upstreamID, rows.filter((row) => row.added && row.selected).map((row) => row.name))}
+          >
+            {t("detectSearch")}
+          </Button>
           <Button type="button" variant="ghost" disabled={saving} onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>

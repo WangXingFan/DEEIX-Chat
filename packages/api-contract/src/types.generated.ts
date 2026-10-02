@@ -2612,6 +2612,18 @@ export interface ModelVendorResponse {
   updatedAt: string;
 }
 
+export interface NativeSearchResponse {
+  protocol: string;
+  reason?: string;
+  status: "enabled" | "unavailable" | "skipped";
+  toolKey?: string;
+}
+
+export interface NativeSearchResponseDoc {
+  data: NativeSearchResponse;
+  errorMsg: string;
+}
+
 export interface NativeToolPricingRequest {
   billable?: boolean;
   priceLabel?: string;
@@ -6824,6 +6836,27 @@ export namespace Admin {
   }
 
   /**
+   * No description
+   * @tags Admin Channels
+   * @name LlmUpstreamsModelsNativeSearchCreate
+   * @summary 检测并默认启用公共模型原生搜索
+   * @request POST:/admin/llm/upstreams/{id}/models/{route_id}/native-search
+   * @secure
+   */
+  export namespace LlmUpstreamsModelsNativeSearchCreate {
+    export type RequestParams = {
+      /** 上游 ID */
+      id: number;
+      /** 路由 ID */
+      routeId: number;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = NativeSearchResponseDoc;
+  }
+
+  /**
    * @description 使用指定路由绑定的当前上游配置执行一次轻量连通性测试；返回结果内的调试信息已脱敏且不包含 Base URL 或密钥
    * @tags llm
    * @name LlmUpstreamsModelsTestCreate
@@ -10988,6 +11021,29 @@ export namespace UiComponents {
     export type RequestBody = PatchUIComponentRequest;
     export type RequestHeaders = {};
     export type ResponseBody = UIComponentResponseDoc;
+  }
+}
+
+export namespace Upstreams {
+  /**
+   * No description
+   * @tags User Upstreams
+   * @name ModelsNativeSearchCreate
+   * @summary 检测并默认启用私有模型原生搜索
+   * @request POST:/upstreams/{id}/models/{route_id}/native-search
+   * @secure
+   */
+  export namespace ModelsNativeSearchCreate {
+    export type RequestParams = {
+      /** 上游 ID */
+      id: number;
+      /** 路由 ID */
+      routeId: number;
+    };
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = NativeSearchResponseDoc;
   }
 }
 
