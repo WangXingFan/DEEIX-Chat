@@ -1,13 +1,4 @@
 {
-  "nativeSearch": {
-    "summary": "原生搜索：{enabled} 个已默认开启，{unavailable} 个未验证，可重新检测",
-    "detect": "检测并开启原生搜索",
-    "checking": "正在检测搜索…",
-    "description": "新增模型会检测原生搜索，支持时默认开启；检测会产生少量上游调用费用。",
-    "enabled": "原生搜索已默认开启",
-    "unavailable": "未验证到原生搜索，聊天仍可使用，可稍后重试",
-    "skipped": "保留已有配置；多路由或不支持自动检测的模型请手动配置"
-  },
   "title": "上游",
   "pageTitle": "上游管理",
   "sync": "同步",

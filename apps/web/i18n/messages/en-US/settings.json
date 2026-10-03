@@ -5,16 +5,6 @@
   "chat": "Chat",
   "upstreams": "Upstreams",
   "upstreamsPage": {
-    "nativeSearchDescription": "New models are checked for native search and enabled by default when supported. Checks may incur a small upstream usage charge.",
-    "detectSearch": "Check search",
-    "detectingSearch": "Checking native search…",
-    "searchDetectionFailed": "Search check failed. You can retry.",
-    "searchStatus": {
-      "enabled": "Search on by default",
-      "unavailable": "Search unverified; retry",
-      "configured": "Existing tools preserved",
-      "skipped": "Configure search manually"
-    },
     "title": "Upstreams",
     "description": "Add providers yourself and check the models you want to use. Credentials are only used for your requests.",
     "addTitle": "Add upstream",

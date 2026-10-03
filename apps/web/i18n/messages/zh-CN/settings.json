@@ -5,16 +5,6 @@
   "chat": "对话",
   "upstreams": "上游",
   "upstreamsPage": {
-    "nativeSearchDescription": "新增模型会检测原生搜索，支持时默认开启。检测会产生少量上游调用费用。",
-    "detectSearch": "检测搜索",
-    "detectingSearch": "正在检测原生搜索…",
-    "searchDetectionFailed": "搜索检测失败，可重试",
-    "searchStatus": {
-      "enabled": "搜索已默认开启",
-      "unavailable": "搜索未验证，可重试",
-      "configured": "保留已有工具配置",
-      "skipped": "需手动配置搜索"
-    },
     "title": "上游",
     "description": "自行添加服务商并勾选要使用的模型。凭据仅用于你的请求。",
     "addTitle": "添加上游",

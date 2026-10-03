@@ -18,7 +18,6 @@ func (m *Module) RegisterRoutes(authRequired *gin.RouterGroup) {
 	authRequired.GET("/upstreams/:id/models", m.Handler.ListUserUpstreamModels)
 	authRequired.POST("/upstreams/:id/models", m.Handler.ImportUserModels)
 	authRequired.DELETE("/upstreams/:id/models/:route_id", m.Handler.DeleteUserUpstreamModel)
-	authRequired.POST("/upstreams/:id/models/:route_id/native-search", m.Handler.ConfigureUserNativeSearch)
 }
 
 // RegisterAdminRoutes 注册管理员侧上游配置路由。
@@ -40,7 +39,6 @@ func (m *Module) RegisterAdminRoutes(adminGroup *gin.RouterGroup) {
 	adminGroup.PATCH("/llm/upstreams/:id/models/:route_id/disable", m.Handler.DisableUpstreamModel)
 	adminGroup.PATCH("/llm/upstreams/:id/models/:route_id/enable", m.Handler.EnableUpstreamModel)
 	adminGroup.POST("/llm/upstreams/:id/models/:route_id/test", m.Handler.TestUpstreamModelRoute)
-	adminGroup.POST("/llm/upstreams/:id/models/:route_id/native-search", m.Handler.ConfigureAdminNativeSearch)
 	adminGroup.POST("/llm/upstreams/:id/models/:route_id/circuit/open", m.Handler.OpenUpstreamModelCircuit)
 	adminGroup.POST("/llm/upstreams/:id/models/:route_id/circuit/reset", m.Handler.ResetUpstreamModelCircuit)
 

@@ -3,8 +3,6 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { configureNativeSearchBatch } from "@/shared/api/native-search";
-import { MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
 
 import {
   batchDeleteAdminLLMUpstreamModels,
@@ -355,19 +353,13 @@ export function useAdminUpstreamsModels({ open, upstream, onUpstreamUpdated }: U
           ...(row.routeStatusOverridden ? { status: row.routeStatus || "active" } : {}),
         };
         const desiredProtocols = selectedProtocolsForSave(row);
-        upsertOperations.push(async () => {
-          const created = await upsertAdminLLMUpstreamModel(token, upstream.id, {
+        upsertOperations.push(() =>
+          upsertAdminLLMUpstreamModel(token, upstream.id, {
             ...basePayload,
             routeIDs: existingRouteIDs,
             protocols: desiredProtocols,
-          });
-          if (existingRouteIDs.length === 0) {
-            await configureNativeSearchBatch(token, upstream.id, [created.binding], (_model, result) => {
-              if (result.status === "enabled") toast.success(t("nativeSearch.enabled"));
-              if (result.status === "unavailable") toast.info(t("nativeSearch.unavailable"));
-            }, true);
-          }
-        });
+          }),
+        );
         savedCount += 1;
       }
 
@@ -379,7 +371,6 @@ export function useAdminUpstreamsModels({ open, upstream, onUpstreamUpdated }: U
 
       await runOperationsInOrder(upsertOperations);
       await runOperationsInOrder(deleteOperations);
-      window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
       if (savedCount > 0 && deletedCount > 0) {
         toast.success(t("modelsDialog.savedAndDeleted", { savedCount, deletedCount }));
       } else if (deletedCount > 0) {

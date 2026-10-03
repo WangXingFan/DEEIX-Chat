@@ -9,8 +9,6 @@ import type { UpsertAdminLLMUpstreamModelRequest } from "@/features/admin/api/ll
 import { displayToKindsJson, type NewBindingFormState } from "@/features/admin/model/upstreams-models";
 import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
-import { configureNativeSearchBatch } from "@/shared/api/native-search";
-import { MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
 
 export function useAdminUpstreamsModelBinding() {
   const t = useTranslations("adminUpstreams");
@@ -35,12 +33,7 @@ export function useAdminUpstreamsModelBinding() {
         priority: 1,
         weight: 1,
       };
-      const created = await upsertAdminLLMUpstreamModel(token, upstreamId, payload);
-      await configureNativeSearchBatch(token, upstreamId, [created.binding], (_model, result) => {
-        if (result.status === "enabled") toast.success(t("nativeSearch.enabled"));
-        if (result.status === "unavailable") toast.info(t("nativeSearch.unavailable"));
-      }, true);
-      window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
+      await upsertAdminLLMUpstreamModel(token, upstreamId, payload);
       toast.success(t("modelsDialog.bindingCreated"));
       onCreated();
     } catch (err) {

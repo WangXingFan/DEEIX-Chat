@@ -108,7 +108,6 @@ type Service struct {
 	iconAssetRepo       repository.ModelIconAssetRepository
 	cache               repository.ChannelCacheRepository
 	llmClient           llmGateway
-	nativeSearchProbes  chan struct{}
 	modelPricingFilter  billingModelPricingFilter
 	permGroupRepo       permissionGroupRepo
 	subGroupResolver    subscriptionGroupResolver
@@ -226,12 +225,11 @@ const (
 // NewServiceWithRuntime 创建使用运行时配置容器的服务。
 func NewServiceWithRuntime(cfg *config.Runtime, repo repository.ChannelRepository, presentationRepo repository.ModelPresentationRepository, cache repository.ChannelCacheRepository, llmClient llmGateway) *Service {
 	return &Service{
-		cfg:                cfg,
-		repo:               repo,
-		presentationRepo:   presentationRepo,
-		cache:              cache,
-		llmClient:          llmClient,
-		nativeSearchProbes: make(chan struct{}, modelProbeMaxConcurrency),
+		cfg:              cfg,
+		repo:             repo,
+		presentationRepo: presentationRepo,
+		cache:            cache,
+		llmClient:        llmClient,
 	}
 }
 

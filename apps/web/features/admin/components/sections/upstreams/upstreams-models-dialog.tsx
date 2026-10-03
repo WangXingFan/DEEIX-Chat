@@ -291,11 +291,9 @@ type ModelRowProps = {
   onSelect: (draftKey: string, checked: boolean) => void;
   onUpdate: (draftKey: string, patch: RowDraftPatch) => void;
   onTest: (row: RowDraft, routeID: number) => void;
-  onCheckSearch: (row: RowDraft, routeID: number) => void;
-  searchChecking: boolean;
 };
 
-const ModelRow = React.memo(function ModelRow({ row, isSelected, upstreamInactive, onSelect, onUpdate, onTest, onCheckSearch, searchChecking }: ModelRowProps) {
+const ModelRow = React.memo(function ModelRow({ row, isSelected, upstreamInactive, onSelect, onUpdate, onTest }: ModelRowProps) {
   const t = useTranslations("adminUpstreams");
   const modelT = useTranslations("adminModels");
   const platformModelName = row.platformModelNameDraft.trim();
@@ -417,17 +415,6 @@ const ModelRow = React.memo(function ModelRow({ row, isSelected, upstreamInactiv
       </TableCell>
       <TableCell className="w-[48px] py-1.5 text-right" stickyEnd>
         <div className="flex h-7 items-center justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            disabled={testDisabled || searchChecking}
-            onClick={() => onCheckSearch(row, testRouteID)}
-            aria-label={t("nativeSearch.detect")}
-            title={t(searchChecking ? "nativeSearch.checking" : "nativeSearch.detect")}
-          >
-            <Search className="size-3.5 stroke-1" />
-          </Button>
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="inline-flex">
@@ -766,7 +753,6 @@ function RemoteModelsDialog({
             <DialogTitle>{t("modelsDialog.syncTitle", { name: upstream?.name ?? "" })}</DialogTitle>
             <DialogDescription>
               {t("modelsDialog.syncDescription")}
-              {" "}{t("nativeSearch.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1225,12 +1211,9 @@ export function UpstreamModelsDialog({
     probeTargetName,
     probeResults,
     testRoute: handleTestRoute,
-    checkSearch: handleCheckSearch,
-    searchChecking,
     deleteProbeRoute: handleDeleteProbeRoute,
   } = useAdminUpstreamsRouteProbe({
     upstream: stableUpstream,
-    onSearchConfigured: () => { void loadBindings(); },
     onRouteDeleted: (result, probedUpstream) => {
       removeRouteLocally(result.routeID);
       void loadBindings();
@@ -1331,7 +1314,6 @@ export function UpstreamModelsDialog({
               <DialogTitle>{t("modelsDialog.manageTitle")}</DialogTitle>
               <DialogDescription>
                 {t("modelsDialog.manageDescription")}
-                {" "}{t("nativeSearch.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="shrink-0 px-4 pb-3">
@@ -1530,8 +1512,6 @@ export function UpstreamModelsDialog({
                             onSelect={handleSelectOne}
                             onUpdate={updateRow}
                             onTest={handleTestRoute}
-                            onCheckSearch={handleCheckSearch}
-                            searchChecking={searchChecking}
                           />
                         ))
                       : null}

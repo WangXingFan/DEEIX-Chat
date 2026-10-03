@@ -5955,34 +5955,6 @@ definitions:
     - sortOrder
     - updatedAt
     type: object
-  NativeSearchResponse:
-    properties:
-      protocol:
-        type: string
-      reason:
-        type: string
-      status:
-        enum:
-        - enabled
-        - unavailable
-        - skipped
-        type: string
-      toolKey:
-        type: string
-    required:
-    - protocol
-    - status
-    type: object
-  NativeSearchResponseDoc:
-    properties:
-      data:
-        $ref: '#/definitions/NativeSearchResponse'
-      errorMsg:
-        type: string
-    required:
-    - data
-    - errorMsg
-    type: object
   NativeToolPricingRequest:
     properties:
       billable:
@@ -14117,31 +14089,6 @@ paths:
       summary: 管理员启用上游模型路由绑定
       tags:
       - llm
-  /admin/llm/upstreams/{id}/models/{route_id}/native-search:
-    post:
-      parameters:
-      - description: 上游 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: 路由 ID
-        in: path
-        name: route_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/NativeSearchResponseDoc'
-      security:
-      - BearerAuth: []
-      summary: 检测并默认启用公共模型原生搜索
-      tags:
-      - Admin Channels
   /admin/llm/upstreams/{id}/models/{route_id}/test:
     post:
       consumes:
@@ -21676,31 +21623,6 @@ paths:
       summary: 更新我的自定义组件
       tags:
       - ui-components
-  /upstreams/{id}/models/{route_id}/native-search:
-    post:
-      parameters:
-      - description: 上游 ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: 路由 ID
-        in: path
-        name: route_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/NativeSearchResponseDoc'
-      security:
-      - BearerAuth: []
-      summary: 检测并默认启用私有模型原生搜索
-      tags:
-      - User Upstreams
   /user/settings:
     get:
       description: 返回当前用户全部个人偏好配置，缺失项以默认值填充

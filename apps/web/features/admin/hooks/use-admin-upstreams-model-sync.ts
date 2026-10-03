@@ -1,10 +1,7 @@
 import * as React from "react";
-import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import {
   importAdminLLMUpstreamModels,
   listAdminLLMRemoteModels,
-  listAdminLLMUpstreamModels,
   syncAdminLLMUpstreamModels,
 } from "@/features/admin/api";
 import {
@@ -19,8 +16,6 @@ import type {
 } from "@/features/admin/api/llm-types";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { useCapabilities } from "@/shared/capabilities";
-import { configureNativeSearchBatch } from "@/shared/api/native-search";
-import { MODEL_CATALOG_CHANGED_EVENT } from "@/shared/api/model";
 
 type ApplyUpstreamModelSyncInput = {
   allowEmpty: boolean;
@@ -61,7 +56,6 @@ function throwIfAborted(signal: AbortSignal) {
 }
 
 export function useAdminUpstreamsModelSync(open: boolean, upstreamID: number | null) {
-  const t = useTranslations("adminUpstreams");
   const { flags: capabilities } = useCapabilities();
   const [catalog, setCatalog] = React.useState<ListAdminLLMRemoteModelsData | null>(null);
   const [catalogLoading, setCatalogLoading] = React.useState(false);
@@ -184,30 +178,6 @@ export function useAdminUpstreamsModelSync(open: boolean, upstreamID: number | n
           permissionGroupIDs: input.permissionGroupIDs,
         }, controller.signal);
         throwIfAborted(controller.signal);
-        const createdNames = new Set(bindings.results.filter((item) => item.createdPlatform).map((item) => item.platformModelName));
-        let searchEnabled = 0;
-        let searchUnavailable = 0;
-        if (createdNames.size > 0) {
-          try {
-            for (let page = 1; ; page++) {
-              throwIfAborted(controller.signal);
-              const routes = await listAdminLLMUpstreamModels(token, upstreamID, { page, pageSize: 100, sort: "id_asc" });
-              await configureNativeSearchBatch(token, upstreamID, routes.results.filter((route) => createdNames.has(route.platformModelName)), (_model, result) => {
-                if (result.status === "enabled") searchEnabled++;
-                if (result.status === "unavailable") searchUnavailable++;
-              }, true, controller.signal);
-              if (page * 100 >= routes.total) break;
-            }
-          } catch (error) {
-            if (isUpstreamModelSyncAbort(error)) throw error;
-            // Search discovery must not turn a successful model import into a failed import.
-            toast.info(t("nativeSearch.unavailable"));
-          }
-        }
-        if (searchEnabled > 0 || searchUnavailable > 0) {
-          toast.info(t("nativeSearch.summary", { enabled: searchEnabled, unavailable: searchUnavailable }));
-          window.dispatchEvent(new Event(MODEL_CATALOG_CHANGED_EVENT));
-        }
         return { catalog: catalogResult, bindings };
       } catch (error) {
         if (isUpstreamModelSyncAbort(error)) throw error;
@@ -218,7 +188,7 @@ export function useAdminUpstreamsModelSync(open: boolean, upstreamID: number | n
         applyControllerRef.current = null;
       }
     }
-  }, [t, upstreamID]);
+  }, [upstreamID]);
 
   return {
     catalog,
