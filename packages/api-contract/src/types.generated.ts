@@ -1892,56 +1892,6 @@ export interface MeResponseDoc {
   errorMsg: string;
 }
 
-export interface MediaImageRequest {
-  branchReason?: "default" | "retry" | "edit";
-  /** @maxLength 64 */
-  clientRunID?: string;
-  /** @maxItems 20 */
-  fileIDs?: string[];
-  /** @maxLength 128 */
-  maskFileID?: string;
-  /** @maxLength 128 */
-  model?: string;
-  options?: Record<string, any>;
-  /** @maxLength 32 */
-  parentMessagePublicID?: string;
-  prompt: string;
-  /** @maxLength 32 */
-  sourceMessagePublicID?: string;
-}
-
-export interface MediaVideoExtensionRequest {
-  branchReason?: "default" | "retry" | "edit";
-  /** @maxLength 64 */
-  clientRunID?: string;
-  /** @maxLength 128 */
-  model?: string;
-  options?: Record<string, any>;
-  /** @maxLength 32 */
-  parentMessagePublicID?: string;
-  prompt: string;
-  /** @maxLength 32 */
-  sourceMessagePublicID?: string;
-  /** @maxLength 128 */
-  sourceVideoFileID: string;
-}
-
-export interface MediaVideoRequest {
-  branchReason?: "default" | "retry" | "edit";
-  /** @maxLength 64 */
-  clientRunID?: string;
-  /** @maxItems 1 */
-  fileIDs?: string[];
-  /** @maxLength 128 */
-  model?: string;
-  options?: Record<string, any>;
-  /** @maxLength 32 */
-  parentMessagePublicID?: string;
-  prompt: string;
-  /** @maxLength 32 */
-  sourceMessagePublicID?: string;
-}
-
 export interface MessageBillingCostResponse {
   billedCurrency: string;
   billedNanousd: number;
@@ -2284,12 +2234,7 @@ export interface ModelProbeDebugResponseResponse {
 }
 
 export interface ModelProbeRequest {
-  taskType?:
-    | "chat"
-    | "image_generation"
-    | "image_edit"
-    | "video_generation"
-    | "video_extension";
+  taskType?: "chat";
 }
 
 export interface ModelProbeResponse {
@@ -8030,82 +7975,6 @@ export namespace Conversations {
     export type RequestBody = UpdateConversationLabelsRequest;
     export type RequestHeaders = {};
     export type ResponseBody = ConversationUpdateResponseDoc;
-  }
-
-  /**
-   * @description 在会话中基于参考图片（可附遮罩）按提示词编辑图片，并以 NDJSON 流式返回任务状态事件
-   * @tags chat
-   * @name MediaImagesEditsStreamCreate
-   * @summary 编辑会话图片
-   * @request POST:/conversations/{id}/media/images/edits/stream
-   * @secure
-   */
-  export namespace MediaImagesEditsStreamCreate {
-    export type RequestParams = {
-      /** 会话 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = MediaImageRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
-  }
-
-  /**
-   * @description 在会话中按提示词生成图片，并以 NDJSON 流式返回任务状态事件
-   * @tags chat
-   * @name MediaImagesGenerationsStreamCreate
-   * @summary 生成会话图片
-   * @request POST:/conversations/{id}/media/images/generations/stream
-   * @secure
-   */
-  export namespace MediaImagesGenerationsStreamCreate {
-    export type RequestParams = {
-      /** 会话 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = MediaImageRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
-  }
-
-  /**
-   * @description 在会话中基于来源视频按提示词扩展视频，并以 NDJSON 流式返回任务状态事件
-   * @tags chat
-   * @name MediaVideosExtensionsStreamCreate
-   * @summary 扩展会话视频
-   * @request POST:/conversations/{id}/media/videos/extensions/stream
-   * @secure
-   */
-  export namespace MediaVideosExtensionsStreamCreate {
-    export type RequestParams = {
-      /** 会话 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = MediaVideoExtensionRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
-  }
-
-  /**
-   * @description 在会话中按提示词生成视频，并以 NDJSON 流式返回任务状态事件
-   * @tags chat
-   * @name MediaVideosGenerationsStreamCreate
-   * @summary 生成会话视频
-   * @request POST:/conversations/{id}/media/videos/generations/stream
-   * @secure
-   */
-  export namespace MediaVideosGenerationsStreamCreate {
-    export type RequestParams = {
-      /** 会话 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = MediaVideoRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
   }
 
   /**
