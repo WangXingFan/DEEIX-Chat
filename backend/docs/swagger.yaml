@@ -698,36 +698,6 @@ definitions:
     - id
     - status
     type: object
-  BatchSetConversationProjectRequest:
-    properties:
-      conversationPublicIDs:
-        items:
-          type: string
-        maxItems: 1000
-        type: array
-      projectID:
-        maxLength: 32
-        type: string
-    required:
-    - conversationPublicIDs
-    type: object
-  BatchSetConversationProjectResponse:
-    properties:
-      updated:
-        type: integer
-    required:
-    - updated
-    type: object
-  BatchSetConversationProjectResponseDoc:
-    properties:
-      data:
-        $ref: '#/definitions/BatchSetConversationProjectResponse'
-      errorMsg:
-        type: string
-    required:
-    - data
-    - errorMsg
-    type: object
   BillingAccountDataResponse:
     properties:
       account:
@@ -2135,75 +2105,6 @@ definitions:
     - publicID
     - role
     type: object
-  ConversationProjectListResponseDoc:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/ConversationProjectResponse'
-        type: array
-      errorMsg:
-        type: string
-    required:
-    - data
-    - errorMsg
-    type: object
-  ConversationProjectResponse:
-    properties:
-      color:
-        type: string
-      createdAt:
-        type: string
-      defaultKnowledgeBaseIDs:
-        items:
-          type: string
-        type: array
-      defaultModel:
-        type: string
-      defaultSkillIDs:
-        items:
-          type: integer
-        type: array
-      description:
-        type: string
-      icon:
-        type: string
-      name:
-        type: string
-      publicID:
-        type: string
-      sortOrder:
-        type: integer
-      status:
-        type: string
-      systemPrompt:
-        type: string
-      updatedAt:
-        type: string
-    required:
-    - color
-    - createdAt
-    - defaultKnowledgeBaseIDs
-    - defaultModel
-    - defaultSkillIDs
-    - description
-    - icon
-    - name
-    - publicID
-    - sortOrder
-    - status
-    - systemPrompt
-    - updatedAt
-    type: object
-  ConversationProjectResponseDoc:
-    properties:
-      data:
-        $ref: '#/definitions/ConversationProjectResponse'
-      errorMsg:
-        type: string
-    required:
-    - data
-    - errorMsg
-    type: object
   ConversationResponse:
     properties:
       contextPolicyJSON:
@@ -2223,10 +2124,6 @@ definitions:
       messageCount:
         type: integer
       model:
-        type: string
-      projectID:
-        type: string
-      projectName:
         type: string
       provider:
         type: string
@@ -2255,8 +2152,6 @@ definitions:
     - lastResponseID
     - messageCount
     - model
-    - projectID
-    - projectName
     - provider
     - publicID
     - sessionKey
@@ -2326,10 +2221,6 @@ definitions:
         type: string
       messageCount:
         type: integer
-      projectID:
-        type: string
-      projectName:
-        type: string
       publicID:
         type: string
       status:
@@ -2342,8 +2233,6 @@ definitions:
     - isStarred
     - labelsJSON
     - messageCount
-    - projectID
-    - projectName
     - publicID
     - status
     - title
@@ -2391,47 +2280,10 @@ definitions:
         maxLength: 512
         type: string
     type: object
-  CreateConversationProjectRequest:
-    properties:
-      color:
-        maxLength: 32
-        type: string
-      defaultKnowledgeBaseIDs:
-        items:
-          type: string
-        maxItems: 8
-        type: array
-      defaultModel:
-        maxLength: 128
-        type: string
-      defaultSkillIDs:
-        items:
-          type: integer
-        maxItems: 128
-        type: array
-      description:
-        maxLength: 255
-        type: string
-      icon:
-        maxLength: 32
-        type: string
-      name:
-        maxLength: 80
-        type: string
-      systemPrompt:
-        maxLength: 12000
-        type: string
-    required:
-    - defaultKnowledgeBaseIDs
-    - name
-    type: object
   CreateConversationRequest:
     properties:
       model:
         maxLength: 128
-        type: string
-      projectID:
-        maxLength: 32
         type: string
       title:
         maxLength: 255
@@ -6599,16 +6451,6 @@ definitions:
     required:
     - title
     type: object
-  ReorderConversationProjectsRequest:
-    properties:
-      projectIDs:
-        items:
-          type: string
-        maxItems: 200
-        type: array
-    required:
-    - projectIDs
-    type: object
   ReorderIdentityProvidersRequest:
     properties:
       providerIDs:
@@ -6891,12 +6733,6 @@ definitions:
         type: boolean
     required:
     - archived
-    type: object
-  SetConversationProjectRequest:
-    properties:
-      projectID:
-        maxLength: 32
-        type: string
     type: object
   SetConversationStarRequest:
     properties:
@@ -7563,44 +7399,6 @@ definitions:
         type: array
     required:
     - labels
-    type: object
-  UpdateConversationProjectRequest:
-    properties:
-      color:
-        maxLength: 32
-        type: string
-      defaultKnowledgeBaseIDs:
-        items:
-          type: string
-        maxItems: 8
-        type: array
-      defaultModel:
-        maxLength: 128
-        type: string
-      defaultSkillIDs:
-        items:
-          type: integer
-        maxItems: 128
-        type: array
-      description:
-        maxLength: 255
-        type: string
-      icon:
-        maxLength: 32
-        type: string
-      name:
-        maxLength: 80
-        type: string
-      status:
-        enum:
-        - active
-        - archived
-        type: string
-      systemPrompt:
-        maxLength: 12000
-        type: string
-    required:
-    - defaultKnowledgeBaseIDs
     type: object
   UpdateCurrentSessionLocationRequest:
     properties:
@@ -15050,183 +14848,6 @@ paths:
       summary: 查询上下文证据详情
       tags:
       - chat
-  /conversation-projects:
-    get:
-      consumes:
-      - application/json
-      description: 查询当前用户的会话项目分组
-      parameters:
-      - description: '状态筛选: active|archived|all'
-        in: query
-        name: status
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationProjectListResponseDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 会话项目列表
-      tags:
-      - chat
-    post:
-      consumes:
-      - application/json
-      description: 创建当前用户的会话项目分组
-      parameters:
-      - description: 项目参数
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/CreateConversationProjectRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationProjectResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 创建会话项目
-      tags:
-      - chat
-  /conversation-projects/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除当前用户项目分组。默认仅解除其下会话归属；delete_conversations=true 时同时软删除项目内会话；delete_files=true
-        时同步删除不再被其他会话引用的文件。
-      parameters:
-      - description: 项目 public_id
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 是否同时删除项目内会话
-        in: query
-        name: delete_conversations
-        type: boolean
-      - description: 是否同步删除不再被其他会话引用的会话文件
-        in: query
-        name: delete_files
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationDeleteResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 删除会话项目
-      tags:
-      - chat
-    patch:
-      consumes:
-      - application/json
-      description: 更新当前用户的会话项目分组
-      parameters:
-      - description: 项目 public_id
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 项目参数
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/UpdateConversationProjectRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationProjectResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 更新会话项目
-      tags:
-      - chat
-  /conversation-projects/reorder:
-    post:
-      consumes:
-      - application/json
-      description: 更新当前用户项目分组展示顺序
-      parameters:
-      - description: 排序参数
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/ReorderConversationProjectsRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationProjectListResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 调整会话项目顺序
-      tags:
-      - chat
   /conversation-runs/{run_id}/cancel:
     post:
       description: 仅在用户显式点击暂停时取消对应 run；浏览器刷新或断开连接不会调用此接口
@@ -15360,11 +14981,7 @@ paths:
         in: query
         name: starred
         type: string
-      - description: '项目筛选: all|unassigned|项目 public_id'
-        in: query
-        name: project
-        type: string
-      - description: 搜索关键词，匹配会话元数据、项目名称和消息正文
+      - description: 搜索关键词，匹配会话元数据、标签和消息正文
         in: query
         name: q
         type: string
@@ -15821,47 +15438,6 @@ paths:
       summary: 流式发送消息
       tags:
       - chat
-  /conversations/{id}/project:
-    patch:
-      consumes:
-      - application/json
-      description: 设置当前用户单个会话的项目归属
-      parameters:
-      - description: 会话 public_id
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 项目归属参数
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/SetConversationProjectRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationUpdateResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 设置会话项目归属
-      tags:
-      - chat
   /conversations/{id}/runs:
     get:
       consumes:
@@ -16043,47 +15619,11 @@ paths:
       summary: 查询新会话默认模型候选
       tags:
       - chat
-  /conversations/project:
-    post:
-      consumes:
-      - application/json
-      description: 批量设置当前用户会话的项目归属
-      parameters:
-      - description: 项目归属参数
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/BatchSetConversationProjectRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/BatchSetConversationProjectResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 批量设置会话项目归属
-      tags:
-      - chat
   /conversations/search:
     get:
       consumes:
       - application/json
-      description: 分页搜索当前用户的会话标题、元数据、项目和消息正文，并返回是否还有下一页
+      description: 分页搜索当前用户的会话标题、元数据、标签和消息正文，并返回是否还有下一页
       parameters:
       - description: 页码（从 1 开始，默认 1）
         in: query

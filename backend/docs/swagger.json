@@ -9023,283 +9023,6 @@
                 }
             }
         },
-        "/conversation-projects": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "查询当前用户的会话项目分组",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "会话项目列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "状态筛选: active|archived|all",
-                        "name": "status",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationProjectListResponseDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "创建当前用户的会话项目分组",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "创建会话项目",
-                "parameters": [
-                    {
-                        "description": "项目参数",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/CreateConversationProjectRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationProjectResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/conversation-projects/reorder": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "更新当前用户项目分组展示顺序",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "调整会话项目顺序",
-                "parameters": [
-                    {
-                        "description": "排序参数",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ReorderConversationProjectsRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationProjectListResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/conversation-projects/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "删除当前用户项目分组。默认仅解除其下会话归属；delete_conversations=true 时同时软删除项目内会话；delete_files=true 时同步删除不再被其他会话引用的文件。",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "删除会话项目",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "项目 public_id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否同时删除项目内会话",
-                        "name": "delete_conversations",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否同步删除不再被其他会话引用的会话文件",
-                        "name": "delete_files",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationDeleteResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "更新当前用户的会话项目分组",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "更新会话项目",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "项目 public_id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "项目参数",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/UpdateConversationProjectRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationProjectResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/conversation-runs/statuses": {
             "post": {
                 "security": [
@@ -9522,13 +9245,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "项目筛选: all|unassigned|项目 public_id",
-                        "name": "project",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "搜索关键词，匹配会话元数据、项目名称和消息正文",
+                        "description": "搜索关键词，匹配会话元数据、标签和消息正文",
                         "name": "q",
                         "in": "query"
                     }
@@ -9632,63 +9349,6 @@
                 }
             }
         },
-        "/conversations/project": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "批量设置当前用户会话的项目归属",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "批量设置会话项目归属",
-                "parameters": [
-                    {
-                        "description": "项目归属参数",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/BatchSetConversationProjectRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/BatchSetConversationProjectResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/conversations/search": {
             "get": {
                 "security": [
@@ -9696,7 +9356,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "分页搜索当前用户的会话标题、元数据、项目和消息正文，并返回是否还有下一页",
+                "description": "分页搜索当前用户的会话标题、元数据、标签和消息正文，并返回是否还有下一页",
                 "consumes": [
                     "application/json"
                 ],
@@ -10362,70 +10022,6 @@
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/conversations/{id}/project": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "设置当前用户单个会话的项目归属",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "设置会话项目归属",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "会话 public_id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "项目归属参数",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/SetConversationProjectRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationUpdateResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/ConversationErrorDoc"
                         }
@@ -14932,51 +14528,6 @@
                 }
             }
         },
-        "BatchSetConversationProjectRequest": {
-            "type": "object",
-            "required": [
-                "conversationPublicIDs"
-            ],
-            "properties": {
-                "conversationPublicIDs": {
-                    "type": "array",
-                    "maxItems": 1000,
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "projectID": {
-                    "type": "string",
-                    "maxLength": 32
-                }
-            }
-        },
-        "BatchSetConversationProjectResponse": {
-            "type": "object",
-            "required": [
-                "updated"
-            ],
-            "properties": {
-                "updated": {
-                    "type": "integer"
-                }
-            }
-        },
-        "BatchSetConversationProjectResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/BatchSetConversationProjectResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
         "BillingAccountDataResponse": {
             "type": "object",
             "required": [
@@ -16986,104 +16537,6 @@
                 }
             }
         },
-        "ConversationProjectListResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ConversationProjectResponse"
-                    }
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
-        "ConversationProjectResponse": {
-            "type": "object",
-            "required": [
-                "color",
-                "createdAt",
-                "defaultKnowledgeBaseIDs",
-                "defaultModel",
-                "defaultSkillIDs",
-                "description",
-                "icon",
-                "name",
-                "publicID",
-                "sortOrder",
-                "status",
-                "systemPrompt",
-                "updatedAt"
-            ],
-            "properties": {
-                "color": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "defaultKnowledgeBaseIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "defaultModel": {
-                    "type": "string"
-                },
-                "defaultSkillIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "publicID": {
-                    "type": "string"
-                },
-                "sortOrder": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "systemPrompt": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "ConversationProjectResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ConversationProjectResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
         "ConversationResponse": {
             "type": "object",
             "required": [
@@ -17095,8 +16548,6 @@
                 "lastResponseID",
                 "messageCount",
                 "model",
-                "projectID",
-                "projectName",
                 "provider",
                 "publicID",
                 "sessionKey",
@@ -17131,12 +16582,6 @@
                     "type": "integer"
                 },
                 "model": {
-                    "type": "string"
-                },
-                "projectID": {
-                    "type": "string"
-                },
-                "projectName": {
                     "type": "string"
                 },
                 "provider": {
@@ -17251,8 +16696,6 @@
                 "isStarred",
                 "labelsJSON",
                 "messageCount",
-                "projectID",
-                "projectName",
                 "publicID",
                 "status",
                 "title",
@@ -17267,12 +16710,6 @@
                 },
                 "messageCount": {
                     "type": "integer"
-                },
-                "projectID": {
-                    "type": "string"
-                },
-                "projectName": {
-                    "type": "string"
                 },
                 "publicID": {
                     "type": "string"
@@ -17347,63 +16784,12 @@
                 }
             }
         },
-        "CreateConversationProjectRequest": {
-            "type": "object",
-            "required": [
-                "defaultKnowledgeBaseIDs",
-                "name"
-            ],
-            "properties": {
-                "color": {
-                    "type": "string",
-                    "maxLength": 32
-                },
-                "defaultKnowledgeBaseIDs": {
-                    "type": "array",
-                    "maxItems": 8,
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "defaultModel": {
-                    "type": "string",
-                    "maxLength": 128
-                },
-                "defaultSkillIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "icon": {
-                    "type": "string",
-                    "maxLength": 32
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 80
-                },
-                "systemPrompt": {
-                    "type": "string",
-                    "maxLength": 12000
-                }
-            }
-        },
         "CreateConversationRequest": {
             "type": "object",
             "properties": {
                 "model": {
                     "type": "string",
                     "maxLength": 128
-                },
-                "projectID": {
-                    "type": "string",
-                    "maxLength": 32
                 },
                 "title": {
                     "type": "string",
@@ -23339,21 +22725,6 @@
                 }
             }
         },
-        "ReorderConversationProjectsRequest": {
-            "type": "object",
-            "required": [
-                "projectIDs"
-            ],
-            "properties": {
-                "projectIDs": {
-                    "type": "array",
-                    "maxItems": 200,
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "ReorderIdentityProvidersRequest": {
             "type": "object",
             "required": [
@@ -23754,15 +23125,6 @@
             "properties": {
                 "archived": {
                     "type": "boolean"
-                }
-            }
-        },
-        "SetConversationProjectRequest": {
-            "type": "object",
-            "properties": {
-                "projectID": {
-                    "type": "string",
-                    "maxLength": 32
                 }
             }
         },
@@ -24719,59 +24081,6 @@
                         "type": "string",
                         "maxLength": 24
                     }
-                }
-            }
-        },
-        "UpdateConversationProjectRequest": {
-            "type": "object",
-            "required": [
-                "defaultKnowledgeBaseIDs"
-            ],
-            "properties": {
-                "color": {
-                    "type": "string",
-                    "maxLength": 32
-                },
-                "defaultKnowledgeBaseIDs": {
-                    "type": "array",
-                    "maxItems": 8,
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "defaultModel": {
-                    "type": "string",
-                    "maxLength": 128
-                },
-                "defaultSkillIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "icon": {
-                    "type": "string",
-                    "maxLength": 32
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 80
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "active",
-                        "archived"
-                    ]
-                },
-                "systemPrompt": {
-                    "type": "string",
-                    "maxLength": 12000
                 }
             }
         },

@@ -270,22 +270,6 @@ export interface BatchDeleteResultResponse {
   status: string;
 }
 
-export interface BatchSetConversationProjectRequest {
-  /** @maxItems 1000 */
-  conversationPublicIDs: string[];
-  /** @maxLength 32 */
-  projectID?: string;
-}
-
-export interface BatchSetConversationProjectResponse {
-  updated: number;
-}
-
-export interface BatchSetConversationProjectResponseDoc {
-  data: BatchSetConversationProjectResponse;
-  errorMsg: string;
-}
-
 export interface BillingAccountDataResponse {
   account: BillingAccountResponse;
 }
@@ -880,32 +864,6 @@ export interface ConversationPreviewMessageResponse {
   role: "user" | "assistant";
 }
 
-export interface ConversationProjectListResponseDoc {
-  data: ConversationProjectResponse[];
-  errorMsg: string;
-}
-
-export interface ConversationProjectResponse {
-  color: string;
-  createdAt: string;
-  defaultKnowledgeBaseIDs: string[];
-  defaultModel: string;
-  defaultSkillIDs: number[];
-  description: string;
-  icon: string;
-  name: string;
-  publicID: string;
-  sortOrder: number;
-  status: string;
-  systemPrompt: string;
-  updatedAt: string;
-}
-
-export interface ConversationProjectResponseDoc {
-  data: ConversationProjectResponse;
-  errorMsg: string;
-}
-
 export interface ConversationResponse {
   contextPolicyJSON: string;
   createdAt: string;
@@ -915,8 +873,6 @@ export interface ConversationResponse {
   lastResponseID: string;
   messageCount: number;
   model: string;
-  projectID: string;
-  projectName: string;
   provider: string;
   publicID: string;
   sessionKey: string;
@@ -954,8 +910,6 @@ export interface ConversationSearchResultResponse {
   isStarred: boolean;
   labelsJSON: string;
   messageCount: number;
-  projectID: string;
-  projectName: string;
   publicID: string;
   status: string;
   title: string;
@@ -987,30 +941,9 @@ export interface CreateCheckoutRequest {
   successURL?: string;
 }
 
-export interface CreateConversationProjectRequest {
-  /** @maxLength 32 */
-  color?: string;
-  /** @maxItems 8 */
-  defaultKnowledgeBaseIDs: string[];
-  /** @maxLength 128 */
-  defaultModel?: string;
-  /** @maxItems 128 */
-  defaultSkillIDs?: number[];
-  /** @maxLength 255 */
-  description?: string;
-  /** @maxLength 32 */
-  icon?: string;
-  /** @maxLength 80 */
-  name: string;
-  /** @maxLength 12000 */
-  systemPrompt?: string;
-}
-
 export interface CreateConversationRequest {
   /** @maxLength 128 */
   model?: string;
-  /** @maxLength 32 */
-  projectID?: string;
   /** @maxLength 255 */
   title?: string;
 }
@@ -2927,11 +2860,6 @@ export interface RenameConversationRequest {
   title: string;
 }
 
-export interface ReorderConversationProjectsRequest {
-  /** @maxItems 200 */
-  projectIDs: string[];
-}
-
 export interface ReorderIdentityProvidersRequest {
   providerIDs: string[];
 }
@@ -3055,11 +2983,6 @@ export interface SendMessageResponseDoc {
 
 export interface SetConversationArchiveRequest {
   archived: boolean;
-}
-
-export interface SetConversationProjectRequest {
-  /** @maxLength 32 */
-  projectID?: string;
 }
 
 export interface SetConversationStarRequest {
@@ -3394,26 +3317,6 @@ export interface UpdateBillingPlanRequest {
 export interface UpdateConversationLabelsRequest {
   /** @maxItems 6 */
   labels: string[];
-}
-
-export interface UpdateConversationProjectRequest {
-  /** @maxLength 32 */
-  color?: string;
-  /** @maxItems 8 */
-  defaultKnowledgeBaseIDs: string[];
-  /** @maxLength 128 */
-  defaultModel?: string;
-  /** @maxItems 128 */
-  defaultSkillIDs?: number[];
-  /** @maxLength 255 */
-  description?: string;
-  /** @maxLength 32 */
-  icon?: string;
-  /** @maxLength 80 */
-  name?: string;
-  status?: "active" | "archived";
-  /** @maxLength 12000 */
-  systemPrompt?: string;
 }
 
 export interface UpdateCurrentSessionLocationRequest {
@@ -7520,102 +7423,6 @@ export namespace ContextArtifacts {
   }
 }
 
-export namespace ConversationProjects {
-  /**
-   * @description 查询当前用户的会话项目分组
-   * @tags chat
-   * @name ConversationProjectsList
-   * @summary 会话项目列表
-   * @request GET:/conversation-projects
-   * @secure
-   */
-  export namespace ConversationProjectsList {
-    export type RequestParams = {};
-    export type RequestQuery = {
-      /** 状态筛选: active|archived|all */
-      status?: string;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationProjectListResponseDoc;
-  }
-
-  /**
-   * @description 创建当前用户的会话项目分组
-   * @tags chat
-   * @name ConversationProjectsCreate
-   * @summary 创建会话项目
-   * @request POST:/conversation-projects
-   * @secure
-   */
-  export namespace ConversationProjectsCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = CreateConversationProjectRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationProjectResponseDoc;
-  }
-
-  /**
-   * @description 更新当前用户项目分组展示顺序
-   * @tags chat
-   * @name ReorderCreate
-   * @summary 调整会话项目顺序
-   * @request POST:/conversation-projects/reorder
-   * @secure
-   */
-  export namespace ReorderCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = ReorderConversationProjectsRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationProjectListResponseDoc;
-  }
-
-  /**
-   * @description 删除当前用户项目分组。默认仅解除其下会话归属；delete_conversations=true 时同时软删除项目内会话；delete_files=true 时同步删除不再被其他会话引用的文件。
-   * @tags chat
-   * @name ConversationProjectsDelete
-   * @summary 删除会话项目
-   * @request DELETE:/conversation-projects/{id}
-   * @secure
-   */
-  export namespace ConversationProjectsDelete {
-    export type RequestParams = {
-      /** 项目 public_id */
-      id: string;
-    };
-    export type RequestQuery = {
-      /** 是否同时删除项目内会话 */
-      delete_conversations?: boolean;
-      /** 是否同步删除不再被其他会话引用的会话文件 */
-      delete_files?: boolean;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationDeleteResponseDoc;
-  }
-
-  /**
-   * @description 更新当前用户的会话项目分组
-   * @tags chat
-   * @name ConversationProjectsPartialUpdate
-   * @summary 更新会话项目
-   * @request PATCH:/conversation-projects/{id}
-   * @secure
-   */
-  export namespace ConversationProjectsPartialUpdate {
-    export type RequestParams = {
-      /** 项目 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = UpdateConversationProjectRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationProjectResponseDoc;
-  }
-}
-
 export namespace ConversationRuns {
   /**
    * @description 按运行 ID 一次查询当前用户多个会话任务的最小状态快照
@@ -7711,9 +7518,7 @@ export namespace Conversations {
       page?: number;
       /** 每页数量（1-1000，默认 20） */
       page_size?: number;
-      /** 项目筛选: all|unassigned|项目 public_id */
-      project?: string;
-      /** 搜索关键词，匹配会话元数据、项目名称和消息正文 */
+      /** 搜索关键词，匹配会话元数据、标签和消息正文 */
       q?: string;
       /** 星标筛选: all|starred|unstarred */
       starred?: string;
@@ -7758,23 +7563,7 @@ export namespace Conversations {
   }
 
   /**
-   * @description 批量设置当前用户会话的项目归属
-   * @tags chat
-   * @name ProjectCreate
-   * @summary 批量设置会话项目归属
-   * @request POST:/conversations/project
-   * @secure
-   */
-  export namespace ProjectCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = BatchSetConversationProjectRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = BatchSetConversationProjectResponseDoc;
-  }
-
-  /**
-   * @description 分页搜索当前用户的会话标题、元数据、项目和消息正文，并返回是否还有下一页
+   * @description 分页搜索当前用户的会话标题、元数据、标签和消息正文，并返回是否还有下一页
    * @tags chat
    * @name SearchList
    * @summary 搜索会话
@@ -7994,25 +7783,6 @@ export namespace Conversations {
     };
     export type RequestQuery = {};
     export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationUpdateResponseDoc;
-  }
-
-  /**
-   * @description 设置当前用户单个会话的项目归属
-   * @tags chat
-   * @name ProjectPartialUpdate
-   * @summary 设置会话项目归属
-   * @request PATCH:/conversations/{id}/project
-   * @secure
-   */
-  export namespace ProjectPartialUpdate {
-    export type RequestParams = {
-      /** 会话 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = SetConversationProjectRequest;
     export type RequestHeaders = {};
     export type ResponseBody = ConversationUpdateResponseDoc;
   }
