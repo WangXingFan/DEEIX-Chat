@@ -3,7 +3,6 @@ package conversation
 import (
 	"context"
 	"errors"
-	"sort"
 	"strings"
 	"time"
 
@@ -11,14 +10,11 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/pagination"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 const (
 	conversationPreviewMessageLimit     = 10
 	conversationPreviewAncestorMaxDepth = 100
-	conversationExportVersion           = 1
-	conversationExportScopeFull         = "full"
 )
 
 // DeleteConversationOptions 定义会话删除选项。
@@ -197,143 +193,6 @@ func (s *Service) ListMessagesBeforeID(ctx context.Context, userID uint, convers
 		return nil, 0, err
 	}
 	return items, total, nil
-}
-
-// ExportConversation 查询单会话完整导出数据。
-func (s *Service) ExportConversation(ctx context.Context, userID uint, publicID string) (*ConversationExportResult, error) {
-	conversation, err := s.repo.GetConversationByPublicID(ctx, publicID, userID)
-	if err != nil {
-		return nil, ErrConversationNotFound
-	}
-
-	items, err := s.repo.ListAllMessages(ctx, conversation.ID)
-	if err != nil {
-		return nil, err
-	}
-	if err = s.hydrateMessageFeedback(ctx, userID, items); err != nil {
-		return nil, err
-	}
-	if err = s.hydrateMessageProcessTraces(ctx, items); err != nil {
-		return nil, err
-	}
-
-	runs, err := s.repo.ListConversationRunsByRunIDs(ctx, userID, conversation.ID, model.CollectMessageRunIDs(items))
-	if err != nil {
-		return nil, err
-	}
-
-	return &ConversationExportResult{
-		Version:                 conversationExportVersion,
-		ExportScope:             conversationExportScopeFull,
-		ExportedAt:              time.Now().UTC(),
-		Conversation:            conversation,
-		Messages:                items,
-		Runs:                    runs,
-		TotalMessages:           int64(len(items)),
-		TotalRuns:               int64(len(runs)),
-		DefaultMessagePublicIDs: exportDefaultMessagePublicIDs(items),
-	}, nil
-}
-
-// ListAllConversationsAfterID 按主键游标分页列出会话（管理员导出用）。
-func (s *Service) ListAllConversationsAfterID(ctx context.Context, afterID uint, limit int) ([]model.Conversation, error) {
-	return s.repo.ListAllConversationsAfterID(ctx, afterID, limit)
-}
-
-// ListUserConversationsAfterID 按主键游标分页列出指定用户的会话。
-func (s *Service) ListUserConversationsAfterID(ctx context.Context, userID uint, afterID uint, limit int) ([]model.Conversation, error) {
-	return s.repo.ListUserConversationsAfterID(ctx, userID, afterID, limit)
-}
-
-// ExportUserConversationData 导出单会话完整数据，校验用户归属。
-func (s *Service) ExportUserConversationData(ctx context.Context, userID uint, conversation *model.Conversation) (*ConversationExportResult, error) {
-	if conversation.UserID != userID {
-		return nil, ErrConversationNotFound
-	}
-	return s.ExportConversationData(ctx, conversation)
-}
-
-// ExportConversationData 导出单会话完整数据，不做用户归属校验（管理员用）。
-func (s *Service) ExportConversationData(ctx context.Context, conversation *model.Conversation) (*ConversationExportResult, error) {
-	items, err := s.repo.ListAllMessages(ctx, conversation.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	var runs []model.Run
-	runIDs := model.CollectMessageRunIDs(items)
-	if len(runIDs) > 0 && conversation.UserID > 0 {
-		var runsErr error
-		runs, runsErr = s.repo.ListConversationRunsByRunIDs(ctx, conversation.UserID, conversation.ID, runIDs)
-		if runsErr != nil && s.logger != nil {
-			s.logger.Warn("export_conversation_runs_failed", zap.Uint("conversation_id", conversation.ID), zap.Error(runsErr))
-		}
-	}
-	if runs == nil {
-		runs = []model.Run{}
-	}
-
-	return &ConversationExportResult{
-		Version:                 conversationExportVersion,
-		ExportScope:             conversationExportScopeFull,
-		ExportedAt:              time.Now().UTC(),
-		Conversation:            conversation,
-		Messages:                items,
-		Runs:                    runs,
-		TotalMessages:           int64(len(items)),
-		TotalRuns:               int64(len(runs)),
-		DefaultMessagePublicIDs: exportDefaultMessagePublicIDs(items),
-	}, nil
-}
-
-func exportDefaultMessagePublicIDs(items []model.Message) []string {
-	return publicIDsFromMessages(buildLatestVisibleMessages(items))
-}
-
-func publicIDsFromMessages(messages []model.Message) []string {
-	result := make([]string, 0, len(messages))
-	for _, item := range messages {
-		publicID := strings.TrimSpace(item.PublicID)
-		if publicID != "" {
-			result = append(result, publicID)
-		}
-	}
-	return result
-}
-
-func buildLatestVisibleMessages(messages []model.Message) []model.Message {
-	children := make(map[string][]model.Message)
-	for _, item := range messages {
-		parentKey := strings.TrimSpace(item.ParentPublicID)
-		children[parentKey] = append(children[parentKey], item)
-	}
-	for parentKey := range children {
-		sort.SliceStable(children[parentKey], func(i, j int) bool {
-			return children[parentKey][i].ID < children[parentKey][j].ID
-		})
-	}
-
-	visible := make([]model.Message, 0, len(messages))
-	visited := make(map[string]struct{}, len(messages))
-	parentKey := ""
-	for {
-		siblings := children[parentKey]
-		if len(siblings) == 0 {
-			break
-		}
-		selected := siblings[len(siblings)-1]
-		publicID := strings.TrimSpace(selected.PublicID)
-		if publicID == "" {
-			break
-		}
-		if _, exists := visited[publicID]; exists {
-			break
-		}
-		visited[publicID] = struct{}{}
-		visible = append(visible, selected)
-		parentKey = publicID
-	}
-	return visible
 }
 
 // ListRecentMessages 查询会话最近消息窗口，供对话页恢复最新上下文。

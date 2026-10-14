@@ -15,7 +15,6 @@ func (m *Module) RegisterRoutes(adminGroup *gin.RouterGroup, gate middleware.Fea
 	adminGroup.GET("/conversation-events", m.Handler.ListConversationEvents)
 	adminGroup.GET("/conversation-events/:id", m.Handler.GetConversationEvent)
 	adminGroup.POST("/logs/cleanup", m.Handler.CleanupLogs)
-	adminGroup.GET("/conversations/export", m.Handler.ExportConversations)
 
 	billingGating := adminGroup.Group("", gate.Require("billingGating"))
 	billingGating.GET("/payment-orders", m.Handler.ListPaymentOrders)

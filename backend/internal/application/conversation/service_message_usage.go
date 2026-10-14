@@ -140,20 +140,6 @@ func (a *messageUsageAccumulator) effectiveOutputTokens() (int64, int64) {
 		a.observedUsage.ReasoningTokens + a.estimatedUnobservedReasoningTokens
 }
 
-func resolveObservedOrEstimatedOutputTokens(observedTokens int64, assistantText string) int64 {
-	return resolveObservedOrEstimatedTokens(observedTokens, tokenestimate.Estimate(assistantText))
-}
-
-func resolveObservedOrEstimatedTokens(observedTokens int64, estimatedTokens int64) int64 {
-	if observedTokens > 0 {
-		return observedTokens
-	}
-	if estimatedTokens > 0 {
-		return estimatedTokens
-	}
-	return 0
-}
-
 func resolveObservedOrHigherEstimatedTokens(observedTokens int64, estimatedTokens int64) int64 {
 	if estimatedTokens > observedTokens {
 		return estimatedTokens

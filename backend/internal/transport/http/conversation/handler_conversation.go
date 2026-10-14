@@ -1,13 +1,10 @@
 package conversation
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	appconversation "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/conversation"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/pagination"
@@ -202,124 +199,6 @@ func (h *Handler) GetConversation(c *gin.Context) {
 	}
 
 	response.Success(c, toConversationResponse(item))
-}
-
-// ExportConversation godoc
-// @Summary 导出会话 JSON
-// @Description 导出当前用户单个会话的元信息、消息、运行日志和可见处理轨迹
-// @Tags chat
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "会话 public_id"
-// @Success 200 {object} ConversationExportResponseDoc
-// @Failure 400 {object} ErrorDoc
-// @Failure 404 {object} ErrorDoc
-// @Failure 500 {object} ErrorDoc
-// @Router /conversations/{id}/export [get]
-func (h *Handler) ExportConversation(c *gin.Context) {
-	userID := middleware.MustUserID(c)
-	publicID, err := stringParam(c, "id")
-	if err != nil {
-		response.ErrorFrom(c, http.StatusBadRequest, errInvalidConversationID)
-		return
-	}
-
-	item, err := h.service.ExportConversation(c.Request.Context(), userID, publicID)
-	if err != nil {
-		if errors.Is(err, appconversation.ErrConversationNotFound) {
-			response.ErrorFrom(c, http.StatusNotFound, err)
-			return
-		}
-		response.InternalError(c)
-		return
-	}
-
-	h.recordAudit(c, "export_conversation",
-		"conversation",
-		publicID,
-		map[string]any{"message_count": item.TotalMessages},
-	)
-
-	response.Success(c, toConversationExportResponse(item))
-}
-
-type userExportManifest struct {
-	Type      string `json:"_type"`
-	Complete  bool   `json:"complete"`
-	Exported  int64  `json:"exported"`
-	Failed    int    `json:"failed"`
-	FailedIDs []uint `json:"failedIDs,omitempty"`
-	Error     string `json:"error,omitempty"`
-}
-
-// ExportAllConversations godoc
-// @Summary 导出当前用户全部对话
-// @Description 流式导出当前用户全部会话及消息为 NDJSON 文件
-// @Tags chat
-// @Produce application/x-ndjson
-// @Security BearerAuth
-// @Success 200 {string} string "NDJSON stream"
-// @Failure 500 {object} ErrorDoc
-// @Router /conversations/export [get]
-func (h *Handler) ExportAllConversations(c *gin.Context) {
-	userID := middleware.MustUserID(c)
-
-	h.recordAudit(c, "export_all_conversations", "conversation", "", map[string]any{"scope": "user"})
-
-	c.Header("Content-Type", "application/x-ndjson")
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="my-conversations-%s.jsonl"`, time.Now().UTC().Format("20060102-150405")))
-	c.Header("Cache-Control", "no-store")
-	c.Status(http.StatusOK)
-
-	const batchSize = 50
-	var lastID uint
-	encoder := json.NewEncoder(c.Writer)
-	exported := int64(0)
-	var failedIDs []uint
-	writeManifest := func(complete bool, exportErr string) {
-		_ = encoder.Encode(userExportManifest{
-			Type:      "export_manifest",
-			Complete:  complete,
-			Exported:  exported,
-			Failed:    len(failedIDs),
-			FailedIDs: failedIDs,
-			Error:     exportErr,
-		})
-		c.Writer.Flush()
-	}
-
-	for {
-		if c.Request.Context().Err() != nil {
-			return
-		}
-		conversations, err := h.service.ListUserConversationsAfterID(c.Request.Context(), userID, lastID, batchSize)
-		if err != nil {
-			writeManifest(false, "failed to list conversations")
-			return
-		}
-		if len(conversations) == 0 {
-			break
-		}
-		for i := range conversations {
-			result, err := h.service.ExportUserConversationData(c.Request.Context(), userID, &conversations[i])
-			if err != nil {
-				failedIDs = append(failedIDs, conversations[i].ID)
-				continue
-			}
-			if err := encoder.Encode(ToConversationExportResponse(result)); err != nil {
-				return
-			}
-			exported++
-		}
-		c.Writer.Flush()
-		lastID = conversations[len(conversations)-1].ID
-		if len(conversations) < batchSize {
-			break
-		}
-	}
-
-	writeManifest(true, "")
 }
 
 // RenameConversation godoc

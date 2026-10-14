@@ -189,19 +189,6 @@ func newMessageTraceRecorder(
 	}
 }
 
-func newEphemeralMessageTraceRecorder(
-	service *Service,
-	ctx context.Context,
-	assistant *model.Message,
-	onEvent func(string, map[string]any) error,
-) *messageTraceRecorder {
-	recorder := newMessageTraceRecorder(service, ctx, assistant, onEvent)
-	if recorder != nil {
-		recorder.ephemeral = true
-	}
-	return recorder
-}
-
 func (r *messageTraceRecorder) enabled() bool {
 	return r != nil && r.cfg.ProcessTraceEnabled && r.assistant != nil
 }

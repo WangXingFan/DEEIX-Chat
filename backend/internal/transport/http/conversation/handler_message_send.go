@@ -96,16 +96,6 @@ func (h *Handler) parseSendMessageInput(c *gin.Context) (appconversation.SendMes
 	return input, conversation, &req, nil
 }
 
-// beginUsageSession 在写入响应头前预留预算并启动续租；失败时已写出 HTTP 错误响应。
-func (h *Handler) beginUsageSession(c *gin.Context, input appconversation.SendMessageBillingInput) (*appconversation.UsageSession, bool) {
-	session, err := h.service.BeginUsageSession(c.Request.Context(), input)
-	if err != nil {
-		handleSendMessageError(c, err)
-		return nil, false
-	}
-	return session, true
-}
-
 // beginMessageUsageSession 在预留失败时先把终态业务拒绝持久化为会话消息，再写出 HTTP 错误响应。
 func (h *Handler) beginMessageUsageSession(
 	c *gin.Context,

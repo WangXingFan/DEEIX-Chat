@@ -2,7 +2,6 @@ package conversation
 
 import (
 	"encoding/json"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/pkg/textutil"
 	"strings"
 	"time"
 
@@ -64,24 +63,6 @@ type ConversationPreviewMessageResponse struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
-type ConversationExportResponse struct {
-	Version                 int                                     `json:"version"`
-	ExportScope             string                                  `json:"exportScope"`
-	ExportedAt              time.Time                               `json:"exportedAt"`
-	Conversation            ConversationResponse                    `json:"conversation"`
-	Messages                []MessageResponse                       `json:"messages"`
-	Runs                    []RunResponse                           `json:"runs"`
-	TotalMessages           int64                                   `json:"totalMessages"`
-	TotalRuns               int64                                   `json:"totalRuns"`
-	DefaultMessagePublicIDs []string                                `json:"defaultMessagePublicIDs"`
-	Compatibility           ConversationExportCompatibilityResponse `json:"compatibility"`
-}
-
-type ConversationExportCompatibilityResponse struct {
-	Format string `json:"format"`
-	Notes  string `json:"notes"`
-}
-
 // ConversationDefaultModelCandidateResponse 返回新会话自动选模候选。
 type ConversationDefaultModelCandidateResponse struct {
 	PlatformModelName string     `json:"platformModelName"`
@@ -141,76 +122,6 @@ func toConversationPreviewMessageResponse(item model.Message) ConversationPrevie
 		Content:      item.Content,
 		ErrorMessage: item.ErrorMessage,
 	}
-}
-
-func toConversationExportResponse(item *appconversation.ConversationExportResult) ConversationExportResponse {
-	return ToConversationExportResponse(item)
-}
-
-// ToConversationExportResponse 转换导出结果为响应 DTO（供跨包复用）。
-func ToConversationExportResponse(item *appconversation.ConversationExportResult) ConversationExportResponse {
-	if item == nil {
-		return ConversationExportResponse{}
-	}
-	runModels := make(map[string]model.Run, len(item.Runs))
-	runs := make([]RunResponse, 0, len(item.Runs))
-	for _, run := range item.Runs {
-		if runID := strings.TrimSpace(run.RunID); runID != "" {
-			runModels[runID] = run
-		}
-		runs = append(runs, toRunResponse(run))
-	}
-
-	fallbackModel := ""
-	if item.Conversation != nil {
-		fallbackModel = item.Conversation.Model
-	}
-	messages := make([]MessageResponse, 0, len(item.Messages))
-	for _, message := range item.Messages {
-		// 用户自有归档：保留可恢复的用户内容；被拦截的助手正文在 DB 中本就为空。
-		messages = append(messages, toMessageResponseWithRunAndFallback(message, runModels[strings.TrimSpace(message.RunID)], fallbackModel))
-	}
-
-	return ConversationExportResponse{
-		Version:                 item.Version,
-		ExportScope:             item.ExportScope,
-		ExportedAt:              item.ExportedAt,
-		Conversation:            toConversationResponse(item.Conversation),
-		Messages:                messages,
-		Runs:                    runs,
-		TotalMessages:           item.TotalMessages,
-		TotalRuns:               item.TotalRuns,
-		DefaultMessagePublicIDs: item.DefaultMessagePublicIDs,
-		Compatibility: ConversationExportCompatibilityResponse{
-			Format: "deeix.conversation.export",
-			Notes:  "Full backup export. Import compatibility is not guaranteed.",
-		},
-	}
-}
-
-// ToAdminConversationExportResponse 为管理员批量导出脱敏被拦截的原文。
-func ToAdminConversationExportResponse(item *appconversation.ConversationExportResult) ConversationExportResponse {
-	resp := ToConversationExportResponse(item)
-	if item == nil {
-		return resp
-	}
-	runModels := make(map[string]model.Run, len(item.Runs))
-	for _, run := range item.Runs {
-		if runID := strings.TrimSpace(run.RunID); runID != "" {
-			runModels[runID] = run
-		}
-	}
-	fallbackModel := ""
-	if item.Conversation != nil {
-		fallbackModel = item.Conversation.Model
-	}
-	messages := make([]MessageResponse, 0, len(item.Messages))
-	for _, message := range item.Messages {
-		messages = append(messages, toMessageResponseWithRunAndFallbackAdmin(message, runModels[strings.TrimSpace(message.RunID)], fallbackModel))
-	}
-	resp.Messages = messages
-	resp.Compatibility.Notes = "Admin export redacts blocked content. Originals are only available via content moderation event APIs."
-	return resp
 }
 
 // ConversationProjectResponse 对外会话项目响应 DTO。
@@ -904,32 +815,6 @@ func parseStringJSONArray(raw string) []string {
 	return items
 }
 
-// toMessageResponseWithRunAndFallbackAdmin 为管理端日志/导出脱敏被拦截的原文。
-func toMessageResponseWithRunAndFallbackAdmin(m model.Message, run model.Run, fallbackModel string) MessageResponse {
-	resp := toMessageResponseWithRunAndFallback(m, run, fallbackModel)
-	if !strings.EqualFold(strings.TrimSpace(m.Status), "blocked") {
-		return resp
-	}
-	eventID := strings.TrimSpace(textutil.FirstNonEmpty(m.ModerationEventID, run.ModerationEventID))
-	placeholder := "[blocked by content moderation"
-	if eventID != "" {
-		placeholder += "; event " + eventID
-	}
-	placeholder += "]"
-	if m.Role == "user" {
-		resp.Content = placeholder
-		resp.Attachments = "[]"
-	} else if m.Role == "assistant" {
-		resp.Content = ""
-		resp.Attachments = "[]"
-		resp.ProcessTrace = nil
-		if strings.TrimSpace(resp.ErrorMessage) == "" {
-			resp.ErrorMessage = placeholder
-		}
-	}
-	return resp
-}
-
 // ---------- 发送消息 ----------
 
 // SendMessageResponse 发送消息响应 DTO。
@@ -1265,12 +1150,6 @@ type ConversationCreateResponseDoc struct {
 type ConversationDefaultModelCandidateResponseDoc struct {
 	ErrorMsg string                                    `json:"errorMsg"`
 	Data     ConversationDefaultModelCandidateResponse `json:"data"`
-}
-
-// ConversationExportResponseDoc 会话导出响应文档。
-type ConversationExportResponseDoc struct {
-	ErrorMsg string                     `json:"errorMsg"`
-	Data     ConversationExportResponse `json:"data"`
 }
 
 // ConversationListResponseDoc 会话分页响应文档。

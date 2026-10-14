@@ -405,7 +405,6 @@ func NewAppWithOptions(opts Options) (*App, error) {
 	adminService.SetPermissionGroupModelLookup(channelRepo)
 	adminService.SetPermissionGroupBillingPlanReferenceChecker(billingService)
 	adminHandler := adminhttp.NewHandler(adminService)
-	adminHandler.SetConversationExporter(conversationService)
 	adminModule := adminhttp.NewModule(adminHandler)
 	contentModerationHandler.SetUserLabelResolver(adminService)
 	userSettingsRepo := usersettingsrepo.NewRepo(db)

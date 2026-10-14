@@ -1,7 +1,6 @@
 package conversation
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -258,13 +257,6 @@ func TestClassifyRunErrorCodeMapsInsufficientBalance(t *testing.T) {
 	if got := classifyRunErrorCode(appbilling.ErrUsageBalanceInsufficient); got != messageUsageBalanceErrorCode {
 		t.Fatalf("classifyRunErrorCode() = %q, want %q", got, messageUsageBalanceErrorCode)
 	}
-	wrapped := wrapTemporaryGenerationError(appbilling.ErrUsageBalanceInsufficient)
-	if wrapped != appbilling.ErrUsageBalanceInsufficient {
-		t.Fatalf("expected temporary budget failure to stay unwrapped, got %v", wrapped)
-	}
-	if got := wrapTemporaryGenerationError(ErrUpstreamEmptyResponse); !errors.Is(got, ErrUpstreamRequestFailed) || !errors.Is(got, ErrUpstreamEmptyResponse) {
-		t.Fatalf("expected upstream failure to be wrapped, got %v", got)
-	}
 }
 
 func TestResolveObservedOrHigherEstimatedTokensKeepsLargerEstimate(t *testing.T) {
@@ -356,15 +348,6 @@ func TestEstimateOutputUsageFoldsReasoningIntoCombinedObservedOutput(t *testing.
 	gotOutput, gotReasoning = estimateOutputUsage(0, 0, visible, reasoning)
 	if gotOutput != tokenestimate.Estimate(visible) || gotReasoning != tokenestimate.Estimate(reasoning) {
 		t.Fatalf("unreported usage must estimate both sides from text, got (%d, %d)", gotOutput, gotReasoning)
-	}
-}
-
-func TestResolveObservedOrEstimatedTokensPrefersObservedUsage(t *testing.T) {
-	if got := resolveObservedOrEstimatedTokens(40, 96); got != 40 {
-		t.Fatalf("expected successful usage path to prefer observed tokens, got %d", got)
-	}
-	if got := resolveObservedOrEstimatedOutputTokens(7, "hello world this is a longer streamed response"); got != 7 {
-		t.Fatalf("expected successful output usage path to prefer observed tokens, got %d", got)
 	}
 }
 

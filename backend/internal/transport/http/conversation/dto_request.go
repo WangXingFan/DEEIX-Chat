@@ -110,25 +110,6 @@ type SendMessageRequest struct {
 	BranchReason            string         `json:"branchReason,omitempty" binding:"omitempty,oneof=default retry edit"`
 }
 
-// TemporaryChatMessageRequest 是仅在当前页面内维护的临时对话请求。
-// 历史正文和请求级附件由浏览器逐轮提交，服务端不创建会话、消息或文件记录。
-type TemporaryChatMessageRequest struct {
-	SessionID        string                        `json:"sessionID" binding:"required,max=64"`
-	ClientRunID      string                        `json:"clientRunID" binding:"required,max=64"`
-	Model            string                        `json:"model" binding:"required,max=128"`
-	Options          map[string]any                `json:"options,omitempty"`
-	SkillIDs         []uint                        `json:"skillIDs,omitempty" binding:"max=128"`
-	KnowledgeBaseIDs []string                      `json:"knowledgeBaseIDs,omitempty" binding:"omitempty,max=8,dive,max=32"`
-	HTMLVisualPrompt bool                          `json:"htmlVisualPrompt,omitempty"`
-	Messages         []TemporaryChatHistoryMessage `json:"messages" binding:"required,min=1,max=100,dive"`
-}
-
-// TemporaryChatHistoryMessage 是临时对话可提交的消息。
-type TemporaryChatHistoryMessage struct {
-	Role    string `json:"role" binding:"required,oneof=user assistant"`
-	Content string `json:"content" binding:"max=200000"`
-}
-
 // SetMessageFeedbackRequest 设置消息反馈请求。
 type SetMessageFeedbackRequest struct {
 	Feedback string `json:"feedback,omitempty" binding:"omitempty,oneof=up down"`
