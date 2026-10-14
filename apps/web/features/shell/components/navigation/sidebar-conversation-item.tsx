@@ -22,7 +22,6 @@ import {
 import { SIDEBAR_TRANSFER_TRANSITION } from "@/features/shell/model/sidebar-motion";
 import { useConversationRunning } from "@/features/chat";
 import {
-  ConversationExportSubmenu,
   ConversationLabelsMenuItem,
   ConversationProjectSubmenu,
   parseConversationLabelsJSON,
@@ -72,7 +71,6 @@ type SidebarConversationItemProps = {
   isAutoRenaming?: boolean;
   onManageLabels?: () => void;
   onArchive: (publicID: string) => void;
-  onExport?: (publicID: string) => void | Promise<void>;
   onDelete: (publicID: string, title: string) => void;
   onNavigate?: (conversationID: string, url: string, event: React.MouseEvent<HTMLAnchorElement>) => void;
 };
@@ -125,7 +123,6 @@ export function SidebarConversationItem({
   isAutoRenaming = false,
   onManageLabels,
   onArchive,
-  onExport,
   onDelete,
   onNavigate,
 }: SidebarConversationItemProps) {
@@ -278,12 +275,6 @@ export function SidebarConversationItem({
               onSelect={(projectID) => projectMenu.onSelect(item.publicID, projectID)}
             />
           ) : null}
-          <ConversationExportSubmenu
-            label={t("exportAndScreenshot")}
-            exportLabel={t("exportJSON")}
-            onExport={onExport ? () => onExport(item.publicID) : undefined}
-            onCloseMenu={() => setIsMenuOpen(false)}
-          />
           <DropdownMenuItem
             onSelect={(event) => {
               event.preventDefault();

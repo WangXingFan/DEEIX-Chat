@@ -26,7 +26,6 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   ConversationLabelsManagerDialog,
   type ConversationLabelsTarget,
-  useConversationExport,
   useSidebarConversationField,
 } from "@/entities/conversation";
 import { SidebarConversationItem } from "@/features/shell/components/navigation/sidebar-conversation-item";
@@ -85,11 +84,6 @@ export function NavRecents() {
   const deleteFilesID = React.useId();
   const stableDeleteTarget = useDialogSnapshot(deleteTarget);
   const recentsContentID = React.useId();
-  const onExport = useConversationExport({
-    successMessage: t("exported"),
-    failureMessage: t("exportFailed"),
-  });
-
   const loadMoreRef = useLoadMoreSentinel<HTMLLIElement>({
     enabled: recentsOpen && hasMore && !loadingInitial && !loadingMore && !loadMoreFailed,
     onLoadMore: loadMore,
@@ -290,7 +284,6 @@ export function NavRecents() {
                               isAutoRenaming={autoRenamingPublicID === publicID}
                               onManageLabels={() => setLabelsTarget(item)}
                               onArchive={onArchive}
-                              onExport={onExport}
                               onDelete={onDelete}
                               onNavigate={onNavigate}
                               menuTriggerID={`recent-item-menu-trigger-${publicID}`}

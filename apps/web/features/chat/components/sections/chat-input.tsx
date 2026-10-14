@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, CornerDownRight, Eye, EyeOff, HatGlasses, LoaderCircle, PencilLine, Trash2 } from "lucide-react";
+import { Box, CornerDownRight, Eye, EyeOff, LoaderCircle, PencilLine, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import * as React from "react";
@@ -77,12 +77,6 @@ import {
 import type { ModelOptionPolicy } from "@/entities/model";
 import { isSendShortcutEvent } from "@/shared/lib/platform-shortcuts";
 
-const TEMPORARY_NOTICE_TRANSITION = {
-  duration: 0.22,
-  ease: [0.16, 1, 0.3, 1] as const,
-};
-const TEMPORARY_MENTION_KINDS = ["model", "skill"] as const;
-
 type QueuedComposerMessage = {
   id: string;
   content: string;
@@ -117,7 +111,6 @@ type ChatInputProps = {
   modelLoading: boolean;
   modelDisabled?: boolean;
   dropActive?: boolean;
-  temporaryMode?: boolean;
   autoFocusKey: string;
   onDraftChange: (value: string) => void;
   onModelChange: (platformModelName: string) => void;
@@ -196,7 +189,6 @@ function ChatInputComponent({
   modelLoading,
   modelDisabled = false,
   dropActive = false,
-  temporaryMode = false,
   autoFocusKey,
   onDraftChange,
   onModelChange,
@@ -401,7 +393,6 @@ function ChatInputComponent({
     selectedPlatformModelName,
     anchorRef: inputGroupRef,
     textareaRef,
-    enabledKinds: temporaryMode ? TEMPORARY_MENTION_KINDS : undefined,
     onDraftChange,
     onFileSelect: onAttachExistingFile,
     onModelCatalogRefresh,
@@ -600,7 +591,6 @@ function ChatInputComponent({
         className={cn(
           "relative z-10 flex-col items-stretch overflow-hidden rounded-3xl border-[0.5px] border-border/70 bg-pure shadow-xs transition-[height,border-color,background-color,box-shadow] duration-150 ease-out motion-reduce:transition-none has-[[data-slot=input-group-control]:focus-visible]:border-border has-[[data-slot=input-group-control]:focus-visible]:ring-0",
           inputGroupHeight === null && "h-auto",
-          temporaryMode && "border-foreground/15 bg-muted/45 shadow-none",
           dropActive && "border-dashed border-foreground/30 bg-muted/20 shadow-none",
         )}
         style={inputGroupHeight === null ? undefined : { height: inputGroupHeight }}
@@ -1029,23 +1019,6 @@ function ChatInputComponent({
           </InputGroupAddon>
         </div>
       </InputGroup>
-
-      <AnimatePresence initial={false}>
-        {temporaryMode ? (
-          <motion.div
-            key="temporary-chat-notice"
-            role="status"
-            className="mx-auto flex w-fit max-w-[calc(100%-1rem)] items-center gap-2 overflow-hidden px-2 text-xs leading-5 text-muted-foreground"
-            initial={{ height: 0, marginTop: 0, opacity: 0 }}
-            animate={{ height: "auto", marginTop: 8, opacity: 1 }}
-            exit={{ height: 0, marginTop: 0, opacity: 0 }}
-            transition={TEMPORARY_NOTICE_TRANSITION}
-          >
-            <HatGlasses aria-hidden className="size-4 shrink-0" strokeWidth={1.7} />
-            <span>{tChat("temporary.notice")}</span>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
 
     </div>
   );

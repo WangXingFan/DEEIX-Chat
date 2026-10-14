@@ -11,7 +11,6 @@ type ChatEmptyStateProps = {
   greetingTitle: string;
   badgeLabel?: string;
   badgeTooltip?: string;
-  titleAdornment?: React.ReactNode;
   contentWidthClassName?: string;
   children?: React.ReactNode;
 };
@@ -25,7 +24,6 @@ export function ChatEmptyState({
   greetingTitle,
   badgeLabel,
   badgeTooltip,
-  titleAdornment,
   contentWidthClassName = "max-w-[1080px]",
   children,
 }: ChatEmptyStateProps) {
@@ -60,20 +58,6 @@ export function ChatEmptyState({
             <h1 className="min-w-0 text-balance text-[22px] font-medium leading-[1.12] tracking-[-0.005em] text-foreground [font-family:var(--font-economist)] md:text-[32px]">
               {greetingTitle}
             </h1>
-            <AnimatePresence initial={false}>
-              {titleAdornment ? (
-                <motion.span
-                  key="title-adornment"
-                  className="absolute right-full mr-2 inline-flex items-center"
-                  initial={{ opacity: 0, rotate: -24, scale: 0.9, y: -5 }}
-                  animate={{ opacity: 1, rotate: -24, scale: 1, y: -5 }}
-                  exit={{ opacity: 0, rotate: -24, scale: 0.9, y: -5 }}
-                  transition={CHAT_EMPTY_TEXT_TRANSITION}
-                >
-                  {titleAdornment}
-                </motion.span>
-              ) : null}
-            </AnimatePresence>
             {badge && badgeTooltip ? (
               <Tooltip>
                 <TooltipTrigger asChild>{badge}</TooltipTrigger>

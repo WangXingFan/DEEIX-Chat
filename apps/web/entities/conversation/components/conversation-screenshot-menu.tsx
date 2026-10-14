@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Camera, Download, MousePointerClick } from "lucide-react";
+import { Camera, MousePointerClick } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuItemIcon,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -17,99 +16,73 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-type ConversationExportActionsProps = {
-  exportLabel: string;
-  onExport?: () => void | Promise<void>;
+type ConversationScreenshotActionsProps = {
   screenshotLatestLabel?: string;
   screenshotSelectLabel?: string;
   onScreenshotLatest?: () => void;
   onScreenshotSelect?: () => void;
 };
 
-type ConversationExportMenuItemsProps = ConversationExportActionsProps & {
+type ConversationScreenshotMenuItemsProps = ConversationScreenshotActionsProps & {
   onCloseMenu?: () => void;
 };
 
-export function ConversationExportMenuItems({
-  exportLabel,
-  onExport,
+export function ConversationScreenshotMenuItems({
   screenshotLatestLabel,
   screenshotSelectLabel,
   onScreenshotLatest,
   onScreenshotSelect,
   onCloseMenu,
-}: ConversationExportMenuItemsProps) {
-  const hasScreenshot = Boolean(onScreenshotLatest || onScreenshotSelect);
+}: ConversationScreenshotMenuItemsProps) {
   return (
     <>
       <DropdownMenuItem
-        disabled={!onExport}
+        disabled={!onScreenshotSelect}
         onSelect={(event) => {
           event.preventDefault();
-          if (!onExport) {
+          if (!onScreenshotSelect) {
             return;
           }
           onCloseMenu?.();
-          void onExport();
+          onScreenshotSelect();
         }}
       >
-        <DropdownMenuItemIcon icon={Download} className="text-current" />
-        {exportLabel}
+        <DropdownMenuItemIcon icon={MousePointerClick} className="text-current" />
+        {screenshotSelectLabel}
       </DropdownMenuItem>
-      {hasScreenshot ? (
-        <>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            disabled={!onScreenshotSelect}
-            onSelect={(event) => {
-              event.preventDefault();
-              if (!onScreenshotSelect) {
-                return;
-              }
-              onCloseMenu?.();
-              onScreenshotSelect();
-            }}
-          >
-            <DropdownMenuItemIcon icon={MousePointerClick} className="text-current" />
-            {screenshotSelectLabel}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={!onScreenshotLatest}
-            onSelect={(event) => {
-              event.preventDefault();
-              if (!onScreenshotLatest) {
-                return;
-              }
-              onCloseMenu?.();
-              onScreenshotLatest();
-            }}
-          >
-            <DropdownMenuItemIcon icon={Camera} className="text-current" />
-            {screenshotLatestLabel}
-          </DropdownMenuItem>
-        </>
-      ) : null}
+      <DropdownMenuItem
+        disabled={!onScreenshotLatest}
+        onSelect={(event) => {
+          event.preventDefault();
+          if (!onScreenshotLatest) {
+            return;
+          }
+          onCloseMenu?.();
+          onScreenshotLatest();
+        }}
+      >
+        <DropdownMenuItemIcon icon={Camera} className="text-current" />
+        {screenshotLatestLabel}
+      </DropdownMenuItem>
     </>
   );
 }
 
-type ConversationExportIconDropdownProps = {
+type ConversationScreenshotIconDropdownProps = {
   label: string;
   className?: string;
-} & ConversationExportActionsProps;
+} & ConversationScreenshotActionsProps;
 
-export function ConversationExportIconDropdown({
+export function ConversationScreenshotIconDropdown({
   label,
-  exportLabel,
   className,
-  onExport,
   screenshotLatestLabel,
   screenshotSelectLabel,
   onScreenshotLatest,
   onScreenshotSelect,
-}: ConversationExportIconDropdownProps) {
+}: ConversationScreenshotIconDropdownProps) {
   const [open, setOpen] = React.useState(false);
-  const hasAction = Boolean(onExport || onScreenshotLatest || onScreenshotSelect);
+  const hasAction = Boolean(onScreenshotLatest || onScreenshotSelect);
 
   return (
     <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
@@ -126,13 +99,11 @@ export function ConversationExportIconDropdown({
           aria-label={label}
           title={label}
         >
-          <Download className="size-4 stroke-[1.8]" />
+          <Camera className="size-4 stroke-[1.8]" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8} className="min-w-40">
-        <ConversationExportMenuItems
-          exportLabel={exportLabel}
-          onExport={onExport}
+        <ConversationScreenshotMenuItems
           screenshotLatestLabel={screenshotLatestLabel}
           screenshotSelectLabel={screenshotSelectLabel}
           onScreenshotLatest={onScreenshotLatest}
@@ -144,27 +115,23 @@ export function ConversationExportIconDropdown({
   );
 }
 
-export function ConversationExportSubmenu({
+export function ConversationScreenshotSubmenu({
   label,
-  exportLabel,
-  onExport,
   screenshotLatestLabel,
   screenshotSelectLabel,
   onScreenshotLatest,
   onScreenshotSelect,
   onCloseMenu,
-}: { label: string } & ConversationExportMenuItemsProps) {
-  const hasAction = Boolean(onExport || onScreenshotLatest || onScreenshotSelect);
+}: { label: string } & ConversationScreenshotMenuItemsProps) {
+  const hasAction = Boolean(onScreenshotLatest || onScreenshotSelect);
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger disabled={!hasAction}>
-        <DropdownMenuItemIcon icon={Download} className="text-current" />
+        <DropdownMenuItemIcon icon={Camera} className="text-current" />
         {label}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent className="min-w-40 p-1.5">
-        <ConversationExportMenuItems
-          exportLabel={exportLabel}
-          onExport={onExport}
+        <ConversationScreenshotMenuItems
           screenshotLatestLabel={screenshotLatestLabel}
           screenshotSelectLabel={screenshotSelectLabel}
           onScreenshotLatest={onScreenshotLatest}

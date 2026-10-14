@@ -11,16 +11,14 @@ export {
   ConversationProjectSubmenu,
 } from "@/entities/conversation/components/conversation-project-submenu";
 export {
-  ConversationExportIconDropdown,
-  ConversationExportSubmenu,
-} from "@/entities/conversation/components/conversation-export-menu";
+  ConversationScreenshotIconDropdown,
+  ConversationScreenshotSubmenu,
+} from "@/entities/conversation/components/conversation-screenshot-menu";
 export {
   SidebarConversationsProvider,
   useSidebarConversationField,
 } from "@/entities/conversation/context/sidebar-conversations-context";
-export { useConversationExport } from "@/entities/conversation/hooks/use-conversation-export";
 export { resolveConversationDefaultModel } from "@/entities/conversation/lib/conversation-default-model";
-export { downloadConversationExport } from "@/entities/conversation/lib/conversation-export";
 export { parseConversationLabelsJSON } from "@/entities/conversation/lib/conversation-labels";
 export {
   conversationMatchesSearch,

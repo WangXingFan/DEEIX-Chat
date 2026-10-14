@@ -6,13 +6,12 @@ import * as React from "react";
 import { toast } from "sonner";
 import {
   parseConversationLabelsJSON,
-  useConversationExport,
   useSidebarConversationField,
 } from "@/entities/conversation";
 import type { ConversationDTO } from "@/shared/api/conversation-types";
 
 /**
- * Actions for the current conversation: title (manual/auto rename), star, tags, project, export and delete,
+ * Actions for the current conversation: title (manual/auto rename), star, tags, project and delete,
  * plus the open state of the delete confirmation dialog.
  */
 export function useChatConversationActions({
@@ -140,18 +139,6 @@ export function useChatConversationActions({
     [actionConversationID, canOperateConversation, setProjectByPublicID],
   );
 
-  const exportActiveConversation = useConversationExport({
-    successMessage: t("exportJSONSuccess"),
-    failureMessage: t("exportJSONFailed"),
-  });
-
-  const onExportActiveConversation = React.useCallback(async () => {
-    if (!canOperateConversation) {
-      return;
-    }
-    await exportActiveConversation(actionConversationID);
-  }, [actionConversationID, canOperateConversation, exportActiveConversation]);
-
   return {
     actionConversationID,
     canOperateConversation,
@@ -170,6 +157,5 @@ export function useChatConversationActions({
     onRequestDeleteActiveConversation,
     onConfirmDeleteActiveConversation,
     onSetActiveConversationProject,
-    onExportActiveConversation,
   };
 }

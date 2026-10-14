@@ -10,7 +10,6 @@ import { AnimatedText } from "@/components/ui/animated-text";
 import { LoadingReveal } from "@/shared/components/loading-reveal";
 import type { RecentRowState } from "@/features/recent/types/recent";
 import {
-  ConversationExportSubmenu,
   ConversationLabelsMenuItem,
   ConversationProjectSubmenu,
   isArchivedConversation,
@@ -105,7 +104,6 @@ function RecentConversationRow({
   onManageLabels,
   onArchive,
   onSetProject,
-  onExport,
   onDelete,
 }: {
   item: ConversationDTO;
@@ -124,7 +122,6 @@ function RecentConversationRow({
   onManageLabels: (item: ConversationDTO) => void;
   onArchive: (publicID: string, archived: boolean) => void;
   onSetProject: (publicID: string, projectID?: string) => void | Promise<void>;
-  onExport: (item: ConversationDTO) => void | Promise<void>;
   onDelete: (item: ConversationDTO) => void;
 }) {
   const t = useTranslations("recent");
@@ -301,12 +298,6 @@ function RecentConversationRow({
               projects={projects}
               onSelect={(projectID) => onSetProject(item.publicID, projectID)}
             />
-            <ConversationExportSubmenu
-              label={t("row.exportAndScreenshot")}
-              exportLabel={t("row.exportJSON")}
-              onExport={() => onExport(item)}
-              onCloseMenu={() => setMenuOpen(false)}
-            />
             <DropdownMenuItem
               onSelect={(event) => {
                 event.preventDefault();
@@ -354,7 +345,6 @@ type RecentListProps = {
   onManageLabels: (item: ConversationDTO) => void;
   onArchive: (publicID: string, archived: boolean) => void;
   onSetProject: (publicID: string, projectID?: string) => void | Promise<void>;
-  onExport: (item: ConversationDTO) => void | Promise<void>;
   onDelete: (item: ConversationDTO) => void;
   onRetryLoadMore: () => void | Promise<void>;
 };
@@ -440,7 +430,6 @@ export function RecentList({
   onManageLabels,
   onArchive,
   onSetProject,
-  onExport,
   onDelete,
   onRetryLoadMore,
 }: RecentListProps) {
@@ -515,7 +504,6 @@ export function RecentList({
                     onManageLabels={onManageLabels}
                     onArchive={onArchive}
                     onSetProject={onSetProject}
-                    onExport={onExport}
                     onDelete={onDelete}
                   />
                 );

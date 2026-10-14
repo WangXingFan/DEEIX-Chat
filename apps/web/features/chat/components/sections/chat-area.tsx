@@ -37,7 +37,7 @@ import type { ChatModelOption } from "@/features/chat/types/chat-runtime";
 import type { ChatAreaMessage, UserMessageEditMode } from "@/features/chat/types/messages";
 import { cn } from "@/lib/utils";
 import { AppLogo, DeeixLogo } from "@/shared/components/app-logo";
-import { ConversationExportIconDropdown } from "@/entities/conversation";
+import { ConversationScreenshotIconDropdown } from "@/entities/conversation";
 import { useCopyAction } from "@/shared/components/copy-action";
 import type { FileContentLoader } from "@/entities/file";
 import { StreamdownRender } from "@/shared/components/markdown/streamdown-render";
@@ -114,7 +114,6 @@ type ChatAreaProps = {
   labels?: string[];
   onUpdateLabels?: (labels: string[]) => void | Promise<void>;
   projectMenu?: React.ComponentProps<typeof ChatLabel>["projectMenu"];
-  onExport?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
   markdownRender?: boolean;
   autoExpandThinking?: boolean;
@@ -482,7 +481,6 @@ export function ChatArea({
   labels,
   onUpdateLabels,
   projectMenu,
-  onExport,
   onDelete,
   markdownRender = true,
   autoExpandThinking = true,
@@ -515,7 +513,7 @@ export function ChatArea({
   const stableOnModelCatalogRefresh = useStableEvent(onModelCatalogRefresh ?? ((): undefined => undefined));
   const stableOnCycleMessageBranch = useStableEvent(onCycleMessageBranch);
   const stableOnReactAssistantMessage = useStableEvent(onReactAssistantMessage);
-  const exportMenuLabel = t("labelMenu.exportAndScreenshot");
+  const screenshotMenuLabel = t("labelMenu.screenshotMenu");
   const tScreenshot = useTranslations("chat.screenshot");
   const modelDisplayNames = React.useMemo(
     () => new Map(modelOptions.map((model) => [model.platformModelName, model.displayName])),
@@ -570,7 +568,6 @@ export function ChatArea({
             labels={labels}
             onUpdateLabels={canOperateConversation ? onUpdateLabels : undefined}
             projectMenu={canOperateConversation ? projectMenu : undefined}
-            onExport={canOperateConversation ? onExport : undefined}
             onDelete={canOperateConversation ? onDelete : undefined}
             screenshotLatestLabel={tScreenshot("captureLatest")}
             screenshotSelectLabel={tScreenshot("captureSelect")}
@@ -578,10 +575,8 @@ export function ChatArea({
             onScreenshotSelect={onScreenshotSelect}
           />
           {canOperateConversation ? (
-            <ConversationExportIconDropdown
-              label={exportMenuLabel}
-              exportLabel={t("labelMenu.exportJSON")}
-              onExport={onExport}
+            <ConversationScreenshotIconDropdown
+              label={screenshotMenuLabel}
               screenshotLatestLabel={tScreenshot("captureLatest")}
               screenshotSelectLabel={tScreenshot("captureSelect")}
               onScreenshotLatest={onScreenshotLatest}

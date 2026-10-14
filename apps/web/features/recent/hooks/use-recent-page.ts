@@ -6,7 +6,6 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
-  downloadConversationExport,
   isArchivedConversation,
   mergeUniqueByPublicID,
   normalizeConversationSearchText,
@@ -20,7 +19,7 @@ import type { RecentDeleteTarget, RecentRowState } from "@/features/recent/types
 import { RECENT_PAGE_SIZE } from "@/features/recent/utils/recent-display";
 import { useSettingsChatPreferences } from "@/features/settings";
 import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
-import { exportAllConversations, exportConversation, listConversations } from "@/shared/api/conversation";
+import { listConversations } from "@/shared/api/conversation";
 import type {
   ConversationDTO,
   ConversationProjectFilter,
@@ -31,7 +30,6 @@ import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
 import { useLoadMoreSentinel } from "@/shared/hooks/use-load-more-sentinel";
 import { runBulkActionInChunks } from "@/shared/lib/bulk-action";
-import { downloadBlob, readExportManifest } from "@/shared/lib/export-download";
 
 const RECENT_SEARCH_DEBOUNCE_MS = 250;
 
@@ -98,7 +96,6 @@ export function useRecentPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<RecentDeleteTarget>(null);
   const [deleteFiles, setDeleteFiles] = React.useState(false);
   const { deleteFilesByDefault } = useSettingsChatPreferences();
-  const [exportingAll, setExportingAll] = React.useState(false);
   const [movingSelectedToProject, setMovingSelectedToProject] = React.useState(false);
   const pageRef = React.useRef(1);
   const requestVersionRef = React.useRef(0);
@@ -267,30 +264,6 @@ export function useRecentPage() {
     await loadMore();
   }, [loadMore]);
 
-  const onExportAll = React.useCallback(async () => {
-    if (exportingAll) return;
-    setExportingAll(true);
-    try {
-      const token = await resolveAccessToken();
-      if (!token) return;
-      const blob = await exportAllConversations(token);
-      const manifest = await readExportManifest(blob);
-      downloadBlob(blob, `my-conversations-${new Date().toISOString().slice(0, 10)}.jsonl`);
-
-      if (manifest && (!manifest.complete || (manifest.failed ?? 0) > 0)) {
-        toast.warning(t("toast.exportAllPartial", { exported: manifest.exported ?? 0, failed: manifest.failed ?? 0 }));
-      } else if (!manifest) {
-        toast.success(t("toast.exportAllDownloaded"));
-      } else {
-        toast.success(t("toast.exportAllSuccess", { count: manifest.exported ?? 0 }));
-      }
-    } catch {
-      toast.error(t("toast.exportAllFailed"));
-    } finally {
-      setExportingAll(false);
-    }
-  }, [exportingAll, t]);
-
   const onCreateConversation = React.useCallback(() => {
     const currentProjectID = projectFilter !== "all" && projectFilter !== "unassigned" ? projectFilter : "";
     requestNewConversation({ projectID: currentProjectID });
@@ -394,22 +367,6 @@ export function useRecentPage() {
       label: t("deleteConversationLabel", { title: item.title || t("untitled") }),
     });
   }, [deleteFilesByDefault, t]);
-
-  const onExport = React.useCallback(async (item: ConversationDTO) => {
-    const token = await resolveAccessToken();
-    if (!token) {
-      return;
-    }
-    try {
-      const data = await exportConversation(token, item.publicID);
-      downloadConversationExport(data);
-      toast.success(t("exported"));
-    } catch (error) {
-      toast.error(t("exportFailed"), {
-        description: resolveErrorMessage(error, t("exportFailed")),
-      });
-    }
-  }, [resolveErrorMessage, t]);
 
   const onRenameCommit = React.useCallback(async () => {
     if (!renameTarget) {
@@ -699,7 +656,6 @@ export function useRecentPage() {
     onUpdateLabels,
     onArchive,
     onSetProject,
-    onExport,
     onDelete,
     setRenameValue,
     onRenameCommit,
@@ -719,7 +675,5 @@ export function useRecentPage() {
     exitSelectionMode,
     enterSelectionMode: () => setSelectionMode(true),
     retryLoadMore,
-    exportingAll,
-    onExportAll,
   };
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { Glasses } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
@@ -21,7 +20,6 @@ import { ChatArtifactWorkspace } from "@/features/chat/components/sections/chat-
 import { ChatEmptyState } from "@/features/chat/components/sections/chat-empty";
 import { ChatInput } from "@/features/chat/components/sections/chat-input";
 import { ChatScreenshotPreviewDialog } from "@/features/chat/components/sections/chat-screenshot-preview-dialog";
-import { TemporaryChatModeControl } from "@/features/chat/components/sections/chat-temporary-mode-control";
 import { useChatSession } from "@/features/chat/context/chat-session-context";
 import { useChatArtifactResize } from "@/features/chat/hooks/use-chat-artifact-resize";
 import { useChatArtifacts } from "@/features/chat/hooks/use-chat-artifacts";
@@ -44,7 +42,6 @@ import { useChatLoadedConversation } from "@/features/chat/hooks/use-chat-loaded
 import { useChatViewerProfile } from "@/features/chat/hooks/use-chat-viewer-profile";
 import { useChatVisualPrompt } from "@/features/chat/hooks/use-chat-visual-prompt";
 import { useChatConversationDefaults } from "@/features/chat/hooks/use-chat-conversation-defaults";
-import { useChatTemporaryRuntime } from "@/features/chat/hooks/use-chat-temporary-runtime";
 import type { ChatAreaMessage, } from "@/features/chat/types/messages";
 import { useSettingsChatPreferences } from "@/features/settings";
 import { cn } from "@/lib/utils";
@@ -55,7 +52,6 @@ import { MAX_SELECTED_SKILLS } from "@/entities/skill";
 import { resolveChatContentWidthClassName } from "@/entities/user-settings";
 
 const EMPTY_CONVERSATION_OPTIONS: ConversationOptions = {};
-const EMPTY_LIST: never[] = [];
 const TOP_LOAD_OLDER_MESSAGES_THRESHOLD_PX = 48;
 
 export function AppChatArea() {
@@ -65,9 +61,8 @@ export function AppChatArea() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthSession();
-  const temporaryMode = searchParams.get("temporary") === "true";
-  const routeConversationID = temporaryMode ? null : searchParams.get("conversation_id")?.trim() || null;
-  const routeProjectID = temporaryMode ? null : searchParams.get("project_id")?.trim() || null;
+  const routeConversationID = searchParams.get("conversation_id")?.trim() || null;
+  const routeProjectID = searchParams.get("project_id")?.trim() || null;
   const {
     detachConversationRun,
     finishConversationRun,
@@ -105,9 +100,7 @@ export function AppChatArea() {
     );
   }, [routeConversationID]);
 
-  const resolvedRouteConversationID = temporaryMode
-    ? null
-    : routeConversationID ?? locallyCreatedConversationID;
+  const resolvedRouteConversationID = routeConversationID ?? locallyCreatedConversationID;
   const conversationID =
     newConversationOverride && resolvedRouteConversationID === newConversationOverride.ignoredConversationID
       ? null
@@ -243,7 +236,6 @@ export function AppChatArea() {
   } = useChatComposerState(conversationID, {
     preserveDrafts: preserveConversationDrafts,
     storageScope: user?.publicID ?? "",
-    transient: temporaryMode,
   });
   const selectionConversationKey = resolveConversationComposerKey(conversationID);
   const selectedModel = React.useMemo(
@@ -344,14 +336,7 @@ export function AppChatArea() {
     attachments,
     setAttachments,
     appendAttachmentsForKey,
-    temporary: temporaryMode,
   });
-
-  const onTemporaryAttachmentsConsumed = React.useCallback((items: typeof attachments) => {
-    transferAttachments(items);
-    const consumedIDs = new Set(items.map((item) => item.fileID));
-    setAttachments((current) => current.filter((item) => !consumedIDs.has(item.fileID)));
-  }, [setAttachments, transferAttachments]);
 
   const {
     currentLeafMessage,
@@ -476,7 +461,6 @@ export function AppChatArea() {
     onRequestDeleteActiveConversation,
     onConfirmDeleteActiveConversation,
     onSetActiveConversationProject,
-    onExportActiveConversation,
   } = useChatConversationActions({
     conversationID,
     currentConversation,
@@ -544,27 +528,9 @@ export function AppChatArea() {
   }, [conversationID, modelsErrorMsg, t, visibleMessages]);
 
   const effectiveOptions = modelOptionPolicyDisabled ? EMPTY_CONVERSATION_OPTIONS : options;
-  const temporarySelectedSkillIDs = React.useMemo(
-    () => selectedSkills.map((skill) => skill.id),
-    [selectedSkills],
-  );
-  const temporaryRuntime = useChatTemporaryRuntime({
-    active: temporaryMode,
-    draft,
-    model: selectedPlatformModelName,
-    options: effectiveOptions,
-    selectedSkillIDs: temporarySelectedSkillIDs,
-    selectedKnowledgeBaseIDs,
-    htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
-    attachments,
-    onDraftChange: setDraft,
-    onAttachmentsConsumed: onTemporaryAttachmentsConsumed,
-    releaseAttachments,
-  });
-  const displayMessages = temporaryMode ? temporaryRuntime.messages : messagesWithInlineError;
+  const displayMessages = messagesWithInlineError;
   const artifactWorkspace = useChatArtifacts({
     scopeKey: conversationID,
-    transient: temporaryMode,
     messages: displayMessages,
   });
   const { workspaceRef, artifactResizing, onArtifactResizeStart } = useChatArtifactResize(artifactWorkspace);
@@ -587,17 +553,15 @@ export function AppChatArea() {
     onUploadFiles,
   });
 
-  const composerSending = temporaryMode ? temporaryRuntime.sending : generating;
-  const composerConversationMode = temporaryMode ? temporaryRuntime.messages.length > 0 : isConversationMode;
+  const composerSending = generating;
+  const composerConversationMode = isConversationMode;
   const composerLoading =
-    !temporaryMode &&
-    Boolean(conversationID) &&
-    (loading || messageDataConversationID !== conversationID);
+    Boolean(conversationID) && (loading || messageDataConversationID !== conversationID);
   const chatInputProps = {
     draft,
     loading: composerLoading,
     sending: composerSending,
-    uploading: temporaryMode ? false : uploading,
+    uploading,
     isConversationMode: composerConversationMode,
     fileMode,
     ragAvailable,
@@ -612,14 +576,13 @@ export function AppChatArea() {
     selectedPlatformModelName,
     selectedSkills,
     selectedKnowledgeBaseIDs,
-    queuedMessages: temporaryMode ? EMPTY_LIST : queuedMessages,
+    queuedMessages,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
     options: effectiveOptions,
     defaultOptions: selectedModelDefaultOptions,
     modelOptionPolicy,
     modelLoading: modelsLoading,
     dropActive: fileDragActive,
-    temporaryMode,
     autoFocusKey: conversationID ?? `${conversationKey}:${newConversationRevision}`,
     onDraftChange: setDraft,
     onModelChange: setSelectedPlatformModelName,
@@ -635,15 +598,15 @@ export function AppChatArea() {
     onUploadFiles,
     onCaptureScreenshot,
     onRemoveAttachment,
-    onSendMessage: temporaryMode ? temporaryRuntime.send : onSendMessage,
-    onStopMessage: temporaryMode ? temporaryRuntime.stop : onStopActiveMessage,
+    onSendMessage,
+    onStopMessage: onStopActiveMessage,
     onDeleteQueuedMessage,
     onEditQueuedMessage,
     onGuideQueuedMessage,
   };
   const chatContentWidthClassName = resolveChatContentWidthClassName(contentWidth);
-  const isConversationLoading = !temporaryMode && Boolean(conversationID) && loading && visibleMessageCount === 0 && displayMessages.length === 0;
-  const isConversationLoadFailed = !temporaryMode && Boolean(conversationID) && !loading && errorMsg.trim().length > 0 && visibleMessageCount === 0;
+  const isConversationLoading = Boolean(conversationID) && loading && visibleMessageCount === 0 && displayMessages.length === 0;
+  const isConversationLoadFailed = Boolean(conversationID) && !loading && errorMsg.trim().length > 0 && visibleMessageCount === 0;
   const shouldUseCenteredComposer =
     !isConversationLoading && !isConversationLoadFailed && !composerConversationMode && displayMessages.length === 0;
 
@@ -655,25 +618,12 @@ export function AppChatArea() {
       onDragLeave={onFileDragLeave}
       onDrop={onFileDrop}
     >
-      {!conversationID ? (
-        <TemporaryChatModeControl
-          active={temporaryMode}
-          requiresExitConfirmation={temporaryRuntime.sending || temporaryRuntime.messages.length > 0}
-        />
-      ) : null}
       {shouldUseCenteredComposer ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ChatEmptyState
             greetingTitle={activeRouteProject?.name || greetingTitle}
             badgeLabel={activeRouteProject ? t("projectMode") : undefined}
             badgeTooltip={activeRouteProject ? t("projectModeTooltip") : undefined}
-            titleAdornment={temporaryMode ? (
-              <Glasses
-                aria-hidden
-                className="size-5 shrink-0 text-muted-foreground md:size-[22px]"
-                strokeWidth={1.6}
-              />
-            ) : undefined}
             contentWidthClassName={chatContentWidthClassName}
           >
             <ChatInput {...chatInputProps} />
@@ -699,42 +649,39 @@ export function AppChatArea() {
                 <ChatAreaLoadError onRefresh={reload} onNewConversation={onNewConversationFromLoadError} />
               ) : (
                 <ChatArea
-                  title={temporaryMode ? t("temporary.title") : activeConversationTitle}
+                  title={activeConversationTitle}
                   starred={activeConversationStarred}
-                  canOperateConversation={temporaryMode ? false : canOperateConversation}
+                  canOperateConversation={canOperateConversation}
                   messages={displayMessages}
-                  attachmentContentLoader={temporaryMode ? temporaryRuntime.loadAttachmentContent : undefined}
-                  persistMessageFeedback={!temporaryMode}
                   busy={composerSending}
                   messageContentRef={messageContentRef}
                   onScroll={onScroll}
-                  onRetryUserMessage={temporaryMode ? temporaryRuntime.onRetryUserMessage : onRetryUserMessage}
-                  onRetryAssistantMessage={temporaryMode ? temporaryRuntime.onRetryAssistantMessage : onRetryAssistantMessage}
-                  onContinueAssistantMessage={temporaryMode ? undefined : onContinueAssistantMessage}
-                  onEditAssistantMessage={temporaryMode ? temporaryRuntime.onEditAssistantMessage : onEditAssistantMessage}
-                  onEditUserMessage={temporaryMode ? temporaryRuntime.onEditUserMessage : onEditUserMessage}
-                  onForkMessage={temporaryMode ? undefined : onForkMessage}
-                  onDeleteMessage={temporaryMode ? undefined : onDeleteMessage}
+                  onRetryUserMessage={onRetryUserMessage}
+                  onRetryAssistantMessage={onRetryAssistantMessage}
+                  onContinueAssistantMessage={onContinueAssistantMessage}
+                  onEditAssistantMessage={onEditAssistantMessage}
+                  onEditUserMessage={onEditUserMessage}
+                  onForkMessage={onForkMessage}
+                  onDeleteMessage={onDeleteMessage}
                   modelOptions={modelOptions}
                   selectedPlatformModelName={selectedPlatformModelName}
                   onModelChange={setSelectedPlatformModelName}
                   onModelCatalogRefresh={refreshModelCatalogForComposer}
                   onOpenCodeArtifact={artifactWorkspace.openArtifact}
                   onCycleMessageBranch={onCycleMessageBranch}
-                  onToggleStar={temporaryMode ? undefined : onToggleActiveConversationStar}
-                  onRename={temporaryMode ? undefined : onRenameActiveConversation}
-                  onAutoRename={temporaryMode ? undefined : onAutoRenameActiveConversation}
-                  labels={temporaryMode ? EMPTY_LIST : activeConversationLabels}
-                  onUpdateLabels={temporaryMode ? undefined : onUpdateActiveConversationLabels}
-                  projectMenu={temporaryMode ? undefined : {
+                  onToggleStar={onToggleActiveConversationStar}
+                  onRename={onRenameActiveConversation}
+                  onAutoRename={onAutoRenameActiveConversation}
+                  labels={activeConversationLabels}
+                  onUpdateLabels={onUpdateActiveConversationLabels}
+                  projectMenu={{
                     label: t("labelMenu.moveToProject"),
                     unassignedLabel: t("labelMenu.unassignedProject"),
                     currentProjectID: currentConversation?.projectID,
                     projects,
                     onSelect: onSetActiveConversationProject,
                   }}
-                  onExport={temporaryMode ? undefined : onExportActiveConversation}
-                  onDelete={temporaryMode ? undefined : onRequestDeleteActiveConversation}
+                  onDelete={onRequestDeleteActiveConversation}
                   markdownRender={markdownRender}
                   autoExpandThinking={autoExpandThinking}
                   autoExpandToolCalls={autoExpandToolCalls}

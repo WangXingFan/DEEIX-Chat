@@ -66,7 +66,6 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   ConversationLabelsManagerDialog,
   type ConversationLabelsTarget,
-  useConversationExport,
   useSidebarConversationField,
 } from "@/entities/conversation";
 import { useChatSession } from "@/features/chat";
@@ -453,10 +452,6 @@ export function NavProjects() {
   const projectsContentID = React.useId();
   const stableDeleteTarget = useDialogSnapshot(deleteTarget);
   const stableConversationDeleteTarget = useDialogSnapshot(conversationDeleteTarget);
-  const onExportConversation = useConversationExport({
-    successMessage: tRecent("exported"),
-    failureMessage: tRecent("exportFailed"),
-  });
   const projectIDs = React.useMemo(() => projects.map((project) => project.publicID), [projects]);
   const projectSortSensors = useSensors(
     useSensor(PointerSensor, {
@@ -928,7 +923,6 @@ export function NavProjects() {
                                                 onManageLabels={() => setLabelsTarget(conversation)}
                                                 onRename={onRenameConversation}
                                                 onArchive={onArchiveConversation}
-                                                onExport={onExportConversation}
                                                 onDelete={onDeleteConversation}
                                                 onNavigate={onNavigate}
                                                 menuTriggerID={`project-conversation-menu-trigger-${conversation.publicID}`}

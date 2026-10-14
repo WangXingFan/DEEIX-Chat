@@ -12,7 +12,6 @@ import type { ChatAreaMessage } from "@/features/chat/types/messages";
 
 type UseChatArtifactsParams = {
   scopeKey: string | null;
-  transient?: boolean;
   messages: ChatAreaMessage[];
 };
 
@@ -116,7 +115,7 @@ function findReplacementArtifact(artifacts: ChatArtifact[], previous: ChatArtifa
   );
 }
 
-export function useChatArtifacts({ scopeKey, transient = false, messages }: UseChatArtifactsParams) {
+export function useChatArtifacts({ scopeKey, messages }: UseChatArtifactsParams) {
   const { isInline, inlineLayout } = useArtifactViewport();
   const artifacts = React.useMemo(() => extractArtifactsFromMessages(messages), [messages]);
   const latestArtifact = artifacts.at(-1) ?? null;
@@ -125,7 +124,7 @@ export function useChatArtifacts({ scopeKey, transient = false, messages }: UseC
   const [lastActiveArtifact, setLastActiveArtifact] = React.useState<ChatArtifact | null>(null);
   const [customArtifactRatio, setCustomArtifactRatio] = React.useState<number | null>(null);
   const dismissedArtifactRef = React.useRef<ChatArtifact | null>(null);
-  const previousScopeRef = React.useRef({ key: scopeKey, transient });
+  const previousScopeRef = React.useRef(scopeKey);
   const artifactRatio = customArtifactRatio ?? resolveDefaultRatio(inlineLayout);
   const activeArtifact = React.useMemo(
     () =>
@@ -138,23 +137,18 @@ export function useChatArtifacts({ scopeKey, transient = false, messages }: UseC
   );
 
   React.useEffect(() => {
-    const previousScope = previousScopeRef.current;
-    if (previousScope.key === scopeKey && previousScope.transient === transient) {
+    if (previousScopeRef.current === scopeKey) {
       return;
     }
-    if (
-      !previousScope.transient &&
-      !transient &&
-      (activeArtifact?.streaming || latestArtifact?.streaming || lastActiveArtifact?.streaming)
-    ) {
+    if (activeArtifact?.streaming || latestArtifact?.streaming || lastActiveArtifact?.streaming) {
       return;
     }
-    previousScopeRef.current = { key: scopeKey, transient };
+    previousScopeRef.current = scopeKey;
     setLastActiveArtifact(null);
     dismissedArtifactRef.current = null;
     setActiveArtifactID(null);
     setDismissedArtifactID(null);
-  }, [activeArtifact?.streaming, lastActiveArtifact?.streaming, latestArtifact?.streaming, scopeKey, transient]);
+  }, [activeArtifact?.streaming, lastActiveArtifact?.streaming, latestArtifact?.streaming, scopeKey]);
 
   React.useEffect(() => {
     if (activeArtifact) {

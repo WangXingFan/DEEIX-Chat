@@ -7,8 +7,6 @@ import type {
   RenameConversationRequest as ContractRenameConversationRequest,
   ReorderConversationProjectsRequest as ContractReorderConversationProjectsRequest,
   SendMessageRequest as ContractSendMessageRequest,
-  TemporaryChatHistoryMessage as ContractTemporaryChatHistoryMessage,
-  TemporaryChatMessageRequest as ContractTemporaryChatMessageRequest,
   SetConversationArchiveRequest as ContractSetConversationArchiveRequest,
   SetConversationProjectRequest as ContractSetConversationProjectRequest,
   SetConversationStarRequest as ContractSetConversationStarRequest,
@@ -18,7 +16,6 @@ import type {
   UpdateMessageRequest as ContractUpdateMessageRequest,
   ConversationDefaultModelCandidateResponse,
   ConversationDeleteResponse,
-  ConversationExportResponse,
   ConversationPreviewMessageResponse,
   ConversationProjectResponse,
   ConversationResponse,
@@ -92,16 +89,6 @@ export type MessageDTO = Omit<
 export type ConversationRunDTO = Omit<RunResponse, "taskType">;
 
 export type ConversationRunStatusDTO = ConversationRunStatusResponse;
-
-export type ConversationExportDTO = Omit<
-  ConversationExportResponse,
-  "compatibility" | "conversation" | "messages" | "runs"
-> & {
-  conversation: ConversationDTO;
-  messages: MessageDTO[];
-  runs: ConversationRunDTO[];
-  compatibility: ConversationExportResponse["compatibility"];
-};
 
 export type MessageBillingCostDTO = MessageBillingCostResponse;
 
@@ -187,16 +174,6 @@ export type SendMessageResult = Omit<SendMessageResponse, "assistantMessage" | "
   userMessage: MessageDTO;
   assistantMessage: MessageDTO;
   metadataRefreshHint?: "pending" | "not_needed" | "skipped_no_titleable_content" | string;
-};
-
-export type TemporaryChatHistoryMessage = Omit<ContractTemporaryChatHistoryMessage, "content" | "role"> & {
-  role: "user" | "assistant";
-  content: string;
-};
-
-export type TemporaryChatMessageRequest = Omit<ContractTemporaryChatMessageRequest, "messages" | "options"> & {
-  options?: ConversationOptions;
-  messages: TemporaryChatHistoryMessage[];
 };
 
 export type StreamMessageEvent =

@@ -30,7 +30,6 @@ import {
 import {
   ConversationLabelsManagerDialog,
   type ConversationLabelsTarget,
-  useConversationExport,
   useSidebarConversationField,
 } from "@/entities/conversation";
 import { NavigationSearch } from "@/features/shell/components/navigation/navigation-search";
@@ -96,11 +95,6 @@ export function NavStarred() {
   const deleteFilesID = React.useId();
   const starredContentID = React.useId();
   const stableDeleteTarget = useDialogSnapshot(deleteTarget);
-  const onExport = useConversationExport({
-    successMessage: t("exported"),
-    failureMessage: t("exportFailed"),
-  });
-
   const starredConversationItems = React.useMemo(
     () => starredItems.map((item) => ({
       publicID: item.publicID,
@@ -336,7 +330,6 @@ export function NavStarred() {
                         isAutoRenaming={autoRenamingPublicID === item.publicID}
                         onManageLabels={() => setLabelsTarget(item)}
                         onArchive={onArchive}
-                        onExport={onExport}
                         onDelete={onDelete}
                         onNavigate={onNavigate}
                         menuTriggerID={`starred-item-menu-trigger-${item.publicID}`}

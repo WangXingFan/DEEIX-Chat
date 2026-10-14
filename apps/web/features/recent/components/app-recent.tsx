@@ -63,8 +63,6 @@ export function AppRecent() {
           onArchiveSelected={requestArchiveSelected}
           onMoveSelectedToProject={controller.moveSelectedToProject}
           onRequestDeleteSelected={controller.requestDeleteSelected}
-          onExportAll={controller.onExportAll}
-          exportingAll={controller.exportingAll}
           onStatusFilterChange={controller.setStatusFilter}
           onStarredFilterChange={controller.setStarredFilter}
         />
@@ -89,7 +87,6 @@ export function AppRecent() {
           onManageLabels={controller.onManageLabels}
           onArchive={controller.onArchive}
           onSetProject={controller.onSetProject}
-          onExport={controller.onExport}
           onDelete={controller.onDelete}
           onRetryLoadMore={controller.retryLoadMore}
         />

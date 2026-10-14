@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner, SpinnerLabel } from "@/components/ui/spinner";
 import { AnimatedText } from "@/components/ui/animated-text";
 import {
-  ConversationExportSubmenu,
+  ConversationScreenshotSubmenu,
   ConversationLabelsDialog,
   ConversationLabelsMenuItem,
   ConversationProjectSubmenu,
@@ -52,7 +52,6 @@ type ChatLabelProps = {
     }>;
     onSelect: (projectID?: string) => void | Promise<void>;
   };
-  onExport?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
   screenshotLatestLabel?: string;
   screenshotSelectLabel?: string;
@@ -70,7 +69,6 @@ export function ChatLabel({
   labels = [],
   onUpdateLabels,
   projectMenu,
-  onExport,
   onDelete,
   screenshotLatestLabel,
   screenshotSelectLabel,
@@ -204,10 +202,8 @@ export function ChatLabel({
               onSelect={projectMenu.onSelect}
             />
           ) : null}
-          <ConversationExportSubmenu
-            label={t("exportAndScreenshot")}
-            exportLabel={t("exportJSON")}
-            onExport={onExport}
+          <ConversationScreenshotSubmenu
+            label={t("screenshotMenu")}
             screenshotLatestLabel={screenshotLatestLabel}
             screenshotSelectLabel={screenshotSelectLabel}
             onScreenshotLatest={onScreenshotLatest}

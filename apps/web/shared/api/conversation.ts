@@ -10,7 +10,6 @@ import type {
   ContextArtifactDTO,
   ConversationDefaultModelCandidateDTO,
   ConversationDTO,
-  ConversationExportDTO,
   ConversationPreviewMessageDTO,
   ConversationProjectDTO,
   ConversationProjectFilter,
@@ -38,7 +37,6 @@ import type {
   SetConversationStarRequest,
   SetMessageFeedbackRequest,
   StreamMessageEvent,
-  TemporaryChatMessageRequest,
   TraceBlockDTO,
   TraceEventDTO,
   UpdateConversationLabelsRequest,
@@ -55,15 +53,6 @@ import {
   readString,
   type UnknownRecord,
 } from "@/shared/lib/type-guards";
-
-export const TEMPORARY_CHAT_MAX_ATTACHMENTS = 20;
-export const TEMPORARY_CHAT_MAX_IMAGE_ATTACHMENTS = 10;
-
-export type TemporaryChatRequestAttachment = {
-  file: File;
-  messageIndex: number;
-  kind: "file" | "image";
-};
 
 function normalizeTraceBlock(block: unknown): TraceBlockDTO | undefined {
   if (!isRecord(block)) {
@@ -636,27 +625,6 @@ export async function getConversation(
     },
     true,
   );
-}
-
-export async function exportConversation(
-  accessToken: string,
-  conversationPublicID: string,
-): Promise<ConversationExportDTO> {
-  return authedRequest<ConversationExportDTO>(
-    `/api/v1/conversations/${pathParam(conversationPublicID)}/export`,
-    {
-      accessToken,
-    },
-    true,
-  );
-}
-
-export async function exportAllConversations(accessToken: string): Promise<Blob> {
-  const response = await authedFetch("/api/v1/conversations/export", { accessToken });
-  if (!response.ok) {
-    throw new Error(`export failed: ${response.status}`);
-  }
-  return response.blob();
 }
 
 export async function renameConversation(
@@ -1260,40 +1228,4 @@ export async function streamMessage(
   options: ConversationStreamOptions = {},
 ): Promise<SendMessageResult> {
   return postConversationStream(accessToken, conversationPublicID, "/messages/stream", payload, options);
-}
-
-export async function streamTemporaryChatMessage(
-  accessToken: string,
-  payload: TemporaryChatMessageRequest,
-  options: ConversationStreamOptions = {},
-  attachments: TemporaryChatRequestAttachment[] = [],
-): Promise<SendMessageResult> {
-  if (attachments.length > TEMPORARY_CHAT_MAX_ATTACHMENTS) {
-    throw new ApiError(`temporary chat supports at most ${TEMPORARY_CHAT_MAX_ATTACHMENTS} attachments`, 400);
-  }
-  if (attachments.filter((item) => item.kind === "image").length > TEMPORARY_CHAT_MAX_IMAGE_ATTACHMENTS) {
-    throw new ApiError(`temporary chat supports at most ${TEMPORARY_CHAT_MAX_IMAGE_ATTACHMENTS} image attachments`, 400);
-  }
-  if (attachments.length > 0) {
-    const body = new FormData();
-    body.append("payload", JSON.stringify(payload));
-    body.append("attachmentMessageIndexes", JSON.stringify(attachments.map((item) => item.messageIndex)));
-    for (const attachment of attachments) {
-      body.append("attachments", attachment.file, attachment.file.name);
-    }
-    return postMessageStreamRequest(
-      accessToken,
-      "/api/v1/temporary-chat/messages/stream",
-      { method: "POST", body, signal: options.signal },
-      options,
-      "no-store",
-    );
-  }
-  return postMessageStream(
-    accessToken,
-    "/api/v1/temporary-chat/messages/stream",
-    payload,
-    options,
-    "no-store",
-  );
 }

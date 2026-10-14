@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Archive, Download, FolderInput, LoaderCircle, SquareMousePointer, Trash, X } from "lucide-react";
+import { Archive, FolderInput, LoaderCircle, SquareMousePointer, Trash, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { RecentFilterGroup } from "@/features/recent/components/sections/recent-filter-group";
@@ -41,8 +41,6 @@ type RecentToolbarProps = {
   onArchiveSelected: () => void | Promise<void>;
   onMoveSelectedToProject: (projectID?: string) => void | Promise<void>;
   onRequestDeleteSelected: () => void;
-  onExportAll: () => void | Promise<void>;
-  exportingAll: boolean;
   onStatusFilterChange: (value: ConversationStatusFilter) => void;
   onStarredFilterChange: (value: ConversationStarredFilter) => void;
 };
@@ -82,8 +80,6 @@ export function RecentToolbar({
   onArchiveSelected,
   onMoveSelectedToProject,
   onRequestDeleteSelected,
-  onExportAll,
-  exportingAll,
   onStatusFilterChange,
   onStarredFilterChange,
 }: RecentToolbarProps) {
@@ -240,24 +236,6 @@ export function RecentToolbar({
                   aria-label={t("enterSelection")}
                 >
                   <SquareMousePointer className="size-4" strokeWidth={1.4} />
-                </Button>
-              </ToolbarActionTooltip>
-              <ToolbarActionTooltip label={t("exportAll")}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className={cn(
-                    "transition-colors",
-                    exportingAll
-                      ? "text-muted-foreground/50"
-                      : "text-foreground/60 hover:bg-accent hover:text-foreground",
-                  )}
-                  disabled={exportingAll}
-                  onClick={() => void onExportAll()}
-                  aria-label={t("exportAll")}
-                >
-                  <Download className="size-4" strokeWidth={1.4} />
                 </Button>
               </ToolbarActionTooltip>
             </div>
