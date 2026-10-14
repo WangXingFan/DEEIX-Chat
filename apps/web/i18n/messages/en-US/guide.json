@@ -113,12 +113,11 @@
   },
   "adminTips": {
     "upstreams": "Manage upstream channels, route bindings, capability declarations, and provider-native parameters from one place.",
-    "mcp": "Configure MCP servers and tool lifecycle with user-side selection, execution limits, retry handling, and full trace display.",
     "files": "Cover uploads, previews, downloads, text extraction, OCR, RAG retrieval, and original image context injection.",
     "context": "Combine historical evidence, context truncation, and summary compression for stable continuity.",
     "trace": "Render processing traces, model thinking, tool calls, inline errors, Markdown, formulas, tables, code blocks, and file cards.",
     "billing": "Support subscriptions, balances, usage, per-call, per-second, and tiered billing with aggregated multi-tool run costs.",
-    "admin": "Provide unified admin entry points for accounts, identity providers, upstreams, models, billing, logs, chats, files, MCP, and audit logs.",
+    "admin": "Provide unified admin entry points for accounts, identity providers, upstreams, models, billing, logs, chats, files, and audit logs.",
     "ops": "Include structured logs, request IDs, Swagger docs, Docker builds, static asset hosting, GeoIP audit, and OpenTelemetry traces."
   },
   "userTips": {

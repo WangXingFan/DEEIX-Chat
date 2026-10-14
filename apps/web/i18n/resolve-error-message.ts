@@ -146,7 +146,6 @@ const SETTINGS_FIELD_LABELS: Record<AppLocale, Record<string, string>> = {
     "file:file_full_context_max_bytes": "Full-text size limit",
     "file:full_context_max_tokens": "Full-text token limit",
     "file:full_context_pdf_max_pages": "Full-text page limit",
-    "mcp:mcp_enable": "MCP",
   },
   "zh-CN": {
     "auth:auto_link_verified_email": "同邮箱自动绑定",
@@ -196,7 +195,6 @@ const SETTINGS_FIELD_LABELS: Record<AppLocale, Record<string, string>> = {
     "file:file_full_context_max_bytes": "全文大小上限",
     "file:full_context_max_tokens": "全文 Token 上限",
     "file:full_context_pdf_max_pages": "全文页数上限",
-    "mcp:mcp_enable": "MCP",
   },
 };
 

@@ -99,7 +99,6 @@
     "invalidDailyUsageDays": "用量天数无效。",
     "invalidModelPricing": "模型定价无效。",
     "invalidAccountBalance": "计费账户余额无效。",
-    "invalidNativeToolPricing": "原生工具定价无效。",
     "subscribeFailed": "订阅失败，请稍后重试。",
     "subscriptionEntitlementActive": "当前仍有有效付费订阅权益，不能切换到免费方案。",
     "invalidRedemptionCode": "兑换码无效。",
@@ -252,26 +251,6 @@
     "routeConflict": "该上游模型已存在相同平台模型和协议的绑定，请删除重复绑定后再保存。",
     "routesUnavailable": "所有模型路由都不可用。"
   },
-  "mcp": {
-    "clientUnavailable": "MCP 客户端不可用。",
-    "imageProcessingFailed": "MCP 图片处理工具执行失败。",
-    "invalidAttachmentConfiguration": "MCP 工具附件配置无效。",
-    "invalidServerBaseUrl": "MCP 服务地址无效。",
-    "invalidServerHeaders": "MCP 服务请求头配置无效。",
-    "invalidServerName": "MCP 服务名称无效。",
-    "invalidServerStatus": "MCP 服务状态无效。",
-    "invalidToolDescription": "MCP 工具描述无效。",
-    "invalidToolName": "MCP 工具名称无效。",
-    "invalidToolSelection": "MCP 工具选择配置无效。",
-    "invalidToolStatus": "MCP 工具状态无效。",
-    "serverLimitExceeded": "已达到 MCP 服务数量上限。",
-    "server": {
-      "invalidId": "MCP 服务 ID 无效。"
-    },
-    "tool": {
-      "invalidId": "MCP 工具 ID 无效。"
-    }
-  },
   "media": {
     "imagePromptRequired": "请输入图片提示词。",
     "imageGenerationRejectsInputs": "图片生成不支持携带输入图片，请移除附件或选择图片编辑。",
@@ -351,7 +330,6 @@
     "invalidLocationPayload": "位置数据无效。",
     "invalidLogCleanupBefore": "日志清理截止时间无效。",
     "invalidLogCleanupType": "日志清理类型无效。",
-    "invalidMcpToolPrice": "MCP 工具价格无效。",
     "invalidModelAccessScope": "模型访问范围无效。",
     "invalidModelDisplayGroup": "模型展示分组无效。",
     "invalidModelOrder": "模型排序无效。",
