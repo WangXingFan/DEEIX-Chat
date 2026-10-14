@@ -34,7 +34,6 @@ export type ConversationSearchResult = {
   publicID: string;
   title: string;
   href: string;
-  projectName: string;
   status: string;
   updatedAt: string;
 };

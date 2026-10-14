@@ -50,15 +50,13 @@ function createSidebarConversationsStore(
 const SidebarConversationsContext = React.createContext<SidebarConversationsStore | null>(null);
 
 export function SidebarConversationsProvider({
-  bulkPendingTitle,
   children,
   newConversationTitle,
 }: {
-  bulkPendingTitle: string;
   children: React.ReactNode;
   newConversationTitle: string;
 }) {
-  const value = useConversationSidebarList({ bulkPendingTitle, newConversationTitle });
+  const value = useConversationSidebarList({ newConversationTitle });
   const storeRef = React.useRef<SidebarConversationsStore | null>(null);
   if (storeRef.current === null) {
     storeRef.current = createSidebarConversationsStore(value);

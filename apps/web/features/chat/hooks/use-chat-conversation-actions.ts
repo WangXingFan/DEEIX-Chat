@@ -11,7 +11,7 @@ import {
 import type { ConversationDTO } from "@/shared/api/conversation-types";
 
 /**
- * Actions for the current conversation: title (manual/auto rename), star, tags, project and delete,
+ * Actions for the current conversation: title (manual/auto rename), star, tags and delete,
  * plus the open state of the delete confirmation dialog.
  */
 export function useChatConversationActions({
@@ -29,7 +29,6 @@ export function useChatConversationActions({
   const regenerateTitleByPublicID = useSidebarConversationField("regenerateTitleByPublicID");
   const updateLabelsByPublicID = useSidebarConversationField("updateLabelsByPublicID");
   const setStarByPublicID = useSidebarConversationField("setStarByPublicID");
-  const setProjectByPublicID = useSidebarConversationField("setProjectByPublicID");
   const deleteByPublicID = useSidebarConversationField("deleteByPublicID");
 
   const [manualConversationTitle, setManualConversationTitle] = React.useState("");
@@ -129,16 +128,6 @@ export function useChatConversationActions({
     }
   }, [actionConversationID, canOperateConversation, deleteByPublicID, deleteFiles, router]);
 
-  const onSetActiveConversationProject = React.useCallback(
-    async (projectID?: string) => {
-      if (!canOperateConversation) {
-        return;
-      }
-      await setProjectByPublicID(actionConversationID, projectID);
-    },
-    [actionConversationID, canOperateConversation, setProjectByPublicID],
-  );
-
   return {
     actionConversationID,
     canOperateConversation,
@@ -156,6 +145,5 @@ export function useChatConversationActions({
     onUpdateActiveConversationLabels,
     onRequestDeleteActiveConversation,
     onConfirmDeleteActiveConversation,
-    onSetActiveConversationProject,
   };
 }

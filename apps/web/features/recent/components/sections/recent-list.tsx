@@ -11,7 +11,6 @@ import { LoadingReveal } from "@/shared/components/loading-reveal";
 import type { RecentRowState } from "@/features/recent/types/recent";
 import {
   ConversationLabelsMenuItem,
-  ConversationProjectSubmenu,
   isArchivedConversation,
   parseConversationLabelsJSON,
 } from "@/entities/conversation";
@@ -35,7 +34,6 @@ import { cn } from "@/lib/utils";
 import { useAppLocale } from "@/i18n/app-i18n-provider";
 import type {
   ConversationDTO,
-  ConversationProjectDTO,
   ConversationStarredFilter,
   ConversationStatusFilter,
 } from "@/shared/api/conversation-types";
@@ -89,7 +87,6 @@ function RecentListSkeleton({
 
 function RecentConversationRow({
   item,
-  projects,
   hovered,
   selected,
   highlighted,
@@ -103,11 +100,9 @@ function RecentConversationRow({
   onRename,
   onManageLabels,
   onArchive,
-  onSetProject,
   onDelete,
 }: {
   item: ConversationDTO;
-  projects: ConversationProjectDTO[];
   hovered: boolean;
   selected: boolean;
   highlighted: boolean;
@@ -121,7 +116,6 @@ function RecentConversationRow({
   onRename: (item: ConversationDTO) => void;
   onManageLabels: (item: ConversationDTO) => void;
   onArchive: (publicID: string, archived: boolean) => void;
-  onSetProject: (publicID: string, projectID?: string) => void | Promise<void>;
   onDelete: (item: ConversationDTO) => void;
 }) {
   const t = useTranslations("recent");
@@ -291,13 +285,6 @@ function RecentConversationRow({
                 requestAnimationFrame(() => onManageLabels(item));
               }}
             />
-            <ConversationProjectSubmenu
-              label={t("row.moveToProject")}
-              unassignedLabel={t("projects.unassigned")}
-              currentProjectID={item.projectID}
-              projects={projects}
-              onSelect={(projectID) => onSetProject(item.publicID, projectID)}
-            />
             <DropdownMenuItem
               onSelect={(event) => {
                 event.preventDefault();
@@ -328,7 +315,6 @@ function RecentConversationRow({
 type RecentListProps = {
   loadingInitial: boolean;
   filteredItems: ConversationDTO[];
-  projects: ConversationProjectDTO[];
   normalizedQuery: string;
   statusFilter: ConversationStatusFilter;
   starredFilter: ConversationStarredFilter;
@@ -344,76 +330,13 @@ type RecentListProps = {
   onRename: (item: ConversationDTO) => void;
   onManageLabels: (item: ConversationDTO) => void;
   onArchive: (publicID: string, archived: boolean) => void;
-  onSetProject: (publicID: string, projectID?: string) => void | Promise<void>;
   onDelete: (item: ConversationDTO) => void;
   onRetryLoadMore: () => void | Promise<void>;
 };
 
-type RecentConversationGroup = {
-  key: string;
-  title: string;
-  items: ConversationDTO[];
-};
-
-function buildConversationGroups(
-  items: ConversationDTO[],
-  projects: ConversationProjectDTO[],
-  unassignedTitle: string,
-): RecentConversationGroup[] {
-  const itemsByProjectID = new Map<string, ConversationDTO[]>();
-  const unknownProjectItems = new Map<string, ConversationDTO[]>();
-  const unassignedItems: ConversationDTO[] = [];
-  const groups: RecentConversationGroup[] = [];
-  const knownProjectIDs = new Set(projects.map((project) => project.publicID));
-
-  for (const item of items) {
-    if (!item.projectID) {
-      unassignedItems.push(item);
-      continue;
-    }
-    if (knownProjectIDs.has(item.projectID)) {
-      itemsByProjectID.set(item.projectID, [...(itemsByProjectID.get(item.projectID) ?? []), item]);
-      continue;
-    }
-    const unknownProjectTitle = item.projectName || item.projectID;
-    unknownProjectItems.set(unknownProjectTitle, [...(unknownProjectItems.get(unknownProjectTitle) ?? []), item]);
-  }
-
-  for (const project of projects) {
-    const projectItems = itemsByProjectID.get(project.publicID);
-    if (!projectItems?.length) {
-      continue;
-    }
-    groups.push({
-      key: project.publicID,
-      title: project.name,
-      items: projectItems,
-    });
-  }
-
-  for (const [title, projectItems] of unknownProjectItems) {
-    groups.push({
-      key: `project:${title}`,
-      title,
-      items: projectItems,
-    });
-  }
-
-  if (unassignedItems.length > 0) {
-    groups.push({
-      key: "unassigned",
-      title: unassignedTitle,
-      items: unassignedItems,
-    });
-  }
-
-  return groups;
-}
-
 export function RecentList({
   loadingInitial,
   filteredItems,
-  projects,
   normalizedQuery,
   statusFilter,
   starredFilter,
@@ -429,15 +352,10 @@ export function RecentList({
   onRename,
   onManageLabels,
   onArchive,
-  onSetProject,
   onDelete,
   onRetryLoadMore,
 }: RecentListProps) {
   const t = useTranslations("recent");
-  const groups = React.useMemo(
-    () => buildConversationGroups(filteredItems, projects, t("projects.unassigned")),
-    [filteredItems, projects, t],
-  );
   const rowStateByPublicID = React.useMemo(() => {
     const stateMap = new Map<string, RecentRowState>();
     for (const state of rowStates) {
@@ -465,50 +383,35 @@ export function RecentList({
   ) : (
     <div className="min-h-0 h-full overflow-y-auto pr-2">
       <div className="pt-px">
-        {groups.map((group, groupIndex) => {
+        {filteredItems.map((item, index) => {
+          const currentState = rowStateByPublicID.get(item.publicID);
+          const previousItem = index > 0 ? filteredItems[index - 1] : null;
+          const nextItem = index < filteredItems.length - 1 ? filteredItems[index + 1] : null;
+          const previousState = previousItem ? rowStateByPublicID.get(previousItem.publicID) : null;
+          const nextState = nextItem ? rowStateByPublicID.get(nextItem.publicID) : null;
+
           return (
-            <section key={group.key} className={cn(groupIndex > 0 && "mt-6")}>
-              <div className="flex h-7 min-w-0 items-center justify-between gap-3 px-2 text-xs md:ml-13 md:px-3">
-                <span className="min-w-0 truncate font-medium text-foreground/55">{group.title}</span>
-                <span className="shrink-0 text-[11px] text-muted-foreground/55">
-                  {t("conversationCount", { count: group.items.length })}
-                </span>
-              </div>
-
-              {group.items.map((item, index) => {
-                const currentState = rowStateByPublicID.get(item.publicID);
-                const previousItem = index > 0 ? group.items[index - 1] : null;
-                const nextItem = index < group.items.length - 1 ? group.items[index + 1] : null;
-                const previousState = previousItem ? rowStateByPublicID.get(previousItem.publicID) : null;
-                const nextState = nextItem ? rowStateByPublicID.get(nextItem.publicID) : null;
-
-                return (
-                  <RecentConversationRow
-                    key={item.publicID}
-                    item={item}
-                    projects={projects}
-                    hovered={currentState?.hovered ?? false}
-                    selected={currentState?.selected ?? false}
-                    highlighted={currentState?.highlighted ?? false}
-                    selectionMode={isSelectionMode}
-                    hideTopDivider={
-                      (currentState?.highlighted ?? false) ||
-                      (previousState?.highlighted ?? false)
-                    }
-                    mergeSelectedWithPrevious={(currentState?.selected ?? false) && (previousState?.selected ?? false)}
-                    mergeSelectedWithNext={(currentState?.selected ?? false) && (nextState?.selected ?? false)}
-                    onHoverChange={onHoverChange}
-                    onToggleSelected={onToggleSelected}
-                    onToggleStar={onToggleStar}
-                    onRename={onRename}
-                    onManageLabels={onManageLabels}
-                    onArchive={onArchive}
-                    onSetProject={onSetProject}
-                    onDelete={onDelete}
-                  />
-                );
-              })}
-            </section>
+            <RecentConversationRow
+              key={item.publicID}
+              item={item}
+              hovered={currentState?.hovered ?? false}
+              selected={currentState?.selected ?? false}
+              highlighted={currentState?.highlighted ?? false}
+              selectionMode={isSelectionMode}
+              hideTopDivider={
+                (currentState?.highlighted ?? false) ||
+                (previousState?.highlighted ?? false)
+              }
+              mergeSelectedWithPrevious={(currentState?.selected ?? false) && (previousState?.selected ?? false)}
+              mergeSelectedWithNext={(currentState?.selected ?? false) && (nextState?.selected ?? false)}
+              onHoverChange={onHoverChange}
+              onToggleSelected={onToggleSelected}
+              onToggleStar={onToggleStar}
+              onRename={onRename}
+              onManageLabels={onManageLabels}
+              onArchive={onArchive}
+              onDelete={onDelete}
+            />
           );
         })}
 

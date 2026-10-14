@@ -2,13 +2,12 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import { Archive, ArrowDown, ArrowUp, Folder, Maximize2, Minimize2 } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, Maximize2, Minimize2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { MessageCircleMore } from "@/components/animate-ui/icons/message-circle-more";
 import { Search } from "@/components/animate-ui/icons/search";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogCollapsible } from "@/components/ui/dialog";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
@@ -71,15 +70,6 @@ function NavigationSearchResultItem({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate font-medium text-foreground">{item.title}</span>
-          {item.projectName ? (
-            <Badge
-              variant="secondary"
-              className="hidden h-4 min-w-0 max-w-28 gap-1 rounded-sm bg-muted/65 px-1.5 font-normal text-foreground/50 sm:inline-flex [&>svg]:!size-2.5"
-            >
-              <Folder aria-hidden strokeWidth={1.4} />
-              <span className="truncate">{item.projectName}</span>
-            </Badge>
-          ) : null}
           {item.status === "archived" ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-foreground/45">
               <Archive aria-hidden className="!size-3" strokeWidth={1.4} />

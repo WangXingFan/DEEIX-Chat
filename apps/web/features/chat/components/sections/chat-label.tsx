@@ -29,7 +29,6 @@ import {
   ConversationScreenshotSubmenu,
   ConversationLabelsDialog,
   ConversationLabelsMenuItem,
-  ConversationProjectSubmenu,
 } from "@/entities/conversation";
 import { cn } from "@/lib/utils";
 
@@ -42,16 +41,6 @@ type ChatLabelProps = {
   onAutoRename?: () => void | Promise<void>;
   labels?: string[];
   onUpdateLabels?: (labels: string[]) => void | Promise<void>;
-  projectMenu?: {
-    label: string;
-    unassignedLabel: string;
-    currentProjectID?: string;
-    projects: Array<{
-      publicID: string;
-      name: string;
-    }>;
-    onSelect: (projectID?: string) => void | Promise<void>;
-  };
   onDelete?: () => void | Promise<void>;
   screenshotLatestLabel?: string;
   screenshotSelectLabel?: string;
@@ -68,7 +57,6 @@ export function ChatLabel({
   onAutoRename,
   labels = [],
   onUpdateLabels,
-  projectMenu,
   onDelete,
   screenshotLatestLabel,
   screenshotSelectLabel,
@@ -193,15 +181,6 @@ export function ChatLabel({
               });
             }}
           />
-          {projectMenu ? (
-            <ConversationProjectSubmenu
-              label={projectMenu.label}
-              unassignedLabel={projectMenu.unassignedLabel}
-              currentProjectID={projectMenu.currentProjectID}
-              projects={projectMenu.projects}
-              onSelect={projectMenu.onSelect}
-            />
-          ) : null}
           <ConversationScreenshotSubmenu
             label={t("screenshotMenu")}
             screenshotLatestLabel={screenshotLatestLabel}

@@ -5,35 +5,21 @@ import * as React from "react";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { readAccessToken } from "@/shared/auth/session";
 import { dispatchFileLibraryInvalidated } from "@/entities/file";
-import { runBulkActionInChunks } from "@/shared/lib/bulk-action";
 import { resolveConversationDefaultModel } from "@/entities/conversation/lib/conversation-default-model";
 import {
-  batchSetConversationProject,
   createConversation,
-  createConversationProject,
   deleteConversation,
-  deleteConversationProject,
-  listConversationProjects,
   listConversations,
   regenerateConversationTitle,
   renameConversation,
-  reorderConversationProjects,
-  setConversationProject,
   setConversationArchive,
   setConversationStar,
   updateConversationLabels,
-  updateConversationProject,
 } from "@/shared/api/conversation";
-import type {
-  ConversationDTO,
-  ConversationProjectDTO,
-  CreateConversationProjectRequest,
-  UpdateConversationProjectRequest,
-} from "@/shared/api/conversation-types";
+import type { ConversationDTO } from "@/shared/api/conversation-types";
 
 import type {
   DeleteConversationOptions,
-  DeleteConversationProjectOptions,
   SidebarConversationChange,
   SidebarConversationsControllerValue,
 } from "@/entities/conversation/types/sidebar-conversations";
@@ -55,7 +41,6 @@ type SidebarConversationsCache = {
   accessToken: string;
   recentItems: ConversationDTO[];
   starredItems: ConversationDTO[];
-  projects: ConversationProjectDTO[];
   starredTotal: number;
   hasMore: boolean;
   page: number;
@@ -115,43 +100,6 @@ function patchConversationList(
   );
 }
 
-function orderProjectsByPublicIDs(
-  items: ConversationProjectDTO[],
-  projectIDs: string[],
-): ConversationProjectDTO[] {
-  if (projectIDs.length === 0) {
-    return items;
-  }
-
-  const byPublicID = new Map(items.map((item) => [item.publicID, item]));
-  const seen = new Set<string>();
-  const ordered: ConversationProjectDTO[] = [];
-
-  for (const publicID of projectIDs) {
-    const project = byPublicID.get(publicID);
-    if (!project || seen.has(publicID)) {
-      continue;
-    }
-    seen.add(publicID);
-    ordered.push({
-      ...project,
-      sortOrder: ordered.length + 1,
-    });
-  }
-
-  for (const project of items) {
-    if (seen.has(project.publicID)) {
-      continue;
-    }
-    ordered.push({
-      ...project,
-      sortOrder: ordered.length + 1,
-    });
-  }
-
-  return ordered;
-}
-
 async function fetchRecentPage(accessToken: string, page: number) {
   return listConversations(accessToken, {
     page,
@@ -196,24 +144,16 @@ async function fetchAllStarred(accessToken: string): Promise<ConversationDTO[]> 
   return sortByStarredAtDesc(items);
 }
 
-async function fetchActiveProjects(accessToken: string): Promise<ConversationProjectDTO[]> {
-  return listConversationProjects(accessToken, { status: "active" });
-}
-
 export function useConversationSidebarList({
-  bulkPendingTitle,
   newConversationTitle,
 }: {
-  bulkPendingTitle: string;
   newConversationTitle: string;
 }): SidebarConversationsControllerValue {
   const initialCache = React.useMemo(() => readSidebarConversationsCache(), []);
   const [recentItems, setRecentItems] = React.useState<ConversationDTO[]>(() => initialCache?.recentItems ?? []);
   const [starredItems, setStarredItems] = React.useState<ConversationDTO[]>(() => initialCache?.starredItems ?? []);
-  const [projects, setProjects] = React.useState<ConversationProjectDTO[]>(() => initialCache?.projects ?? []);
   const [starredTotal, setStarredTotal] = React.useState(() => initialCache?.starredTotal ?? 0);
   const [loadingInitial, setLoadingInitial] = React.useState(() => !initialCache);
-  const [projectsLoading, setProjectsLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(() => initialCache?.hasMore ?? true);
   const [loadMoreFailed, setLoadMoreFailed] = React.useState(false);
@@ -228,7 +168,6 @@ export function useConversationSidebarList({
   const clearTransferTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const recentItemsRef = React.useRef<ConversationDTO[]>([]);
   const starredItemsRef = React.useRef<ConversationDTO[]>([]);
-  const projectsRef = React.useRef<ConversationProjectDTO[]>(initialCache?.projects ?? []);
   const starredTotalRef = React.useRef(0);
   const starredWindowRequestVersionRef = React.useRef(0);
   const hasHydratedInitialRef = React.useRef(Boolean(initialCache));
@@ -250,33 +189,18 @@ export function useConversationSidebarList({
   }, [starredItems]);
 
   React.useEffect(() => {
-    projectsRef.current = projects;
-  }, [projects]);
-
-  React.useEffect(() => {
     starredTotalRef.current = starredTotal;
   }, [starredTotal]);
-
-  const setProjectList = React.useCallback((updater: React.SetStateAction<ConversationProjectDTO[]>) => {
-    setProjects((current) => {
-      const next = typeof updater === "function"
-        ? updater(current)
-        : updater;
-      projectsRef.current = next;
-      return next;
-    });
-  }, []);
 
   React.useEffect(() => {
     writeSidebarConversationsCache({
       recentItems,
       starredItems,
-      projects,
       starredTotal,
       hasMore,
       page: pageRef.current,
     });
-  }, [hasMore, projects, recentItems, starredItems, starredTotal]);
+  }, [hasMore, recentItems, starredItems, starredTotal]);
 
   const items = React.useMemo(
     () => mergeUniqueByPublicID(starredItems, recentItems, sortByUpdatedAtDesc),
@@ -335,7 +259,6 @@ export function useConversationSidebarList({
       recentItemsRef.current.length === 0 &&
       starredItemsRef.current.length === 0;
     setLoadingInitial(shouldShowInitialSkeleton);
-    setProjectsLoading(true);
     setLoadMoreFailed(false);
     loadMoreFailedRef.current = false;
     pageRef.current = 1;
@@ -347,20 +270,17 @@ export function useConversationSidebarList({
       }
       setRecentItems([]);
       setStarredItems([]);
-      setProjectList([]);
       setStarredTotal(0);
       setHasMore(false);
       hasHydratedInitialRef.current = true;
       setLoadingInitial(false);
-      setProjectsLoading(false);
       return;
     }
 
     try {
-      const [recentData, starredData, projectData] = await Promise.all([
+      const [recentData, starredData] = await Promise.all([
         fetchRecentPage(token, 1),
         fetchStarredWindow(token),
-        fetchActiveProjects(token),
       ]);
 
       if (requestVersion !== initialRequestVersionRef.current) {
@@ -374,17 +294,15 @@ export function useConversationSidebarList({
 
       setRecentItems(sortByUpdatedAtDesc(nextRecentItems));
       setStarredItems(nextStarredItems);
-      setProjectList(projectData);
       setStarredTotal(starredData.total ?? nextStarredItems.length);
       setHasMore(loaded === RECENT_PAGE_SIZE && loaded < total);
     } finally {
       if (requestVersion === initialRequestVersionRef.current) {
         hasHydratedInitialRef.current = true;
         setLoadingInitial(false);
-        setProjectsLoading(false);
       }
     }
-  }, [setProjectList]);
+  }, []);
 
   React.useEffect(() => {
     void loadInitial();
@@ -447,7 +365,7 @@ export function useConversationSidebarList({
     return applyConversationUpdate(incoming.publicID, incoming);
   }, [applyConversationUpdate]);
 
-  const prependNewConversation = React.useCallback(async (platformModelName?: string, projectID?: string): Promise<ConversationDTO | null> => {
+  const prependNewConversation = React.useCallback(async (platformModelName?: string): Promise<ConversationDTO | null> => {
     const token = await resolveAccessToken();
     if (!token) {
       return null;
@@ -458,7 +376,6 @@ export function useConversationSidebarList({
     const item = await createConversation(token, {
       title: newConversationTitle,
       model: modelName,
-      projectID: projectID?.trim() || "",
     });
     return upsertConversation(item);
   }, [newConversationTitle, upsertConversation]);
@@ -504,163 +421,6 @@ export function useConversationSidebarList({
     setStarredItems((prev) => patchConversationList(prev, publicID, patch, sortByStarredAtDesc));
     publishChange({ type: "patch", publicID, patch });
   }, [publishChange]);
-
-  const createProject = React.useCallback(async (payload: CreateConversationProjectRequest): Promise<ConversationProjectDTO | null> => {
-    const token = await resolveAccessToken();
-    if (!token) {
-      return null;
-    }
-    const created = await createConversationProject(token, payload);
-    setProjectList((current) => [...current, created].sort((a, b) => a.sortOrder - b.sortOrder || b.publicID.localeCompare(a.publicID)));
-    return created;
-  }, [setProjectList]);
-
-  const updateProject = React.useCallback(
-    async (projectID: string, payload: UpdateConversationProjectRequest): Promise<ConversationProjectDTO | null> => {
-      const token = await resolveAccessToken();
-      if (!token) {
-        return null;
-      }
-      const updated = await updateConversationProject(token, projectID, payload);
-      setProjectList((current) =>
-        current
-          .map((item) => (item.publicID === projectID ? updated : item))
-          .filter((item) => item.status === "active")
-          .sort((a, b) => a.sortOrder - b.sortOrder || b.publicID.localeCompare(a.publicID)),
-      );
-      if (updated.name.trim()) {
-        const patch: Partial<ConversationDTO> = {
-          projectID: updated.publicID,
-          projectName: updated.name,
-        };
-        setRecentItems((current) => current.map((item) => (item.projectID === updated.publicID ? { ...item, ...patch } : item)));
-        setStarredItems((current) => current.map((item) => (item.projectID === updated.publicID ? { ...item, ...patch } : item)));
-      }
-      return updated;
-    },
-    [setProjectList],
-  );
-
-  const deleteProject = React.useCallback(
-    async (projectID: string, options: DeleteConversationProjectOptions = {}): Promise<boolean> => {
-      const token = await resolveAccessToken();
-      if (!token) {
-        return false;
-      }
-      const deleteConversations = options.deleteConversations === true;
-      const affectedItems = new Map<string, ConversationDTO>();
-      for (const item of [...recentItemsRef.current, ...starredItemsRef.current]) {
-        if (item.projectID === projectID) {
-          affectedItems.set(item.publicID, item);
-        }
-      }
-
-      const result = await deleteConversationProject(token, projectID, {
-        deleteConversations,
-        deleteFiles: deleteConversations && options.deleteFiles === true,
-      });
-      dispatchFileLibraryInvalidated({
-        reason: "conversation_project_deleted",
-        deletedFileCount: result.deletedFileCount ?? 0,
-        quota: result.quota,
-        sourceID: projectID,
-      });
-      setProjectList((current) => current.filter((item) => item.publicID !== projectID));
-      if (deleteConversations) {
-        setRecentItems((current) => current.filter((item) => item.projectID !== projectID));
-        setStarredItems((current) => current.filter((item) => item.projectID !== projectID));
-        setStarredTotal((current) => {
-          const knownStarredCount = Array.from(affectedItems.values()).filter((item) => item.isStarred).length;
-          return Math.max(0, current - knownStarredCount);
-        });
-        for (const item of affectedItems.values()) {
-          publishChange({ type: "remove", publicID: item.publicID });
-        }
-        void refreshStarredWindow(token);
-        return true;
-      }
-
-      const patch: Partial<ConversationDTO> = { projectID: "", projectName: "" };
-      setRecentItems((current) => current.map((item) => (item.projectID === projectID ? { ...item, ...patch } : item)));
-      setStarredItems((current) => current.map((item) => (item.projectID === projectID ? { ...item, ...patch } : item)));
-      for (const item of affectedItems.values()) {
-        publishChange({ type: "patch", publicID: item.publicID, patch });
-      }
-      return true;
-    },
-    [publishChange, refreshStarredWindow, setProjectList],
-  );
-
-  const reorderProjects = React.useCallback(async (projectIDs: string[]): Promise<void> => {
-    const rollbackProjects = projectsRef.current;
-    setProjectList(orderProjectsByPublicIDs(rollbackProjects, projectIDs));
-
-    const token = await resolveAccessToken();
-    if (!token) {
-      setProjectList(rollbackProjects);
-      throw new Error("errors.auth.unauthorized");
-    }
-
-    try {
-      const reordered = await reorderConversationProjects(token, { projectIDs });
-      setProjectList(reordered);
-    } catch (error) {
-      setProjectList(rollbackProjects);
-      throw error;
-    }
-  }, [setProjectList]);
-
-  const setProjectByPublicID = React.useCallback(
-    async (publicID: string, projectID?: string): Promise<ConversationDTO | null> => {
-      const token = await resolveAccessToken();
-      if (!token) {
-        return null;
-      }
-      const updated = await setConversationProject(token, publicID, {
-        projectID: projectID?.trim() || "",
-      });
-      if (updated.isStarred) {
-        setStarredItems((prev) => upsertByPublicID(prev, updated, sortByStarredAtDesc));
-        setRecentItems((prev) => removeByPublicID(prev, publicID));
-      } else {
-        setRecentItems((prev) => upsertByPublicID(prev, updated, sortByUpdatedAtDesc));
-        setStarredItems((prev) => removeByPublicID(prev, publicID));
-      }
-      publishChange({ type: "upsert", publicID, item: updated });
-      return updated;
-    },
-    [publishChange],
-  );
-
-  const batchSetProjectByPublicIDs = React.useCallback(
-    async (publicIDs: string[], projectID?: string): Promise<number> => {
-      const token = await resolveAccessToken();
-      if (!token || publicIDs.length === 0) {
-        return 0;
-      }
-      const projectIDValue = projectID?.trim() || "";
-      const results = await runBulkActionInChunks({
-        items: publicIDs,
-        title: bulkPendingTitle,
-        runChunk: (conversationPublicIDs) => batchSetConversationProject(token, {
-          conversationPublicIDs,
-          projectID: projectIDValue,
-        }),
-      });
-      const project = projects.find((item) => item.publicID === projectID);
-      const patch: Partial<ConversationDTO> = {
-        projectID: project?.publicID ?? "",
-        projectName: project?.name ?? "",
-      };
-      setRecentItems((current) => current.map((item) => (publicIDs.includes(item.publicID) ? { ...item, ...patch } : item)));
-      setStarredItems((current) => current.map((item) => (publicIDs.includes(item.publicID) ? { ...item, ...patch } : item)));
-      for (const publicID of publicIDs) {
-        publishChange({ type: "patch", publicID, patch });
-      }
-      return results.reduce((total, result) => total + result.updated, 0);
-    },
-    [bulkPendingTitle, projects, publishChange],
-  );
 
   const setStarByPublicID = React.useCallback(
     async (publicID: string, starred: boolean): Promise<ConversationDTO | null> => {
@@ -839,10 +599,8 @@ export function useConversationSidebarList({
       items,
       recentItems,
       starredItems,
-      projects,
       starredTotal,
       loadingInitial,
-      projectsLoading,
       loadingMore,
       hasMore,
       loadMoreFailed,
@@ -856,12 +614,6 @@ export function useConversationSidebarList({
       renameByPublicID,
       regenerateTitleByPublicID,
       updateLabelsByPublicID,
-      createProject,
-      updateProject,
-      deleteProject,
-      reorderProjects,
-      setProjectByPublicID,
-      batchSetProjectByPublicIDs,
       setStarByPublicID,
       loadAllStarred,
       archiveByPublicID,
@@ -869,10 +621,7 @@ export function useConversationSidebarList({
     }),
     [
       archiveByPublicID,
-      batchSetProjectByPublicIDs,
-      createProject,
       deleteByPublicID,
-      deleteProject,
       hasMore,
       items,
       lastChange,
@@ -882,19 +631,14 @@ export function useConversationSidebarList({
       loadingMore,
       loadMoreFailed,
       prependNewConversation,
-      projects,
-      projectsLoading,
       regenerateTitleByPublicID,
       updateLabelsByPublicID,
       upsertConversation,
       recentItems,
-      reorderProjects,
       retryLoadMore,
-      setProjectByPublicID,
       starredItems,
       starredTotal,
       touchByPublicID,
-      updateProject,
       renameByPublicID,
       setStarByPublicID,
       transferringStarPublicID,

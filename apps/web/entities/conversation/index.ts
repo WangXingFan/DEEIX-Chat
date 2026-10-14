@@ -7,10 +7,6 @@ export {
 } from "@/entities/conversation/components/conversation-labels-manager-dialog";
 export { ConversationLabelsMenuItem } from "@/entities/conversation/components/conversation-labels-menu-item";
 export {
-  ConversationProjectMenuItems,
-  ConversationProjectSubmenu,
-} from "@/entities/conversation/components/conversation-project-submenu";
-export {
   ConversationScreenshotIconDropdown,
   ConversationScreenshotSubmenu,
 } from "@/entities/conversation/components/conversation-screenshot-menu";

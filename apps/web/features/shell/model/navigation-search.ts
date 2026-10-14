@@ -19,7 +19,6 @@ export function toConversationSearchResult(
     publicID: item.publicID,
     title,
     href: `/chat?conversation_id=${item.publicID}`,
-    projectName: item.projectName,
     status: item.status,
     updatedAt: item.updatedAt,
   };
@@ -39,8 +38,7 @@ export function filterConversationSearchResults(
         publicID: item.publicID,
         title,
         href: `/chat?conversation_id=${item.publicID}`,
-        projectName: item.projectName,
-        status: item.status,
+            status: item.status,
         updatedAt: item.updatedAt,
       };
     });

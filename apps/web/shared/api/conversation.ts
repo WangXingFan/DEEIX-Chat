@@ -5,20 +5,14 @@ import type {
   ActiveConversationRunEvent,
   ActiveConversationRunSnapshot,
   ConversationRunStatusDTO,
-  BatchSetConversationProjectRequest,
-  BatchSetConversationProjectResult,
   ContextArtifactDTO,
   ConversationDefaultModelCandidateDTO,
   ConversationDTO,
   ConversationPreviewMessageDTO,
-  ConversationProjectDTO,
-  ConversationProjectFilter,
-  ConversationProjectStatusFilter,
   ConversationRunDTO,
   ConversationSearchPageDTO,
   ConversationStarredFilter,
   ConversationStatusFilter,
-  CreateConversationProjectRequest,
   CreateConversationRequest,
   DeleteConversationData,
   MessageDeleteDTO,
@@ -29,18 +23,15 @@ import type {
   PromptTraceDTO,
   PromptTraceSourceDTO,
   RenameConversationRequest,
-  ReorderConversationProjectsRequest,
   SendMessageRequest,
   SendMessageResult,
   SetConversationArchiveRequest,
-  SetConversationProjectRequest,
   SetConversationStarRequest,
   SetMessageFeedbackRequest,
   StreamMessageEvent,
   TraceBlockDTO,
   TraceEventDTO,
   UpdateConversationLabelsRequest,
-  UpdateConversationProjectRequest,
   UpdateMessageRequest,
 } from "@/shared/api/conversation-types";
 import { ApiError, pathParam } from "@/shared/api/http-client";
@@ -373,7 +364,6 @@ type ListConversationsOptions = {
   pageSize?: number;
   status?: ConversationStatusFilter;
   starred?: ConversationStarredFilter;
-  project?: ConversationProjectFilter;
   query?: string;
 };
 
@@ -382,15 +372,6 @@ type SearchConversationsOptions = {
   pageSize?: number;
   query?: string;
   signal?: AbortSignal;
-};
-
-type ListConversationProjectsOptions = {
-  status?: ConversationProjectStatusFilter;
-};
-
-type DeleteConversationProjectOptions = {
-  deleteConversations?: boolean;
-  deleteFiles?: boolean;
 };
 
 type DeleteConversationOptions = {
@@ -411,14 +392,12 @@ export async function listConversations(
   const pageSize = options.pageSize && options.pageSize > 0 ? options.pageSize : 20;
   const status = options.status?.trim() || "active";
   const starred = options.starred?.trim() || "all";
-  const project = options.project?.trim() || "all";
   const query = options.query?.trim() || "";
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
     status,
     starred,
-    project,
   });
   if (query) {
     params.set("q", query);
@@ -480,120 +459,6 @@ export async function getConversationDefaultModelCandidate(
     "/api/v1/conversations/default-model-candidate",
     {
       accessToken,
-    },
-    true,
-  );
-}
-
-export async function listConversationProjects(
-  accessToken: string,
-  options: ListConversationProjectsOptions = {},
-): Promise<ConversationProjectDTO[]> {
-  const status = options.status?.trim() || "active";
-  return authedRequest<ConversationProjectDTO[]>(
-    `/api/v1/conversation-projects?status=${encodeURIComponent(status)}`,
-    {
-      accessToken,
-    },
-    true,
-  );
-}
-
-export async function createConversationProject(
-  accessToken: string,
-  payload: CreateConversationProjectRequest,
-): Promise<ConversationProjectDTO> {
-  return authedRequest<ConversationProjectDTO>(
-    "/api/v1/conversation-projects",
-    {
-      method: "POST",
-      accessToken,
-      body: payload,
-    },
-    true,
-  );
-}
-
-export async function updateConversationProject(
-  accessToken: string,
-  projectPublicID: string,
-  payload: UpdateConversationProjectRequest,
-): Promise<ConversationProjectDTO> {
-  return authedRequest<ConversationProjectDTO>(
-    `/api/v1/conversation-projects/${pathParam(projectPublicID)}`,
-    {
-      method: "PATCH",
-      accessToken,
-      body: payload,
-    },
-    true,
-  );
-}
-
-export async function deleteConversationProject(
-  accessToken: string,
-  projectPublicID: string,
-  options: DeleteConversationProjectOptions = {},
-): Promise<DeleteConversationData> {
-  const params = new URLSearchParams();
-  if (options.deleteConversations) {
-    params.set("delete_conversations", "true");
-  }
-  if (options.deleteFiles) {
-    params.set("delete_files", "true");
-  }
-  const query = params.toString();
-  return authedRequest<DeleteConversationData>(
-    `/api/v1/conversation-projects/${pathParam(projectPublicID)}${query ? `?${query}` : ""}`,
-    {
-      method: "DELETE",
-      accessToken,
-    },
-    true,
-  );
-}
-
-export async function reorderConversationProjects(
-  accessToken: string,
-  payload: ReorderConversationProjectsRequest,
-): Promise<ConversationProjectDTO[]> {
-  return authedRequest<ConversationProjectDTO[]>(
-    "/api/v1/conversation-projects/reorder",
-    {
-      method: "POST",
-      accessToken,
-      body: payload,
-    },
-    true,
-  );
-}
-
-export async function setConversationProject(
-  accessToken: string,
-  conversationPublicID: string,
-  payload: SetConversationProjectRequest,
-): Promise<ConversationDTO> {
-  return authedRequest<ConversationDTO>(
-    `/api/v1/conversations/${pathParam(conversationPublicID)}/project`,
-    {
-      method: "PATCH",
-      accessToken,
-      body: payload,
-    },
-    true,
-  );
-}
-
-export async function batchSetConversationProject(
-  accessToken: string,
-  payload: BatchSetConversationProjectRequest,
-): Promise<BatchSetConversationProjectResult> {
-  return authedRequest<BatchSetConversationProjectResult>(
-    "/api/v1/conversations/project",
-    {
-      method: "POST",
-      accessToken,
-      body: payload,
     },
     true,
   );

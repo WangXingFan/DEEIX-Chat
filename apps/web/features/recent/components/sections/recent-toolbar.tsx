@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Archive, FolderInput, LoaderCircle, SquareMousePointer, Trash, X } from "lucide-react";
+import { Archive, SquareMousePointer, Trash, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { RecentFilterGroup } from "@/features/recent/components/sections/recent-filter-group";
@@ -11,16 +11,9 @@ import {
 } from "@/features/recent/utils/recent-display";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ConversationProjectMenuItems } from "@/entities/conversation";
 import { cn } from "@/lib/utils";
 import type {
-  ConversationProjectDTO,
   ConversationStarredFilter,
   ConversationStatusFilter,
 } from "@/shared/api/conversation-types";
@@ -32,14 +25,10 @@ type RecentToolbarProps = {
   statusFilter: ConversationStatusFilter;
   starredFilter: ConversationStarredFilter;
   allSelectedArchived: boolean;
-  projects: ConversationProjectDTO[];
-  selectedProjectID: string | null;
-  movingSelectedToProject: boolean;
   onToggleSelectionMode: (checked: boolean | "indeterminate") => void;
   onEnterSelectionMode: () => void;
   onExitSelectionMode: () => void;
   onArchiveSelected: () => void | Promise<void>;
-  onMoveSelectedToProject: (projectID?: string) => void | Promise<void>;
   onRequestDeleteSelected: () => void;
   onStatusFilterChange: (value: ConversationStatusFilter) => void;
   onStarredFilterChange: (value: ConversationStarredFilter) => void;
@@ -71,14 +60,10 @@ export function RecentToolbar({
   statusFilter,
   starredFilter,
   allSelectedArchived,
-  projects,
-  selectedProjectID,
-  movingSelectedToProject,
   onToggleSelectionMode,
   onEnterSelectionMode,
   onExitSelectionMode,
   onArchiveSelected,
-  onMoveSelectedToProject,
   onRequestDeleteSelected,
   onStatusFilterChange,
   onStarredFilterChange,
@@ -129,44 +114,6 @@ export function RecentToolbar({
           <>
             <div className="flex w-full min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap text-foreground/70 [scrollbar-width:none] [-ms-overflow-style:none] md:w-auto md:shrink-0 md:overflow-visible [&::-webkit-scrollbar]:hidden">
               <span>{t("selectedCount", { count: selectedCount })}</span>
-              <ToolbarActionTooltip label={t("moveSelectedToProject")}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className={cn(
-                        "transition-colors",
-                        selectedCount > 0 && !movingSelectedToProject
-                          ? "text-foreground/60 hover:bg-accent hover:text-foreground"
-                          : "text-muted-foreground/50",
-                      )}
-                      disabled={selectedCount === 0 || movingSelectedToProject}
-                      aria-label={t("moveSelectedToProject")}
-                    >
-                      {movingSelectedToProject ? (
-                        <LoaderCircle className="size-4 animate-spin" strokeWidth={1.4} />
-                      ) : (
-                        <FolderInput className="size-4.5" strokeWidth={1} />
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    sideOffset={6}
-                    className="max-h-[min(18rem,var(--radix-dropdown-menu-content-available-height))] min-w-44 overflow-y-auto p-1.5"
-                  >
-                    <ConversationProjectMenuItems
-                      unassignedLabel={t("projects.unassigned")}
-                      currentProjectID={selectedProjectID ?? undefined}
-                      selectionKnown={selectedProjectID !== null}
-                      projects={projects}
-                      onSelect={onMoveSelectedToProject}
-                    />
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </ToolbarActionTooltip>
               <ToolbarActionTooltip
                 label={allSelectedArchived ? t("unarchiveSelected") : t("archiveSelected")}
               >

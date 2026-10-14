@@ -3,9 +3,7 @@
 import type { UserStorageQuotaDTO } from "@/shared/api/file-types";
 import { isRecord } from "@/shared/lib/type-guards";
 
-export type FileLibraryInvalidationReason =
-  | "conversation_deleted"
-  | "conversation_project_deleted";
+export type FileLibraryInvalidationReason = "conversation_deleted";
 
 export type FileLibraryInvalidatedDetail = {
   reason: FileLibraryInvalidationReason;
@@ -46,7 +44,7 @@ function isFileLibraryInvalidatedDetail(value: unknown): value is FileLibraryInv
   }
   const detail = value;
   return (
-    (detail.reason === "conversation_deleted" || detail.reason === "conversation_project_deleted") &&
+    detail.reason === "conversation_deleted" &&
     typeof detail.deletedFileCount === "number" &&
     typeof detail.timestamp === "number" &&
     typeof detail.nonce === "string"

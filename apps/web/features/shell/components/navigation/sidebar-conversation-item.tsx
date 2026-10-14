@@ -23,7 +23,6 @@ import { SIDEBAR_TRANSFER_TRANSITION } from "@/features/shell/model/sidebar-moti
 import { useConversationRunning } from "@/features/chat";
 import {
   ConversationLabelsMenuItem,
-  ConversationProjectSubmenu,
   parseConversationLabelsJSON,
 } from "@/entities/conversation";
 import { cn } from "@/lib/utils";
@@ -41,17 +40,6 @@ type SidebarConversationStarAction = {
   onSelect: (publicID: string) => void;
 };
 
-type SidebarConversationProjectMenu = {
-  label: string;
-  unassignedLabel: string;
-  currentProjectID?: string;
-  projects: Array<{
-    publicID: string;
-    name: string;
-  }>;
-  onSelect: (publicID: string, projectID?: string) => void;
-};
-
 type SidebarConversationItemProps = {
   item: SidebarConversationViewModel;
   active: boolean;
@@ -60,7 +48,6 @@ type SidebarConversationItemProps = {
   renameValue: string;
   menuTriggerID: string;
   starAction: SidebarConversationStarAction;
-  projectMenu?: SidebarConversationProjectMenu;
   rowClassName?: string;
   linkClassName?: string;
   onRenameValueChange: (value: string) => void;
@@ -112,7 +99,6 @@ export function SidebarConversationItem({
   renameValue,
   menuTriggerID,
   starAction,
-  projectMenu,
   rowClassName,
   linkClassName,
   onRenameValueChange,
@@ -266,15 +252,6 @@ export function SidebarConversationItem({
               requestAnimationFrame(() => onManageLabels?.());
             }}
           />
-          {projectMenu ? (
-            <ConversationProjectSubmenu
-              label={projectMenu.label}
-              unassignedLabel={projectMenu.unassignedLabel}
-              currentProjectID={projectMenu.currentProjectID}
-              projects={projectMenu.projects}
-              onSelect={(projectID) => projectMenu.onSelect(item.publicID, projectID)}
-            />
-          ) : null}
           <DropdownMenuItem
             onSelect={(event) => {
               event.preventDefault();

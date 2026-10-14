@@ -66,7 +66,6 @@ export function NavStarred() {
   const { deleteFilesByDefault } = useSettingsChatPreferences();
 
   const starredItems = useSidebarConversationField("starredItems");
-  const projects = useSidebarConversationField("projects");
   const starredTotal = useSidebarConversationField("starredTotal");
   const loadingInitial = useSidebarConversationField("loadingInitial");
   const transferringStarPublicID = useSidebarConversationField("transferringStarPublicID");
@@ -77,7 +76,6 @@ export function NavStarred() {
   const loadAllStarred = useSidebarConversationField("loadAllStarred");
   const archiveByPublicID = useSidebarConversationField("archiveByPublicID");
   const deleteByPublicID = useSidebarConversationField("deleteByPublicID");
-  const setProjectByPublicID = useSidebarConversationField("setProjectByPublicID");
 
   const [showAllStarredDialog, setShowAllStarredDialog] = React.useState(false);
   const [dialogStarredItems, setDialogStarredItems] = React.useState<ConversationDTO[] | null>(null);
@@ -310,15 +308,6 @@ export function NavStarred() {
                           label: t("row.unstar"),
                           icon: StarOff,
                           onSelect: onUnstar,
-                        }}
-                        projectMenu={{
-                          label: t("row.moveToProject"),
-                          unassignedLabel: t("projects.unassigned"),
-                          currentProjectID: starredItems.find((conversation) => conversation.publicID === item.publicID)?.projectID,
-                          projects,
-                          onSelect: (targetPublicID, projectID) => {
-                            void setProjectByPublicID(targetPublicID, projectID);
-                          },
                         }}
                         onRename={onRename}
                         isRenaming={renameTarget?.publicID === item.publicID}

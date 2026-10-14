@@ -1,23 +1,16 @@
 import type {
-  BatchSetConversationProjectResponse,
   ContextArtifactResponse,
-  BatchSetConversationProjectRequest as ContractBatchSetConversationProjectRequest,
-  CreateConversationProjectRequest as ContractCreateConversationProjectRequest,
   CreateConversationRequest as ContractCreateConversationRequest,
   RenameConversationRequest as ContractRenameConversationRequest,
-  ReorderConversationProjectsRequest as ContractReorderConversationProjectsRequest,
   SendMessageRequest as ContractSendMessageRequest,
   SetConversationArchiveRequest as ContractSetConversationArchiveRequest,
-  SetConversationProjectRequest as ContractSetConversationProjectRequest,
   SetConversationStarRequest as ContractSetConversationStarRequest,
   SetMessageFeedbackRequest as ContractSetMessageFeedbackRequest,
   UpdateConversationLabelsRequest as ContractUpdateConversationLabelsRequest,
-  UpdateConversationProjectRequest as ContractUpdateConversationProjectRequest,
   UpdateMessageRequest as ContractUpdateMessageRequest,
   ConversationDefaultModelCandidateResponse,
   ConversationDeleteResponse,
   ConversationPreviewMessageResponse,
-  ConversationProjectResponse,
   ConversationResponse,
   ConversationSearchPageResponse,
   ConversationSearchResultResponse,
@@ -63,10 +56,6 @@ export type ConversationDefaultModelCandidateDTO = ConversationDefaultModelCandi
 
 export type ConversationStatusFilter = "active" | "archived" | "all";
 export type ConversationStarredFilter = "all" | "starred" | "unstarred";
-export type ConversationProjectFilter = "all" | "unassigned" | string;
-export type ConversationProjectStatusFilter = "active" | "archived" | "all";
-export type ConversationProjectDTO = ConversationProjectResponse;
-
 export type MessageDTO = Omit<
   MessageResponse,
   | "billingCost"
@@ -129,18 +118,6 @@ export type MessageProcessTraceDTO = Omit<
 export type TraceEventDTO = MessageTraceEventResponse;
 
 export type CreateConversationRequest = ContractCreateConversationRequest;
-
-export type CreateConversationProjectRequest = ContractCreateConversationProjectRequest;
-
-export type UpdateConversationProjectRequest = ContractUpdateConversationProjectRequest;
-
-export type ReorderConversationProjectsRequest = ContractReorderConversationProjectsRequest;
-
-export type SetConversationProjectRequest = ContractSetConversationProjectRequest;
-
-export type BatchSetConversationProjectRequest = ContractBatchSetConversationProjectRequest;
-
-export type BatchSetConversationProjectResult = BatchSetConversationProjectResponse;
 
 export type ConversationOptions = Record<string, unknown>;
 

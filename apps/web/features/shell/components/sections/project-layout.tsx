@@ -52,7 +52,7 @@ function ProjectLayoutShell({
   }, [isMobile, openMobile, routeKey, setOpenMobile]);
 
   const handleCreateConversation = React.useCallback(() => {
-    requestNewConversation({ projectID: "" });
+    requestNewConversation();
     if (pathname === "/chat") {
       window.history.pushState(null, "", "/chat");
       return;
@@ -90,7 +90,6 @@ export function ProjectLayout({
       <SidebarProvider className="h-svh overflow-hidden" defaultOpen={defaultSidebarOpen}>
         <ShellConversationNavigationProvider>
           <SidebarConversationsProvider
-            bulkPendingTitle={tRecent("dialogs.bulk.pending")}
             newConversationTitle={tRecent("newChat")}
           >
             <ChatSessionProvider>

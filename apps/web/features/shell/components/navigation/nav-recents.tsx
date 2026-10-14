@@ -63,7 +63,6 @@ export function NavRecents() {
   const loadMoreFailed = useSidebarConversationField("loadMoreFailed");
   const loadMore = useSidebarConversationField("loadMore");
   const retryLoadMore = useSidebarConversationField("retryLoadMore");
-  const projects = useSidebarConversationField("projects");
   const transferringStarPublicID = useSidebarConversationField("transferringStarPublicID");
   const renameByPublicID = useSidebarConversationField("renameByPublicID");
   const regenerateTitleByPublicID = useSidebarConversationField("regenerateTitleByPublicID");
@@ -71,7 +70,6 @@ export function NavRecents() {
   const setStarByPublicID = useSidebarConversationField("setStarByPublicID");
   const archiveByPublicID = useSidebarConversationField("archiveByPublicID");
   const deleteByPublicID = useSidebarConversationField("deleteByPublicID");
-  const setProjectByPublicID = useSidebarConversationField("setProjectByPublicID");
 
   const [deleteTarget, setDeleteTarget] = React.useState<SidebarConversationDeleteTarget>(null);
   const [deleteFiles, setDeleteFiles] = React.useState(false);
@@ -167,14 +165,11 @@ export function NavRecents() {
   }, [activeConversationID, deleteByPublicID, deleteFiles, deleteTarget, router]);
 
   const visibleItemsSignature = React.useMemo(
-    () => recentItems.filter((item) => !item.projectID).map((item) => item.publicID).join("|"),
+    () => recentItems.map((item) => item.publicID).join("|"),
     [recentItems],
   );
   const showInitialSkeleton = loadingInitial && recentItems.length === 0;
-  const visibleRecentItems = React.useMemo(
-    () => recentItems.filter((item) => !item.projectID),
-    [recentItems],
-  );
+  const visibleRecentItems = recentItems;
   const timeGroups = React.useMemo(
     () => groupConversationsByTime(visibleRecentItems, {
       yesterday: t("timeGroup.yesterday"),
@@ -263,15 +258,6 @@ export function NavRecents() {
                                 label: item.isStarred ? t("row.unstar") : t("row.star"),
                                 icon: Star,
                                 onSelect: (targetPublicID) => onToggleStar(targetPublicID, !item.isStarred),
-                              }}
-                              projectMenu={{
-                                label: t("row.moveToProject"),
-                                unassignedLabel: t("projects.unassigned"),
-                                currentProjectID: item.projectID,
-                                projects,
-                                onSelect: (targetPublicID, projectID) => {
-                                  void setProjectByPublicID(targetPublicID, projectID);
-                                },
                               }}
                               isTransferring={transferringStarPublicID === publicID}
                               onRename={onRename}

@@ -113,7 +113,6 @@ type ChatAreaProps = {
   onAutoRename?: () => void | Promise<void>;
   labels?: string[];
   onUpdateLabels?: (labels: string[]) => void | Promise<void>;
-  projectMenu?: React.ComponentProps<typeof ChatLabel>["projectMenu"];
   onDelete?: () => void | Promise<void>;
   markdownRender?: boolean;
   autoExpandThinking?: boolean;
@@ -480,7 +479,6 @@ export function ChatArea({
   onAutoRename,
   labels,
   onUpdateLabels,
-  projectMenu,
   onDelete,
   markdownRender = true,
   autoExpandThinking = true,
@@ -567,7 +565,6 @@ export function ChatArea({
             onAutoRename={canOperateConversation ? onAutoRename : undefined}
             labels={labels}
             onUpdateLabels={canOperateConversation ? onUpdateLabels : undefined}
-            projectMenu={canOperateConversation ? projectMenu : undefined}
             onDelete={canOperateConversation ? onDelete : undefined}
             screenshotLatestLabel={tScreenshot("captureLatest")}
             screenshotSelectLabel={tScreenshot("captureSelect")}

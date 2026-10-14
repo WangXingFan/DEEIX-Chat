@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/sidebar";
 import { NavControl } from "@/features/shell/components/navigation/nav-control";
 import { NavMain } from "@/features/shell/components/navigation/nav-main";
-import { NavProjects } from "@/features/shell/components/navigation/nav-projects";
 import { NavRecents } from "@/features/shell/components/navigation/nav-recents";
 import { NavStarred } from "@/features/shell/components/navigation/nav-starred";
 import { NavUser } from "@/features/shell/components/navigation/nav-user";
@@ -58,7 +57,6 @@ export function AppSidebar({
             className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
             <LayoutGroup id="sidebar-conversations">
-              <NavProjects />
               <NavStarred />
               <NavRecents />
             </LayoutGroup>

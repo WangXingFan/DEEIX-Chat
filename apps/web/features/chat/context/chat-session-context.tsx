@@ -7,34 +7,29 @@ import type { ConversationRunStore } from "@/features/chat/model/conversation-ru
 
 type ChatSessionContextValue = {
   newConversationRevision: number;
-  newConversationProjectID: string;
   detachConversationRun: (runID: string) => void;
   finishConversationRun: (runID: string) => void;
   registerConversationRun: (runID: string, conversationPublicID: string) => void;
-  requestNewConversation: (options?: { projectID?: string }) => void;
+  requestNewConversation: () => void;
 };
 
 const ChatSessionContext = React.createContext<ChatSessionContextValue | null>(null);
 const ConversationRunStoreContext = React.createContext<ConversationRunStore | null>(null);
 
 export function ChatSessionProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState({ revision: 0, projectID: "" });
+  const [newConversationRevision, setNewConversationRevision] = React.useState(0);
   const {
     detachConversationRun,
     finishConversationRun,
     registerConversationRun,
     store,
   } = useChatRunState();
-  const requestNewConversation = React.useCallback((options?: { projectID?: string }) => {
-    setState((prev) => ({
-      revision: prev.revision + 1,
-      projectID: options?.projectID?.trim() ?? "",
-    }));
+  const requestNewConversation = React.useCallback(() => {
+    setNewConversationRevision((prev) => prev + 1);
   }, []);
   const value = React.useMemo(
     () => ({
-      newConversationRevision: state.revision,
-      newConversationProjectID: state.projectID,
+      newConversationRevision,
       detachConversationRun,
       finishConversationRun,
       registerConversationRun,
@@ -43,10 +38,9 @@ export function ChatSessionProvider({ children }: { children: React.ReactNode })
     [
       detachConversationRun,
       finishConversationRun,
+      newConversationRevision,
       registerConversationRun,
       requestNewConversation,
-      state.projectID,
-      state.revision,
     ],
   );
 

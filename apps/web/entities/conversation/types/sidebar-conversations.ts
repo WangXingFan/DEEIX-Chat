@@ -1,9 +1,4 @@
-import type {
-  ConversationDTO,
-  ConversationProjectDTO,
-  CreateConversationProjectRequest,
-  UpdateConversationProjectRequest,
-} from "@/shared/api/conversation-types";
+import type { ConversationDTO } from "@/shared/api/conversation-types";
 
 export type SidebarConversationChange = {
   sequence: number;
@@ -17,19 +12,12 @@ export type DeleteConversationOptions = {
   deleteFiles?: boolean;
 };
 
-export type DeleteConversationProjectOptions = {
-  deleteConversations?: boolean;
-  deleteFiles?: boolean;
-};
-
 export type SidebarConversationsControllerValue = {
   items: ConversationDTO[];
   recentItems: ConversationDTO[];
   starredItems: ConversationDTO[];
-  projects: ConversationProjectDTO[];
   starredTotal: number;
   loadingInitial: boolean;
-  projectsLoading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
   loadMoreFailed: boolean;
@@ -37,18 +25,12 @@ export type SidebarConversationsControllerValue = {
   lastChange: SidebarConversationChange | null;
   loadMore: () => Promise<void>;
   retryLoadMore: () => Promise<void>;
-  prependNewConversation: (platformModelName?: string, projectID?: string) => Promise<ConversationDTO | null>;
+  prependNewConversation: (platformModelName?: string) => Promise<ConversationDTO | null>;
   upsertConversation: (incoming: ConversationDTO) => ConversationDTO;
   touchByPublicID: (publicID: string, patch: Partial<ConversationDTO>) => void;
   renameByPublicID: (publicID: string, title: string) => Promise<ConversationDTO | null>;
   regenerateTitleByPublicID: (publicID: string) => Promise<ConversationDTO | null>;
   updateLabelsByPublicID: (publicID: string, labels: string[]) => Promise<ConversationDTO | null>;
-  createProject: (payload: CreateConversationProjectRequest) => Promise<ConversationProjectDTO | null>;
-  updateProject: (projectID: string, payload: UpdateConversationProjectRequest) => Promise<ConversationProjectDTO | null>;
-  deleteProject: (projectID: string, options?: DeleteConversationProjectOptions) => Promise<boolean>;
-  reorderProjects: (projectIDs: string[]) => Promise<void>;
-  setProjectByPublicID: (publicID: string, projectID?: string) => Promise<ConversationDTO | null>;
-  batchSetProjectByPublicIDs: (publicIDs: string[], projectID?: string) => Promise<number>;
   setStarByPublicID: (publicID: string, starred: boolean) => Promise<ConversationDTO | null>;
   loadAllStarred: () => Promise<ConversationDTO[]>;
   archiveByPublicID: (publicID: string, archived: boolean) => Promise<ConversationDTO | null>;

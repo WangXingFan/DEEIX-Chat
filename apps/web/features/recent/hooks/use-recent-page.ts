@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
 import { toast } from "sonner";
@@ -22,7 +22,6 @@ import { useLocalizedErrorMessage } from "@/i18n/use-localized-error";
 import { listConversations } from "@/shared/api/conversation";
 import type {
   ConversationDTO,
-  ConversationProjectFilter,
   ConversationStarredFilter,
   ConversationStatusFilter,
 } from "@/shared/api/conversation-types";
@@ -37,7 +36,6 @@ function conversationMatchesRecentFilters(
   item: ConversationDTO,
   statusFilter: ConversationStatusFilter,
   starredFilter: ConversationStarredFilter,
-  projectFilter: ConversationProjectFilter,
 ): boolean {
   if (statusFilter === "archived" && !isArchivedConversation(item)) {
     return false;
@@ -50,12 +48,6 @@ function conversationMatchesRecentFilters(
   }
   if (starredFilter === "unstarred" && item.isStarred) {
     return false;
-  }
-  if (projectFilter === "unassigned") {
-    return !item.projectID;
-  }
-  if (projectFilter !== "all") {
-    return item.projectID === projectFilter;
   }
   return true;
 }
@@ -71,9 +63,6 @@ export function useRecentPage() {
   const setStarByPublicID = useSidebarConversationField("setStarByPublicID");
   const archiveByPublicID = useSidebarConversationField("archiveByPublicID");
   const deleteByPublicID = useSidebarConversationField("deleteByPublicID");
-  const projects = useSidebarConversationField("projects");
-  const setProjectByPublicID = useSidebarConversationField("setProjectByPublicID");
-  const batchSetProjectByPublicIDs = useSidebarConversationField("batchSetProjectByPublicIDs");
   const lastChange = useSidebarConversationField("lastChange");
   const [items, setItems] = React.useState<ConversationDTO[]>([]);
   const [loadingInitial, setLoadingInitial] = React.useState(true);
@@ -82,8 +71,6 @@ export function useRecentPage() {
   const [loadMoreFailed, setLoadMoreFailed] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState<ConversationStatusFilter>("all");
   const [starredFilter, setStarredFilter] = React.useState<ConversationStarredFilter>("all");
-  const searchParams = useSearchParams();
-  const [projectFilter, setProjectFilter] = React.useState<ConversationProjectFilter>(() => searchParams.get("project") || "all");
   const [query, setQuery] = React.useState("");
   const debouncedQuery = useDebouncedValue(query, RECENT_SEARCH_DEBOUNCE_MS);
   const [selectionMode, setSelectionMode] = React.useState(false);
@@ -96,16 +83,11 @@ export function useRecentPage() {
   const [deleteTarget, setDeleteTarget] = React.useState<RecentDeleteTarget>(null);
   const [deleteFiles, setDeleteFiles] = React.useState(false);
   const { deleteFilesByDefault } = useSettingsChatPreferences();
-  const [movingSelectedToProject, setMovingSelectedToProject] = React.useState(false);
   const pageRef = React.useRef(1);
   const requestVersionRef = React.useRef(0);
   const loadingMoreRef = React.useRef(false);
   const loadMoreFailedRef = React.useRef(false);
   const isSelectionMode = selectionMode || selectedConversationIDs.length > 0;
-
-  React.useEffect(() => {
-    setProjectFilter(searchParams.get("project") || "all");
-  }, [searchParams]);
 
   React.useEffect(() => {
     loadingMoreRef.current = loadingMore;
@@ -136,7 +118,7 @@ export function useRecentPage() {
       setItems((current) =>
         current
           .map((item) => (item.publicID === lastChange.publicID ? { ...item, ...lastChange.patch } : item))
-          .filter((item) => conversationMatchesRecentFilters(item, statusFilter, starredFilter, projectFilter)),
+          .filter((item) => conversationMatchesRecentFilters(item, statusFilter, starredFilter)),
       );
       return;
     }
@@ -146,7 +128,7 @@ export function useRecentPage() {
       return;
     }
 
-    if (!conversationMatchesRecentFilters(changedItem, statusFilter, starredFilter, projectFilter)) {
+    if (!conversationMatchesRecentFilters(changedItem, statusFilter, starredFilter)) {
       setItems((current) => removeByPublicID(current, lastChange.publicID));
       setSelectedConversationIDs((current) => current.filter((item) => item !== lastChange.publicID));
       return;
@@ -157,7 +139,7 @@ export function useRecentPage() {
     }
 
     setItems((current) => upsertByPublicID(current, changedItem));
-  }, [items, lastChange, normalizedQuery, projectFilter, starredFilter, statusFilter]);
+  }, [items, lastChange, normalizedQuery, starredFilter, statusFilter]);
 
   const loadPage = React.useCallback(
     async (page: number, options?: { replace?: boolean; version?: number }) => {
@@ -176,7 +158,6 @@ export function useRecentPage() {
         pageSize: RECENT_PAGE_SIZE,
         status: statusFilter,
         starred: starredFilter,
-        project: projectFilter,
         query: normalizedQuery,
       });
       if (requestVersion !== requestVersionRef.current) {
@@ -196,7 +177,7 @@ export function useRecentPage() {
       loadMoreFailedRef.current = false;
       pageRef.current = page;
     },
-    [normalizedQuery, projectFilter, starredFilter, statusFilter],
+    [normalizedQuery, starredFilter, statusFilter],
   );
 
   React.useEffect(() => {
@@ -265,19 +246,9 @@ export function useRecentPage() {
   }, [loadMore]);
 
   const onCreateConversation = React.useCallback(() => {
-    const currentProjectID = projectFilter !== "all" && projectFilter !== "unassigned" ? projectFilter : "";
-    requestNewConversation({ projectID: currentProjectID });
-    router.push(currentProjectID ? `/chat?project_id=${encodeURIComponent(currentProjectID)}` : "/chat");
-  }, [projectFilter, requestNewConversation, router]);
-
-  const onProjectFilterChange = React.useCallback(
-    (value: ConversationProjectFilter) => {
-      setProjectFilter(value);
-      const href = value === "all" ? "/recent" : `/recent?project=${encodeURIComponent(value)}`;
-      router.replace(href);
-    },
-    [router],
-  );
+    requestNewConversation();
+    router.push("/chat");
+  }, [requestNewConversation, router]);
 
   const onToggleSelected = React.useCallback((publicID: string) => {
     setSelectionMode(true);
@@ -293,12 +264,12 @@ export function useRecentPage() {
         return;
       }
       setItems((current) => (
-        conversationMatchesRecentFilters(updated, statusFilter, starredFilter, projectFilter)
+        conversationMatchesRecentFilters(updated, statusFilter, starredFilter)
           ? upsertByPublicID(current, updated)
           : removeByPublicID(current, publicID)
       ));
     },
-    [projectFilter, setStarByPublicID, starredFilter, statusFilter],
+    [setStarByPublicID, starredFilter, statusFilter],
   );
 
   const onRename = React.useCallback((item: ConversationDTO) => {
@@ -331,33 +302,13 @@ export function useRecentPage() {
       }
 
       setItems((current) => {
-        if (!conversationMatchesRecentFilters(updated, statusFilter, starredFilter, projectFilter)) {
+        if (!conversationMatchesRecentFilters(updated, statusFilter, starredFilter)) {
           return removeByPublicID(current, publicID);
         }
         return upsertByPublicID(current, updated);
       });
     },
-    [archiveByPublicID, projectFilter, starredFilter, statusFilter],
-  );
-
-  const onSetProject = React.useCallback(
-    async (publicID: string, projectID?: string) => {
-      const updated = await setProjectByPublicID(publicID, projectID);
-      if (!updated) {
-        return;
-      }
-      setItems((current) =>
-        conversationMatchesRecentFilters(updated, statusFilter, starredFilter, projectFilter)
-          ? upsertByPublicID(current, updated)
-          : removeByPublicID(current, publicID),
-      );
-      setSelectedConversationIDs((current) => (
-        conversationMatchesRecentFilters(updated, statusFilter, starredFilter, projectFilter)
-          ? current
-          : current.filter((item) => item !== publicID)
-      ));
-    },
-    [projectFilter, setProjectByPublicID, starredFilter, statusFilter],
+    [archiveByPublicID, starredFilter, statusFilter],
   );
 
   const onDelete = React.useCallback((item: ConversationDTO) => {
@@ -470,60 +421,6 @@ export function useRecentPage() {
     [items, selectedConversationIDs],
   );
 
-  const selectedProjectID = React.useMemo<string | null>(() => {
-    if (selectedItems.length === 0) {
-      return null;
-    }
-    const firstProjectID = selectedItems[0]?.projectID ?? "";
-    return selectedItems.every((item) => (item.projectID ?? "") === firstProjectID) ? firstProjectID : null;
-  }, [selectedItems]);
-
-  const moveSelectedToProject = React.useCallback(async (projectID?: string) => {
-    if (selectedConversationIDs.length === 0 || movingSelectedToProject) {
-      return;
-    }
-
-    const targetIDs = [...selectedConversationIDs];
-    const targetIDSet = new Set(targetIDs);
-    const targetProject = projects.find((project) => project.publicID === projectID);
-    const patch: Partial<ConversationDTO> = {
-      projectID: targetProject?.publicID ?? "",
-      projectName: targetProject?.name ?? "",
-    };
-    setMovingSelectedToProject(true);
-    try {
-      const updated = await batchSetProjectByPublicIDs(targetIDs, projectID);
-      if (updated !== targetIDs.length) {
-        throw new Error("not all selected conversations were moved");
-      }
-      setItems((current) => current
-        .map((item) => (targetIDSet.has(item.publicID) ? { ...item, ...patch } : item))
-        .filter((item) => conversationMatchesRecentFilters(item, statusFilter, starredFilter, projectFilter)));
-      setSelectedConversationIDs([]);
-      setSelectionMode(false);
-      toast.success(t("moveSelectedSuccess", {
-        count: updated,
-        project: targetProject?.name ?? t("projects.unassigned"),
-      }));
-    } catch (error) {
-      toast.error(t("moveSelectedFailed"), {
-        description: resolveErrorMessage(error, t("moveSelectedFailed")),
-      });
-    } finally {
-      setMovingSelectedToProject(false);
-    }
-  }, [
-    batchSetProjectByPublicIDs,
-    movingSelectedToProject,
-    projectFilter,
-    projects,
-    resolveErrorMessage,
-    selectedConversationIDs,
-    starredFilter,
-    statusFilter,
-    t,
-  ]);
-
   const allSelectedArchived = React.useMemo(
     () => selectedItems.length > 0 && selectedItems.every((item) => isArchivedConversation(item)),
     [selectedItems],
@@ -561,7 +458,7 @@ export function useRecentPage() {
           next = removeByPublicID(next, target.publicID);
           continue;
         }
-        next = conversationMatchesRecentFilters(updated, statusFilter, starredFilter, projectFilter)
+        next = conversationMatchesRecentFilters(updated, statusFilter, starredFilter)
           ? upsertByPublicID(next, updated)
           : removeByPublicID(next, target.publicID);
       }
@@ -569,7 +466,7 @@ export function useRecentPage() {
     });
     setSelectedConversationIDs([]);
     setSelectionMode(false);
-  }, [allSelectedArchived, archiveByPublicID, projectFilter, selectedItems, starredFilter, statusFilter, t]);
+  }, [allSelectedArchived, archiveByPublicID, selectedItems, starredFilter, statusFilter, t]);
 
   const requestDeleteSelected = React.useCallback(() => {
     if (selectedConversationIDs.length === 0) {
@@ -625,13 +522,9 @@ export function useRecentPage() {
     loadMoreFailed,
     statusFilter,
     starredFilter,
-    projectFilter,
-    projects,
     query,
     isSelectionMode,
     selectedConversationIDs,
-    selectedProjectID,
-    movingSelectedToProject,
     hoveredConversationID,
     renameTarget,
     renameValue,
@@ -647,7 +540,6 @@ export function useRecentPage() {
     setQuery,
     setStatusFilter,
     setStarredFilter,
-    setProjectFilter: onProjectFilterChange,
     setHoveredConversationID,
     onToggleSelected,
     onToggleStar,
@@ -655,7 +547,6 @@ export function useRecentPage() {
     onManageLabels,
     onUpdateLabels,
     onArchive,
-    onSetProject,
     onDelete,
     setRenameValue,
     onRenameCommit,
@@ -670,7 +561,6 @@ export function useRecentPage() {
     setDeleteFiles,
     toggleSelectionMode,
     archiveSelected,
-    moveSelectedToProject,
     requestDeleteSelected,
     exitSelectionMode,
     enterSelectionMode: () => setSelectionMode(true),

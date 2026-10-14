@@ -183,14 +183,10 @@ function toChatModelOption(item: PublicModelDTO): ChatModelOption {
 export function useChatModelOptions({
   conversationPublicID,
   conversationModel,
-  newConversationDefaultModel,
-  newConversationDefaultsPending = false,
   resetToken,
 }: {
   conversationPublicID: string | null;
   conversationModel?: string | null;
-  newConversationDefaultModel?: string | null;
-  newConversationDefaultsPending?: boolean;
   resetToken?: number;
 }) {
   const t = useTranslations("chat.models");
@@ -393,10 +389,6 @@ export function useChatModelOptions({
       setDefaultModelResolving(false);
       return;
     }
-    if (newConversationDefaultsPending) {
-      setDefaultModelResolving(true);
-      return;
-    }
 
     let cancelled = false;
     setDefaultModelResolving(true);
@@ -408,7 +400,6 @@ export function useChatModelOptions({
       const result = await resolveConversationDefaultModel({
         accessToken: token,
         availableModels,
-        projectDefaultModel: newConversationDefaultModel ?? "",
         userDefaultModel,
       });
       if (!cancelled && !userSelectedModelRef.current) {
@@ -428,7 +419,7 @@ export function useChatModelOptions({
     return () => {
       cancelled = true;
     };
-  }, [availableModels, conversationPublicID, newConversationDefaultModel, newConversationDefaultsPending, resetToken, userDefaultModel]);
+  }, [availableModels, conversationPublicID, resetToken, userDefaultModel]);
 
   const modelOptions = React.useMemo<ChatModelOption[]>(
     () =>
@@ -440,7 +431,7 @@ export function useChatModelOptions({
     modelOptions,
     refreshModelCatalog,
     refreshModelOption,
-    modelsLoading: modelsLoading || newConversationDefaultsPending || defaultModelResolving,
+    modelsLoading: modelsLoading || defaultModelResolving,
     modelsErrorMsg,
     sendShortcut,
     restoreDraftOnFailure,

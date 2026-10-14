@@ -6,7 +6,7 @@ export const SKILL_LIMITS = {
   markdown: 10000,
 } as const;
 
-// Maximum number of skills a single message may load (composer and project defaults).
+// Maximum number of skills a single message may load (composer).
 export const MAX_SELECTED_SKILLS = 32;
 
 export type SkillFormValue = {

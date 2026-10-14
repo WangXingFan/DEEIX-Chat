@@ -54,14 +54,10 @@ export function AppRecent() {
           statusFilter={controller.statusFilter}
           starredFilter={controller.starredFilter}
           allSelectedArchived={controller.allSelectedArchived}
-          projects={controller.projects}
-          selectedProjectID={controller.selectedProjectID}
-          movingSelectedToProject={controller.movingSelectedToProject}
           onToggleSelectionMode={controller.toggleSelectionMode}
           onEnterSelectionMode={controller.enterSelectionMode}
           onExitSelectionMode={controller.exitSelectionMode}
           onArchiveSelected={requestArchiveSelected}
-          onMoveSelectedToProject={controller.moveSelectedToProject}
           onRequestDeleteSelected={controller.requestDeleteSelected}
           onStatusFilterChange={controller.setStatusFilter}
           onStarredFilterChange={controller.setStarredFilter}
@@ -73,7 +69,6 @@ export function AppRecent() {
           normalizedQuery={controller.normalizedQuery}
           statusFilter={controller.statusFilter}
           starredFilter={controller.starredFilter}
-          projects={controller.projects}
           rowStates={controller.rowStates}
           isSelectionMode={controller.isSelectionMode}
           loadMoreRef={controller.loadMoreRef}
@@ -86,7 +81,6 @@ export function AppRecent() {
           onRename={controller.onRename}
           onManageLabels={controller.onManageLabels}
           onArchive={controller.onArchive}
-          onSetProject={controller.onSetProject}
           onDelete={controller.onDelete}
           onRetryLoadMore={controller.retryLoadMore}
         />

@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
-import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,12 +61,10 @@ export function AppChatArea() {
   const searchParams = useSearchParams();
   const { user } = useAuthSession();
   const routeConversationID = searchParams.get("conversation_id")?.trim() || null;
-  const routeProjectID = searchParams.get("project_id")?.trim() || null;
   const {
     detachConversationRun,
     finishConversationRun,
     newConversationRevision,
-    newConversationProjectID: requestedNewConversationProjectID,
     registerConversationRun,
     requestNewConversation,
   } = useChatSession();
@@ -106,10 +103,9 @@ export function AppChatArea() {
       ? null
       : resolvedRouteConversationID;
   const onNewConversationFromLoadError = React.useCallback(() => {
-    const projectID = routeProjectID ?? "";
-    requestNewConversation({ projectID });
-    router.push(projectID ? `/chat?project_id=${encodeURIComponent(projectID)}` : "/chat");
-  }, [requestNewConversation, routeProjectID, router]);
+    requestNewConversation();
+    router.push("/chat");
+  }, [requestNewConversation, router]);
   const activeGenerationRunsRef = React.useRef<Set<string>>(new Set());
   // In-place Set mutations don't trigger effects; revision keeps the stream-resume check in sync.
   const [activeGenerationRunsRevision, setActiveGenerationRunsRevision] = React.useState(0);
@@ -125,8 +121,6 @@ export function AppChatArea() {
     reuseModelOptions,
   } = useSettingsChatPreferences();
   const items = useSidebarConversationField("items");
-  const projects = useSidebarConversationField("projects");
-  const projectsLoading = useSidebarConversationField("projectsLoading");
   const prependNewConversation = useSidebarConversationField("prependNewConversation");
   const touchByPublicID = useSidebarConversationField("touchByPublicID");
   const renameByPublicID = useSidebarConversationField("renameByPublicID");
@@ -157,23 +151,6 @@ export function AppChatArea() {
     return items.find((item) => item.publicID === conversationID) ?? null;
   }, [conversationID, items]);
   const currentConversation = useChatLoadedConversation(conversationID, activeConversation);
-  const activeRouteProject = React.useMemo(() => {
-    if (!routeProjectID || conversationID) {
-      return null;
-    }
-    return projects.find((item) => item.publicID === routeProjectID) ?? null;
-  }, [conversationID, projects, routeProjectID]);
-  const newConversationProjectID = !conversationID ? routeProjectID ?? requestedNewConversationProjectID : "";
-  const newConversationProject = React.useMemo(
-    () => projects.find((item) => item.publicID === newConversationProjectID) ?? null,
-    [newConversationProjectID, projects],
-  );
-  const newConversationDefaultsPending = Boolean(newConversationProjectID && projectsLoading);
-  const prependNewConversationInContext = React.useCallback(
-    (platformModelName?: string) => prependNewConversation(platformModelName, newConversationProjectID || undefined),
-    [newConversationProjectID, prependNewConversation],
-  );
-
   const handleConversationForked = React.useCallback(
     async (forked: ConversationDTO) => {
       const baseTitle = forked.title?.trim() || "";
@@ -222,8 +199,6 @@ export function AppChatArea() {
   } = useChatModelOptions({
     conversationPublicID: conversationID,
     conversationModel: currentConversation?.model ?? null,
-    newConversationDefaultModel: newConversationProject?.defaultModel ?? "",
-    newConversationDefaultsPending,
     resetToken: newConversationRevision,
   });
   const {
@@ -270,50 +245,13 @@ export function AppChatArea() {
     hasConversation: Boolean(conversationID),
     storageScope: user?.publicID ?? "",
   });
-  const newConversationSelectionKey = `${newConversationRevision}:${newConversationProjectID || "unassigned"}`;
-  const warnedUnavailableProjectModelRef = React.useRef("");
-  React.useEffect(() => {
-    const configuredModel = newConversationProject?.defaultModel.trim() ?? "";
-    if (
-      conversationID ||
-      !configuredModel ||
-      modelsLoading ||
-      modelOptions.length === 0 ||
-      modelsErrorMsg.trim() ||
-      modelOptions.some((model) => model.platformModelName === configuredModel)
-    ) {
-      return;
-    }
-
-    const warningKey = `${newConversationSelectionKey}:${configuredModel}`;
-    if (warnedUnavailableProjectModelRef.current === warningKey) {
-      return;
-    }
-    warnedUnavailableProjectModelRef.current = warningKey;
-    toast.warning(t("projectDefaultModelUnavailable", { model: configuredModel }));
-  }, [
-    conversationID,
-    modelOptions,
-    modelsErrorMsg,
-    modelsLoading,
-    newConversationProject?.defaultModel,
-    newConversationSelectionKey,
-    t,
-  ]);
-  const newConversationDefaultSkillIDs = React.useMemo(
-    () => (newConversationProject?.defaultSkillIDs ?? []).slice(0, MAX_SELECTED_SKILLS),
-    [newConversationProject],
-  );
-  const newConversationDefaultKnowledgeBaseIDs = React.useMemo(
-    () => (newConversationProject?.defaultKnowledgeBaseIDs ?? []).slice(0, 8),
-    [newConversationProject],
-  );
+  const newConversationSelectionKey = String(newConversationRevision);
   const { onSelectedKnowledgeBasesChange, onSelectedSkillsChange } = useChatConversationDefaults({
     conversationID,
     contextKey: newConversationSelectionKey,
-    defaultsPending: newConversationDefaultsPending,
-    defaultSkillIDs: newConversationDefaultSkillIDs,
-    defaultKnowledgeBaseIDs: newConversationDefaultKnowledgeBaseIDs,
+    defaultsPending: false,
+    defaultSkillIDs: [],
+    defaultKnowledgeBaseIDs: [],
     setSelectedSkills,
     setSelectedKnowledgeBaseIDs,
   });
@@ -374,7 +312,7 @@ export function AppChatArea() {
     uploading,
     restoreDraftOnFailure,
     autoGenerateLabels,
-    prependNewConversation: prependNewConversationInContext,
+    prependNewConversation,
     onConversationCreated: setLocallyCreatedConversationID,
     onConversationForked: handleConversationForked,
     touchByPublicID,
@@ -460,7 +398,6 @@ export function AppChatArea() {
     onUpdateActiveConversationLabels,
     onRequestDeleteActiveConversation,
     onConfirmDeleteActiveConversation,
-    onSetActiveConversationProject,
   } = useChatConversationActions({
     conversationID,
     currentConversation,
@@ -621,9 +558,7 @@ export function AppChatArea() {
       {shouldUseCenteredComposer ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ChatEmptyState
-            greetingTitle={activeRouteProject?.name || greetingTitle}
-            badgeLabel={activeRouteProject ? t("projectMode") : undefined}
-            badgeTooltip={activeRouteProject ? t("projectModeTooltip") : undefined}
+            greetingTitle={greetingTitle}
             contentWidthClassName={chatContentWidthClassName}
           >
             <ChatInput {...chatInputProps} />
@@ -674,13 +609,6 @@ export function AppChatArea() {
                   onAutoRename={onAutoRenameActiveConversation}
                   labels={activeConversationLabels}
                   onUpdateLabels={onUpdateActiveConversationLabels}
-                  projectMenu={{
-                    label: t("labelMenu.moveToProject"),
-                    unassignedLabel: t("labelMenu.unassignedProject"),
-                    currentProjectID: currentConversation?.projectID,
-                    projects,
-                    onSelect: onSetActiveConversationProject,
-                  }}
                   onDelete={onRequestDeleteActiveConversation}
                   markdownRender={markdownRender}
                   autoExpandThinking={autoExpandThinking}
