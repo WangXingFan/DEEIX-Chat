@@ -365,30 +365,8 @@ func isLightweightModelProbeProtocol(protocol string) bool {
 	}
 }
 
-func normalizeModelProbeTaskType(raw string, kindsJSON string, protocol string) string {
-	if strings.TrimSpace(raw) != "" {
-		return NormalizeTaskType(raw)
-	}
-	protocol = llm.NormalizeAdapter(protocol)
-	kinds := parseKinds(kindsJSON)
-	supportsImageGeneration := llm.IsImageGenerationAdapter(protocol)
-	supportsImageEdit := llm.IsImageEditAdapter(protocol)
-	if supportsImageGeneration && hasModelKind(kinds, modelKindImageGen) {
-		return TaskTypeImageGeneration
-	}
-	if supportsImageEdit && hasModelKind(kinds, modelKindImageEdit) {
-		return TaskTypeImageEdit
-	}
-	if supportsImageGeneration {
-		return TaskTypeImageGeneration
-	}
-	if supportsImageEdit {
-		return TaskTypeImageEdit
-	}
-	if hasModelKind(kinds, modelKindImageGen) {
-		return TaskTypeImageGeneration
-	}
-	return TaskTypeChat
+func normalizeModelProbeTaskType(raw string, _ string, _ string) string {
+	return NormalizeTaskType(raw)
 }
 
 func unsupportedModelProbeResult(row repository.ChannelUpstreamRouteRow, message string) *ModelProbeResult {

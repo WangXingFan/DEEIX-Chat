@@ -101,31 +101,6 @@ func DefaultModelOptionAllowedPathsJSON() string {
     "reasoning.summary",
     "text.verbosity"
   ],
-  "openai_image_generations": [
-    "background",
-    "moderation",
-    "n",
-    "output_compression",
-    "output_format",
-    "partial_images",
-    "quality",
-    "response_format",
-    "size",
-    "style",
-    "user"
-  ],
-  "openai_image_edits": [
-    "background",
-    "input_fidelity",
-    "n",
-    "output_compression",
-    "output_format",
-    "partial_images",
-    "quality",
-    "response_format",
-    "size",
-    "user"
-  ],
   "anthropic_messages": [
     "speed",
     "top_k",
@@ -140,11 +115,6 @@ func DefaultModelOptionAllowedPathsJSON() string {
     "generationConfig.thinkingConfig.includeThoughts",
     "generationConfig.thinkingConfig.thinkingLevel"
   ],
-  "google_image_generation": [
-    "generationConfig.responseModalities",
-    "generationConfig.imageConfig.aspectRatio",
-    "generationConfig.imageConfig.imageSize"
-  ],
   "gemini_interactions": [
     "generation_config.temperature",
     "generation_config.top_p",
@@ -152,11 +122,7 @@ func DefaultModelOptionAllowedPathsJSON() string {
     "generation_config.thinking_level",
     "generation_config.thinking_summaries",
     "response_format.type",
-    "response_format.aspect_ratio",
-    "response_format.image_size",
-    "response_format.mime_type",
-    "response_format.schema",
-    "generation_config.video_config.task"
+    "response_format.schema"
   ],
   "xai_responses": [
     "reasoning.effort",
@@ -164,26 +130,6 @@ func DefaultModelOptionAllowedPathsJSON() string {
     "parallel_tool_calls",
     "store",
     "top_k"
-  ],
-  "xai_image": [
-    "aspect_ratio",
-    "n",
-    "resolution",
-    "response_format"
-  ],
-  "xai_image_edits": [
-    "aspect_ratio",
-    "n",
-    "resolution",
-    "response_format"
-  ],
-  "xai_video": [
-    "aspect_ratio",
-    "duration",
-    "resolution"
-  ],
-  "xai_video_extensions": [
-    "duration"
   ],
   "openrouter_chat_completions": [
     "presence_penalty",
@@ -198,23 +144,6 @@ func DefaultModelOptionAllowedPathsJSON() string {
   "openrouter_responses": [
     "reasoning.effort",
     "reasoning.summary"
-  ],
-  "openrouter_images": [
-    "aspect_ratio",
-    "background",
-    "n",
-    "output_compression",
-    "output_format",
-    "provider.allow_fallbacks",
-    "provider.ignore",
-    "provider.only",
-    "provider.order",
-    "provider.sort",
-    "quality",
-    "resolution",
-    "seed",
-    "size",
-    "user"
   ]
 }`
 }

@@ -75,37 +75,37 @@ func TestSetModelProtocolsKeepsSharedUpstreamCatalogMetadata(t *testing.T) {
 
 func TestSetModelProtocolsPreservesRetainedRouteConfiguration(t *testing.T) {
 	db := openModelProtocolsTestDB(t)
-	upstream := models.LLMUpstream{Name: "image-upstream", Compatible: "openai", Status: "active"}
+	upstream := models.LLMUpstream{Name: "chat-upstream", Compatible: "openai", Status: "active"}
 	if err := db.Create(&upstream).Error; err != nil {
 		t.Fatalf("create upstream: %v", err)
 	}
 	upstreamModel := models.LLMUpstreamModel{
 		UpstreamID:        upstream.ID,
-		BindingCode:       "image-upstream-model",
-		UpstreamModelName: "image-upstream-model",
-		SuggestedProtocol: "openai_image_generations",
-		KindsJSON:         `["image_gen","image_edit"]`,
+		BindingCode:       "chat-upstream-model",
+		UpstreamModelName: "chat-upstream-model",
+		SuggestedProtocol: "openai_chat_completions",
+		KindsJSON:         `["chat"]`,
 		Status:            "active",
 	}
 	if err := db.Create(&upstreamModel).Error; err != nil {
 		t.Fatalf("create upstream model: %v", err)
 	}
 	platformModel := models.LLMPlatformModel{
-		Name: "image-platform-model", Vendor: "openai", KindsJSON: `["image_gen","image_edit"]`, Status: "active",
+		Name: "chat-platform-model", Vendor: "openai", KindsJSON: `["chat"]`, Status: "active",
 	}
 	if err := db.Create(&platformModel).Error; err != nil {
 		t.Fatalf("create platform model: %v", err)
 	}
 	routes := []models.LLMPlatformModelRoute{
 		{
-			PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_image_edits",
+			PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_responses",
 			Status: "active", Priority: 2, Weight: 3, Source: "sync", CbFailureThreshold: 5, CbDurationMin: 7, CbWindowMin: 11,
-			HeadersJSON: `{"X-Route":"edit"}`,
+			HeadersJSON: `{"X-Route":"stale"}`,
 		},
 		{
-			PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_image_generations",
+			PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_chat_completions",
 			Status: "inactive", Priority: 13, Weight: 17, Source: "manual", CbFailureThreshold: 19, CbDurationMin: 23, CbWindowMin: 29,
-			HeadersJSON: `{"X-Route":"generation"}`,
+			HeadersJSON: `{"X-Route":"retained"}`,
 		},
 	}
 	if err := db.Create(&routes).Error; err != nil {
@@ -115,8 +115,8 @@ func TestSetModelProtocolsPreservesRetainedRouteConfiguration(t *testing.T) {
 	repo := channelrepo.NewRepo(db)
 	service := appchannel.NewServiceWithRuntime(config.NewRuntime(config.Config{}), repo, repo, nil, nil)
 	if _, err := service.SetModelProtocols(context.Background(), platformModel.ID, appchannel.SetModelProtocolsInput{
-		Protocols: []string{"openai_image_generations"},
-		KindsJSON: `["image_gen"]`,
+		Protocols: []string{"openai_chat_completions"},
+		KindsJSON: `["chat"]`,
 	}); err != nil {
 		t.Fatalf("SetModelProtocols() error = %v", err)
 	}
@@ -164,7 +164,7 @@ func TestUpsertUpstreamModelPreservesRouteConfigurationAndSharedCatalog(t *testi
 		t.Fatalf("create upstream model: %v", err)
 	}
 	platformModels := []models.LLMPlatformModel{
-		{Name: "binding-platform-a", Vendor: "openai", KindsJSON: `["image_gen","image_edit"]`, Status: "active"},
+		{Name: "binding-platform-a", Vendor: "openai", KindsJSON: `["chat"]`, Status: "active"},
 		{Name: "binding-platform-b", Vendor: "openai", KindsJSON: `["chat"]`, Status: "active"},
 	}
 	if err := db.Create(&platformModels).Error; err != nil {
@@ -172,14 +172,14 @@ func TestUpsertUpstreamModelPreservesRouteConfigurationAndSharedCatalog(t *testi
 	}
 	routes := []models.LLMPlatformModelRoute{
 		{
-			PlatformModelID: platformModels[0].ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_image_edits",
+			PlatformModelID: platformModels[0].ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_responses",
 			Status: "active", Priority: 2, Weight: 3, Source: "sync", CbFailureThreshold: 5, CbDurationMin: 7, CbWindowMin: 11,
-			HeadersJSON: `{"X-Route":"edit"}`,
+			HeadersJSON: `{"X-Route":"stale"}`,
 		},
 		{
-			PlatformModelID: platformModels[0].ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_image_generations",
+			PlatformModelID: platformModels[0].ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_chat_completions",
 			Status: "inactive", Priority: 13, Weight: 17, Source: "manual", CbFailureThreshold: 19, CbDurationMin: 23, CbWindowMin: 29,
-			HeadersJSON: `{"X-Route":"generation"}`,
+			HeadersJSON: `{"X-Route":"retained"}`,
 		},
 		{
 			PlatformModelID: platformModels[1].ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_chat_completions",
@@ -196,7 +196,7 @@ func TestUpsertUpstreamModelPreservesRouteConfigurationAndSharedCatalog(t *testi
 		RouteIDs:          []uint{routes[0].ID, routes[1].ID},
 		PlatformModelName: platformModels[0].Name,
 		UpstreamModelName: upstreamModel.UpstreamModelName,
-		Protocols:         []string{"openai_image_generations", "openai_image_edits"},
+		Protocols:         []string{"openai_chat_completions"},
 		KindsJSON:         platformModels[0].KindsJSON,
 	}); err != nil {
 		t.Fatalf("UpsertUpstreamModel() error = %v", err)
@@ -218,23 +218,22 @@ func TestUpsertUpstreamModelPreservesRouteConfigurationAndSharedCatalog(t *testi
 	if err := db.Where("platform_model_id = ?", platformModels[0].ID).Order("id ASC").Find(&storedRoutes).Error; err != nil {
 		t.Fatalf("load preserved routes: %v", err)
 	}
-	if len(storedRoutes) != 2 {
-		t.Fatalf("expected two preserved routes, got %#v", storedRoutes)
+	if len(storedRoutes) != 1 {
+		t.Fatalf("expected one preserved route, got %#v", storedRoutes)
 	}
-	for index, stored := range storedRoutes {
-		want := routes[index]
-		if stored.ID != want.ID ||
-			stored.Protocol != want.Protocol ||
-			stored.Status != want.Status ||
-			stored.Priority != want.Priority ||
-			stored.Weight != want.Weight ||
-			stored.Source != want.Source ||
-			stored.CbFailureThreshold != want.CbFailureThreshold ||
-			stored.CbDurationMin != want.CbDurationMin ||
-			stored.CbWindowMin != want.CbWindowMin ||
-			stored.HeadersJSON != want.HeadersJSON {
-			t.Fatalf("expected route %d configuration to remain unchanged, got %#v", want.ID, stored)
-		}
+	want := routes[1]
+	stored := storedRoutes[0]
+	if stored.ID != want.ID ||
+		stored.Protocol != want.Protocol ||
+		stored.Status != want.Status ||
+		stored.Priority != want.Priority ||
+		stored.Weight != want.Weight ||
+		stored.Source != want.Source ||
+		stored.CbFailureThreshold != want.CbFailureThreshold ||
+		stored.CbDurationMin != want.CbDurationMin ||
+		stored.CbWindowMin != want.CbWindowMin ||
+		stored.HeadersJSON != want.HeadersJSON {
+		t.Fatalf("expected retained route configuration to remain unchanged, got %#v", stored)
 	}
 
 	var sharedRoute models.LLMPlatformModelRoute
@@ -254,20 +253,19 @@ func TestUpsertUpstreamModelAppliesOnlyExplicitRouteOverrides(t *testing.T) {
 	}
 	upstreamModel := models.LLMUpstreamModel{
 		UpstreamID: upstream.ID, BindingCode: "override-model", UpstreamModelName: "override-model",
-		SuggestedProtocol: "openai_image_generations", KindsJSON: `["image_gen","image_edit"]`, Status: "active",
+		SuggestedProtocol: "openai_chat_completions", KindsJSON: `["chat"]`, Status: "active",
 	}
 	if err := db.Create(&upstreamModel).Error; err != nil {
 		t.Fatalf("create upstream model: %v", err)
 	}
 	platformModel := models.LLMPlatformModel{
-		Name: "override-platform", Vendor: "openai", KindsJSON: `["image_gen","image_edit"]`, Status: "active",
+		Name: "override-platform", Vendor: "openai", KindsJSON: `["chat"]`, Status: "active",
 	}
 	if err := db.Create(&platformModel).Error; err != nil {
 		t.Fatalf("create platform model: %v", err)
 	}
 	routes := []models.LLMPlatformModelRoute{
-		{PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_image_generations", Status: "active", Priority: 2, Weight: 3, Source: "sync", HeadersJSON: `{"X-Route":"generation"}`},
-		{PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_image_edits", Status: "inactive", Priority: 5, Weight: 7, Source: "manual", HeadersJSON: `{"X-Route":"edit"}`},
+		{PlatformModelID: platformModel.ID, UpstreamModelID: upstreamModel.ID, Protocol: "openai_chat_completions", Status: "active", Priority: 2, Weight: 3, Source: "sync", HeadersJSON: `{"X-Route":"retained"}`},
 	}
 	if err := db.Create(&routes).Error; err != nil {
 		t.Fatalf("create routes: %v", err)
@@ -277,10 +275,10 @@ func TestUpsertUpstreamModelAppliesOnlyExplicitRouteOverrides(t *testing.T) {
 	repo := channelrepo.NewRepo(db)
 	service := appchannel.NewServiceWithRuntime(config.NewRuntime(config.Config{}), repo, repo, nil, nil)
 	if _, err := service.UpsertUpstreamModel(context.Background(), upstream.ID, appchannel.UpsertUpstreamModelInput{
-		RouteIDs:          []uint{routes[0].ID, routes[1].ID},
+		RouteIDs:          []uint{routes[0].ID},
 		PlatformModelName: platformModel.Name,
 		UpstreamModelName: upstreamModel.UpstreamModelName,
-		Protocols:         []string{"openai_image_generations", "openai_image_edits"},
+		Protocols:         []string{"openai_chat_completions"},
 		KindsJSON:         platformModel.KindsJSON,
 		Status:            &status,
 	}); err != nil {
@@ -291,17 +289,16 @@ func TestUpsertUpstreamModelAppliesOnlyExplicitRouteOverrides(t *testing.T) {
 	if err := db.Where("platform_model_id = ?", platformModel.ID).Order("id ASC").Find(&storedRoutes).Error; err != nil {
 		t.Fatalf("load overridden routes: %v", err)
 	}
-	if len(storedRoutes) != 2 {
-		t.Fatalf("expected two routes, got %#v", storedRoutes)
+	if len(storedRoutes) != 1 {
+		t.Fatalf("expected one route, got %#v", storedRoutes)
 	}
-	for index, stored := range storedRoutes {
-		want := routes[index]
-		if stored.Status != status {
-			t.Fatalf("expected explicit status override, got %#v", stored)
-		}
-		if stored.Priority != want.Priority || stored.Weight != want.Weight || stored.Source != want.Source || stored.HeadersJSON != want.HeadersJSON {
-			t.Fatalf("expected non-overridden configuration to remain unchanged, got %#v", stored)
-		}
+	want := routes[0]
+	stored := storedRoutes[0]
+	if stored.Status != status {
+		t.Fatalf("expected explicit status override, got %#v", stored)
+	}
+	if stored.Priority != want.Priority || stored.Weight != want.Weight || stored.Source != want.Source || stored.HeadersJSON != want.HeadersJSON {
+		t.Fatalf("expected non-overridden configuration to remain unchanged, got %#v", stored)
 	}
 }
 

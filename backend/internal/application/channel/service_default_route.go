@@ -53,23 +53,12 @@ func (s *Service) ResolveDefaultRoute(ctx context.Context, input ResolveRouteInp
 	return nil, ErrAllRoutesUnavailable
 }
 
-// ModelSupportsTask 判断模型声明的能力是否包含指定任务类型。
+// ModelSupportsTask 判断模型声明的能力是否可服务聊天任务。
 // 这里只校验静态目录能力，不读取路由健康或熔断状态。
-func ModelSupportsTask(kindsJSON string, taskType string) bool {
+func ModelSupportsTask(kindsJSON string, _ string) bool {
 	kinds := parseKinds(kindsJSON)
 	if len(kinds) == 0 {
 		return true
 	}
-	switch NormalizeTaskType(taskType) {
-	case TaskTypeImageGeneration:
-		return hasModelKind(kinds, modelKindImageGen)
-	case TaskTypeImageEdit:
-		return hasModelKind(kinds, modelKindImageEdit)
-	case TaskTypeVideoGeneration:
-		return hasModelKind(kinds, modelKindVideoGen)
-	case TaskTypeVideoExtension:
-		return hasModelKind(kinds, modelKindVideoExtension)
-	default:
-		return hasModelKind(kinds, modelKindChat)
-	}
+	return hasModelKind(kinds, modelKindChat)
 }

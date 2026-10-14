@@ -131,11 +131,6 @@ func (c *Client) generateGeminiInteractionStream(
 	if err = consumeGeminiInteractionStream(streamBody, result, onEvent); err != nil {
 		return nil, portllm.MarkRequestAccepted(attachUpstreamDebug(err, upstreamDebugSnapshot(req, payload, resp, streamErrorBody(streamBody, err))))
 	}
-	for index := range result.GeneratedImages {
-		if result.GeneratedImages[index].RevisedPrompt == "" {
-			result.GeneratedImages[index].RevisedPrompt = result.Text
-		}
-	}
 	return result, nil
 }
 
@@ -362,28 +357,13 @@ func buildGeminiInteractionResponseFormat(route portllm.RouteConfig, options map
 	return normalizeGeminiInteractionResponseFormat(route, raw)
 }
 
-func normalizeGeminiInteractionResponseFormat(route portllm.RouteConfig, raw map[string]any) map[string]any {
+func normalizeGeminiInteractionResponseFormat(_ portllm.RouteConfig, raw map[string]any) map[string]any {
 	responseType := geminiInteractionResponseType(getString(raw["type"]))
-	if responseType == "" {
-		switch normalizeEndpoint(route.Endpoint) {
-		case portllm.EndpointImageGenerations, portllm.EndpointImageEdits:
-			responseType = "image"
-		}
-	}
 	if responseType == "" {
 		return nil
 	}
 	format := map[string]any{
 		"type": responseType,
-	}
-	if responseType == "video" {
-		format["delivery"] = "uri"
-	}
-	if aspectRatio := geminiInteractionAspectRatio(getString(raw["aspect_ratio"]), responseType); aspectRatio != "" {
-		format["aspect_ratio"] = aspectRatio
-	}
-	if imageSize := geminiInteractionImageSize(getString(raw["image_size"])); imageSize != "" {
-		format["image_size"] = imageSize
 	}
 	if mimeType := geminiInteractionMIMEType(getString(raw["mime_type"]), responseType); mimeType != "" {
 		format["mime_type"] = mimeType
@@ -425,99 +405,30 @@ func firstGeminiInteractionResponseFormatList(options map[string]any) ([]map[str
 }
 
 func geminiInteractionResponseType(value string) string {
-	switch strings.TrimSpace(strings.ToLower(value)) {
-	case "image":
-		return "image"
-	case "video":
-		return "video"
-	case "text":
+	if strings.TrimSpace(strings.ToLower(value)) == "text" {
 		return "text"
-	default:
-		return ""
 	}
+	return ""
 }
 
 func buildGeminiInteractionGenerationConfig(options map[string]any) map[string]any {
 	config := map[string]any{}
-	raw := modelParamMap(options, "generation_config")
-	for key, value := range raw {
-		if strings.TrimSpace(key) != "" && key != "video_config" {
+	for key, value := range modelParamMap(options, "generation_config") {
+		if strings.TrimSpace(key) != "" {
 			config[key] = value
 		}
 	}
-	if videoConfig := buildGeminiInteractionVideoConfig(modelParamMap(raw, "video_config")); len(videoConfig) > 0 {
-		config["video_config"] = videoConfig
-	}
 	return config
-}
-
-func buildGeminiInteractionVideoConfig(raw map[string]any) map[string]any {
-	config := map[string]any{}
-	if task := geminiInteractionVideoTask(getString(raw["task"])); task != "" {
-		config["task"] = task
-	}
-	return config
-}
-
-func geminiInteractionAspectRatio(value string, responseType string) string {
-	normalized := strings.TrimSpace(value)
-	switch responseType {
-	case "video":
-		switch normalized {
-		case "9:16", "16:9":
-			return normalized
-		default:
-			return ""
-		}
-	default:
-		switch normalized {
-		case "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1":
-			return normalized
-		default:
-			return ""
-		}
-	}
-}
-
-func geminiInteractionVideoTask(value string) string {
-	switch strings.TrimSpace(strings.ToLower(value)) {
-	case "text_to_video":
-		return "text_to_video"
-	case "image_to_video":
-		return "image_to_video"
-	case "reference_to_video":
-		return "reference_to_video"
-	case "edit":
-		return "edit"
-	default:
-		return ""
-	}
-}
-
-func geminiInteractionImageSize(value string) string {
-	switch strings.ToUpper(strings.TrimSpace(value)) {
-	case "512", "1K", "2K", "4K":
-		return strings.ToUpper(strings.TrimSpace(value))
-	default:
-		return ""
-	}
 }
 
 func geminiInteractionMIMEType(value string, responseType string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
-	if normalized == "" {
+	if normalized == "" || responseType != "text" {
 		return ""
 	}
-	switch responseType {
-	case "text":
-		switch normalized {
-		case "application/json", "text/plain":
-			return normalized
-		}
-	case "image":
-		if normalized == "image/jpeg" {
-			return normalized
-		}
+	switch normalized {
+	case "application/json", "text/plain":
+		return normalized
 	}
 	return ""
 }
@@ -656,9 +567,6 @@ func applyGeminiInteractionStreamEvent(
 			}
 		}
 	}
-	if err := applyGeminiInteractionStreamMedia(parsed, eventType, result, onEvent); err != nil {
-		return err
-	}
 	updateGeminiInteractionStreamToolCall(result, streamState, parsed, eventType)
 	if call, ok := updateGeminiInteractionStreamServerToolCall(streamState, parsed, eventType); ok {
 		appendUniqueToolCall(&result.ServerToolCalls, call)
@@ -763,88 +671,7 @@ func mergeGeminiInteractionStreamFinal(
 	result.ServerToolCalls = mergeGeminiInteractionFinalServerToolCalls(result.ServerToolCalls, finalOutput.ServerToolCalls)
 	result.ServerSideToolUsage = geminiInteractionServerToolUsage(result.ServerToolCalls)
 	result.Citations = appendUniqueStrings(result.Citations, finalOutput.Citations...)
-	result.GeneratedImages = dedupeGeminiInteractionImages(append(result.GeneratedImages, finalOutput.GeneratedImages...))
-	result.GeneratedVideos = dedupeGeminiInteractionVideos(append(result.GeneratedVideos, finalOutput.GeneratedVideos...))
 	return nil
-}
-
-func applyGeminiInteractionStreamMedia(
-	parsed map[string]any,
-	eventType string,
-	result *portllm.GenerateOutput,
-	onEvent func(portllm.GenerateStreamEvent) error,
-) error {
-	if result == nil {
-		return nil
-	}
-	images, videos := geminiInteractionStreamMedia(parsed, eventType)
-	for _, image := range images {
-		if geminiInteractionImageExists(result.GeneratedImages, image) {
-			continue
-		}
-		image.RevisedPrompt = result.Text
-		imageIndex := int64(len(result.GeneratedImages))
-		result.GeneratedImages = append(result.GeneratedImages, image)
-		if onEvent != nil {
-			if err := onEvent(portllm.GenerateStreamEvent{
-				GeneratedImage:        &image,
-				GeneratedImageIndex:   imageIndex,
-				GeneratedImagePartial: true,
-				ResponseID:            result.ResponseID,
-			}); err != nil {
-				return err
-			}
-		}
-	}
-	result.GeneratedVideos = dedupeGeminiInteractionVideos(append(result.GeneratedVideos, videos...))
-	return nil
-}
-
-func geminiInteractionStreamMedia(parsed map[string]any, eventType string) ([]portllm.GeneratedImage, []portllm.GeneratedVideo) {
-	var value any
-	switch strings.ToLower(strings.TrimSpace(eventType)) {
-	case "step.start":
-		step := asMap(parsed["step"])
-		if strings.ToLower(strings.TrimSpace(getString(step["type"]))) != "model_output" {
-			return nil, nil
-		}
-		value = step["content"]
-	case "step.delta":
-		delta := asMap(parsed["delta"])
-		switch strings.ToLower(strings.TrimSpace(getString(delta["type"]))) {
-		case "image", "video":
-			value = delta
-		default:
-			return nil, nil
-		}
-	default:
-		return nil, nil
-	}
-	images := make([]portllm.GeneratedImage, 0)
-	videos := make([]portllm.GeneratedVideo, 0)
-	walkGeminiInteractionImages(value, &images)
-	walkGeminiInteractionVideos(value, &videos)
-	return dedupeGeminiInteractionImages(images), dedupeGeminiInteractionVideos(videos)
-}
-
-func geminiInteractionImageExists(images []portllm.GeneratedImage, candidate portllm.GeneratedImage) bool {
-	key := strings.TrimSpace(candidate.URL)
-	if key == "" {
-		key = strings.TrimSpace(candidate.B64JSON)
-	}
-	if key == "" {
-		return true
-	}
-	for _, image := range images {
-		current := strings.TrimSpace(image.URL)
-		if current == "" {
-			current = strings.TrimSpace(image.B64JSON)
-		}
-		if current == key {
-			return true
-		}
-	}
-	return false
 }
 
 func geminiInteractionStreamText(parsed map[string]any, eventType string) string {
@@ -940,16 +767,9 @@ func parseGeminiInteractionPayload(parsed map[string]any) *portllm.GenerateOutpu
 		Usage:           usage,
 		ToolCalls:       parseGeminiInteractionFunctionCalls(payload),
 		ServerToolCalls: parseGeminiInteractionServerToolCalls(payload),
-		GeneratedImages: extractGeminiInteractionGeneratedImages(payload),
-		GeneratedVideos: extractGeminiInteractionGeneratedVideos(payload),
 	}
 	output.ServerSideToolUsage = geminiInteractionServerToolUsage(output.ServerToolCalls)
 	output.Citations = geminiInteractionServerToolCitations(output.ServerToolCalls)
-	for i := range output.GeneratedImages {
-		if output.GeneratedImages[i].RevisedPrompt == "" {
-			output.GeneratedImages[i].RevisedPrompt = output.Text
-		}
-	}
 	return output
 }
 
@@ -1376,157 +1196,6 @@ func dedupeGeminiInteractionToolCalls(calls []portllm.ToolCall) []portllm.ToolCa
 		result = append(result, call)
 	}
 	return result
-}
-
-func extractGeminiInteractionGeneratedImages(parsed map[string]any) []portllm.GeneratedImage {
-	images := make([]portllm.GeneratedImage, 0)
-	walkGeminiInteractionModelOutputContent(parsed["steps"], func(content any) {
-		walkGeminiInteractionImages(content, &images)
-	})
-	return dedupeGeminiInteractionImages(images)
-}
-
-func dedupeGeminiInteractionImages(images []portllm.GeneratedImage) []portllm.GeneratedImage {
-	if len(images) <= 1 {
-		return images
-	}
-	deduped := make([]portllm.GeneratedImage, 0, len(images))
-	seen := make(map[string]struct{}, len(images))
-	for _, image := range images {
-		key := strings.TrimSpace(image.URL)
-		if key == "" {
-			key = strings.TrimSpace(image.B64JSON)
-		}
-		if key == "" {
-			continue
-		}
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		deduped = append(deduped, image)
-	}
-	return deduped
-}
-
-func walkGeminiInteractionModelOutputContent(raw any, walk func(any)) {
-	if walk == nil {
-		return
-	}
-	for _, rawStep := range asSlice(raw) {
-		step := asMap(rawStep)
-		if strings.TrimSpace(strings.ToLower(getString(step["type"]))) != "model_output" {
-			continue
-		}
-		walk(step["content"])
-	}
-}
-
-func walkGeminiInteractionImages(value any, images *[]portllm.GeneratedImage) {
-	switch typed := value.(type) {
-	case map[string]any:
-		if image, ok := geminiImageFromInteractionMap(typed); ok {
-			*images = append(*images, image)
-		}
-	case []any:
-		for _, child := range typed {
-			if image, ok := geminiImageFromInteractionMap(asMap(child)); ok {
-				*images = append(*images, image)
-			}
-		}
-	}
-}
-
-func geminiImageFromInteractionMap(item map[string]any) (portllm.GeneratedImage, bool) {
-	if strings.TrimSpace(strings.ToLower(getString(item["type"]))) != "image" {
-		return portllm.GeneratedImage{}, false
-	}
-	mimeType := strings.TrimSpace(getString(item["mime_type"]))
-	if mimeType != "" && !strings.HasPrefix(strings.ToLower(mimeType), "image/") {
-		return portllm.GeneratedImage{}, false
-	}
-	if mimeType == "" {
-		mimeType = "image/png"
-	}
-	url := strings.TrimSpace(getString(item["uri"]))
-	b64 := strings.TrimSpace(getString(item["data"]))
-	if !strings.HasPrefix(strings.ToLower(mimeType), "image/") || (url == "" && b64 == "") {
-		return portllm.GeneratedImage{}, false
-	}
-	return portllm.GeneratedImage{
-		URL:      url,
-		B64JSON:  b64,
-		MIMEType: mimeType,
-	}, true
-}
-
-func extractGeminiInteractionGeneratedVideos(parsed map[string]any) []portllm.GeneratedVideo {
-	videos := make([]portllm.GeneratedVideo, 0)
-	walkGeminiInteractionModelOutputContent(parsed["steps"], func(content any) {
-		walkGeminiInteractionVideos(content, &videos)
-	})
-	return dedupeGeminiInteractionVideos(videos)
-}
-
-func dedupeGeminiInteractionVideos(videos []portllm.GeneratedVideo) []portllm.GeneratedVideo {
-	if len(videos) <= 1 {
-		return videos
-	}
-	deduped := make([]portllm.GeneratedVideo, 0, len(videos))
-	seen := make(map[string]struct{}, len(videos))
-	for _, video := range videos {
-		key := strings.TrimSpace(video.URL)
-		if key == "" {
-			key = strings.TrimSpace(video.B64JSON)
-		}
-		if key == "" {
-			continue
-		}
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		deduped = append(deduped, video)
-	}
-	return deduped
-}
-
-func walkGeminiInteractionVideos(value any, videos *[]portllm.GeneratedVideo) {
-	switch typed := value.(type) {
-	case map[string]any:
-		if video, ok := geminiVideoFromMap(typed); ok {
-			*videos = append(*videos, video)
-		}
-	case []any:
-		for _, child := range typed {
-			if video, ok := geminiVideoFromMap(asMap(child)); ok {
-				*videos = append(*videos, video)
-			}
-		}
-	}
-}
-
-func geminiVideoFromMap(item map[string]any) (portllm.GeneratedVideo, bool) {
-	if strings.TrimSpace(strings.ToLower(getString(item["type"]))) != "video" {
-		return portllm.GeneratedVideo{}, false
-	}
-	mimeType := strings.TrimSpace(getString(item["mime_type"]))
-	if mimeType != "" && !strings.HasPrefix(strings.ToLower(mimeType), "video/") {
-		return portllm.GeneratedVideo{}, false
-	}
-	url := strings.TrimSpace(getString(item["uri"]))
-	b64 := strings.TrimSpace(getString(item["data"]))
-	if mimeType == "" {
-		mimeType = "video/mp4"
-	}
-	if !strings.HasPrefix(strings.ToLower(mimeType), "video/") || (url == "" && b64 == "") {
-		return portllm.GeneratedVideo{}, false
-	}
-	return portllm.GeneratedVideo{
-		URL:      url,
-		B64JSON:  b64,
-		MIMEType: mimeType,
-	}, true
 }
 
 func geminiInteractionTextFromSteps(raw any) string {

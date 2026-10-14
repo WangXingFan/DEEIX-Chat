@@ -101,34 +101,12 @@ var (
 	// ErrUpstreamRequestFailed 上游请求失败。对外错误码与文案取决于上游错误特征，由 transport 按 MessageErrorCode /
 	// messageErrorSummary 逐次判定，因此不在这里声明。
 	ErrUpstreamRequestFailed = errors.New("upstream request failed")
-	// ErrGeneratedMediaArtifactUnavailable 上游已完成媒体生成，但结果制品暂时无法获取或校验。
-	ErrGeneratedMediaArtifactUnavailable = apperr.New(MessageErrorCodeMediaArtifactUnavailable, "generated media artifact is temporarily unavailable")
 	// ErrUpstreamEmptyResponse 上游返回空响应。
 	ErrUpstreamEmptyResponse = apperr.NewMasked(MessageErrorCodeUpstreamEmptyResponse, "model returned empty response", "upstream returned empty response")
 	// ErrMessageGenerationCanceled 用户主动停止生成。
 	ErrMessageGenerationCanceled = apperr.New("conversation_run.canceled", "message generation canceled")
 	// ErrMessageGenerationInterrupted 活跃生成租约消失，当前生成流无法继续恢复。
 	ErrMessageGenerationInterrupted = apperr.New("conversation_run.stream_interrupted", "generation stream was interrupted; retry this message")
-	// ErrInvalidMediaGenerationTask 媒体生成任务类型或输入不合法。
-	ErrInvalidMediaGenerationTask = apperr.New("media.invalid_task", "invalid media generation task")
-	// ErrMediaImagePromptRequired 图片任务提示词不能为空。
-	ErrMediaImagePromptRequired = apperr.New("media.image_prompt_required", "image prompt is required")
-	// ErrMediaImageGenerationRejectsInputs 图片生成任务不能携带输入图。
-	ErrMediaImageGenerationRejectsInputs = apperr.New("media.image_generation_rejects_inputs", "image generation does not accept input images")
-	// ErrMediaImageEditInputRequired 图片编辑任务必须携带至少一张输入图。
-	ErrMediaImageEditInputRequired = apperr.New("media.image_edit_input_required", "image edit requires at least one input image")
-	// ErrMediaImageEditTooManyInputs 图片编辑输入图数量超限。
-	ErrMediaImageEditTooManyInputs = apperr.New("media.image_edit_too_many_inputs", "too many image edit input images")
-	// ErrMediaImageEditInputInvalid 图片编辑输入图不合法。
-	ErrMediaImageEditInputInvalid = apperr.New("media.image_edit_input_invalid", "image edit input image is invalid")
-	// ErrMediaVideoPromptRequired 视频任务提示词不能为空。
-	ErrMediaVideoPromptRequired = apperr.New("media.video_prompt_required", "video prompt is required")
-	// ErrMediaVideoInputInvalid 视频生成输入不合法。
-	ErrMediaVideoInputInvalid = apperr.New("media.video_input_invalid", "video generation input is invalid")
-	// ErrMediaVideoTooManyInputs 视频生成输入图数量超限。
-	ErrMediaVideoTooManyInputs = apperr.New("media.video_too_many_inputs", "too many video generation input images")
-	// ErrMediaRouteProtocolMismatch 图片任务命中的路由协议与任务类型不匹配。
-	ErrMediaRouteProtocolMismatch = apperr.New("media.route_protocol_mismatch", "media route protocol does not match task")
 	// ErrDuplicateMessageGenerationRun 表示客户端重复提交同一个生成 run。
 	ErrDuplicateMessageGenerationRun = apperr.NewMasked("message_generation_run.already_exists", "message generation run already exists", "duplicate message generation run")
 )

@@ -12,16 +12,6 @@ const (
 	EndpointResponses = "responses"
 	// EndpointChatCompletions 表示 OpenAI Chat Completions API 端点。
 	EndpointChatCompletions = "chat_completions"
-	// EndpointImageGenerations 表示 OpenAI Images API 生成端点。
-	EndpointImageGenerations = "image_generations"
-	// EndpointImageEdits 表示 OpenAI Images API 编辑端点。
-	EndpointImageEdits = "image_edits"
-	// EndpointImages 表示 OpenRouter 统一图片端点（生成与参考图编辑共用同一路径）。
-	EndpointImages = "images"
-	// EndpointVideoGenerations 表示异步视频生成端点。
-	EndpointVideoGenerations = "video_generations"
-	// EndpointVideoExtensions 表示 xAI 异步视频扩展端点。
-	EndpointVideoExtensions = "video_extensions"
 	// EndpointInteractions 表示 Gemini Interactions API 端点。
 	EndpointInteractions = "interactions"
 )
@@ -46,13 +36,12 @@ type RouteConfig struct {
 const (
 	ContentPartText  = "text"  // 纯文本
 	ContentPartImage = "image" // 图片（原始字节，序列化时 base64 编码）
-	ContentPartVideo = "video" // 视频（原始字节，仅供支持视频输入的 adapter 使用）
 	ContentPartFile  = "file"  // 文件提取文本（前端解析后注入）
 )
 
 // ContentPart 表示多模态消息中的一个内容片段。
 type ContentPart struct {
-	Kind         string        // text | image | video | file
+	Kind         string        // text | image | file
 	Text         string        // Kind=text 或 Kind=file 时的文本内容
 	MimeType     string        // Kind=image 时的 MIME 类型（如 "image/jpeg"）
 	Data         []byte        // Kind=image 时的原始字节（发送时 base64 编码）
@@ -107,10 +96,6 @@ type GenerateInput struct {
 	// 提供方侧响应存储，并忽略 background、previous response 与提示缓存状态。
 	// 该字段只约束上游请求，不替代调用方自身的持久化边界。
 	Ephemeral bool
-	// ImageEditMask 仅供图片编辑 adapter 使用，表示透明区域掩码。
-	ImageEditMask *ContentPart
-	// VideoExtensionSource 仅供视频扩展 adapter 使用，表示待扩展的源视频。
-	VideoExtensionSource *ContentPart
 }
 
 // ToolDefinition 是模型可调用工具的统一声明。
@@ -236,27 +221,8 @@ type GenerateOutput struct {
 	ServerToolCalls     []ToolCall
 	ServerSideToolUsage map[string]int64
 	Citations           []string
-	GeneratedImages     []GeneratedImage
-	GeneratedVideos     []GeneratedVideo
 	RawJSON             string
 	Debug               *UpstreamDebugSnapshot `json:"-"`
-}
-
-// GeneratedImage 表示图片生成/编辑接口返回的一张图片。
-type GeneratedImage struct {
-	URL           string
-	B64JSON       string
-	MIMEType      string
-	RevisedPrompt string
-}
-
-// GeneratedVideo 表示视频生成接口返回的一个视频结果。
-type GeneratedVideo struct {
-	URL             string
-	B64JSON         string
-	MIMEType        string
-	FileName        string
-	DurationSeconds int64
 }
 
 // ReasoningDelta 定义流式 reasoning 增量。
@@ -272,14 +238,11 @@ type ReasoningDelta struct {
 
 // GenerateStreamEvent 定义上游流式增量片段。
 type GenerateStreamEvent struct {
-	Delta                 string
-	Reasoning             *ReasoningDelta
-	Usage                 Usage
-	ServerToolCall        *ToolCall
-	ResponseID            string
-	GeneratedImage        *GeneratedImage
-	GeneratedImageIndex   int64
-	GeneratedImagePartial bool
+	Delta          string
+	Reasoning      *ReasoningDelta
+	Usage          Usage
+	ServerToolCall *ToolCall
+	ResponseID     string
 }
 
 // ModelItem 定义上游模型目录项。

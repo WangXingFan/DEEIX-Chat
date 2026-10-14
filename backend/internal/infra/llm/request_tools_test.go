@@ -283,7 +283,6 @@ func TestBuildOpenAIResponsesNativeToolOptions(t *testing.T) {
 						"type": "container_auto",
 					},
 				},
-				map[string]any{"type": "image_generation"},
 				map[string]any{
 					"type": "code_interpreter",
 					"container": map[string]any{
@@ -295,19 +294,19 @@ func TestBuildOpenAIResponsesNativeToolOptions(t *testing.T) {
 	}, true)
 
 	tools, ok := payload["tools"].([]map[string]any)
-	if !ok || len(tools) != 4 {
-		t.Fatalf("expected four native OpenAI tools, got %#v", payload["tools"])
+	if !ok || len(tools) != 3 {
+		t.Fatalf("expected three native OpenAI tools, got %#v", payload["tools"])
 	}
-	if tools[0]["type"] != "web_search" || tools[1]["type"] != "shell" || tools[2]["type"] != "image_generation" || tools[3]["type"] != "code_interpreter" {
+	if tools[0]["type"] != "web_search" || tools[1]["type"] != "shell" || tools[2]["type"] != "code_interpreter" {
 		t.Fatalf("expected OpenAI native tool order to be preserved, got %#v", tools)
 	}
 	environment, ok := tools[1]["environment"].(map[string]any)
 	if !ok || environment["type"] != "container_auto" {
 		t.Fatalf("expected shell container_auto environment, got %#v", tools[1])
 	}
-	container, ok := tools[3]["container"].(map[string]any)
+	container, ok := tools[2]["container"].(map[string]any)
 	if !ok || container["type"] != "auto" {
-		t.Fatalf("expected code_interpreter auto container, got %#v", tools[3])
+		t.Fatalf("expected code_interpreter auto container, got %#v", tools[2])
 	}
 }
 
@@ -1285,137 +1284,26 @@ func TestParseResponsesCapturesTopLevelServerSideToolCalls(t *testing.T) {
 	}
 }
 
-func TestParseResponsesCapturesOpenAINativeShellAndImageTools(t *testing.T) {
+func TestParseResponsesCapturesOpenAINativeShellTool(t *testing.T) {
 	payload := mustDecodeObject(t, `{
 		"id": "resp_1",
 		"output": [
-			{"type":"shell_call","id":"sh_1","status":"completed","input":{"cmd":"ls -la"},"output":{"stdout":"total 0"}},
-			{"type":"image_generation_call","id":"img_1","status":"completed","result":{"type":"image","url":"https://example.com/image.png"}}
+			{"type":"shell_call","id":"sh_1","status":"completed","input":{"cmd":"ls -la"},"output":{"stdout":"total 0"}}
 		],
 		"usage": {
-			"server_side_tool_usage_details": {"shell_calls":1,"image_generation_calls":1}
+			"server_side_tool_usage_details": {"shell_calls":1}
 		}
 	}`)
 
 	result := buildGenerateOutputFromParsedForAdapter(portllm.EndpointResponses, portllm.AdapterOpenAIResponses, payload, false)
-	if len(result.ServerToolCalls) != 2 {
-		t.Fatalf("expected shell and image generation traces, got %#v", result.ServerToolCalls)
+	if len(result.ServerToolCalls) != 1 {
+		t.Fatalf("expected one shell trace, got %#v", result.ServerToolCalls)
 	}
 	if result.ServerToolCalls[0].ToolName != "shell" || !strings.Contains(result.ServerToolCalls[0].ArgumentsJSON, "ls -la") || !strings.Contains(result.ServerToolCalls[0].OutputJSON, "total 0") {
 		t.Fatalf("expected shell input/output to be captured, got %#v", result.ServerToolCalls[0])
 	}
-	if result.ServerToolCalls[1].ToolName != "image_generation" || !strings.Contains(result.ServerToolCalls[1].OutputJSON, "https://example.com/image.png") {
-		t.Fatalf("expected image generation output to be captured, got %#v", result.ServerToolCalls[1])
-	}
-	if result.ServerSideToolUsage["shell"] != 1 || result.ServerSideToolUsage["image_generation"] != 1 {
+	if result.ServerSideToolUsage["shell"] != 1 {
 		t.Fatalf("expected native tool usage to be normalized, got %#v", result.ServerSideToolUsage)
-	}
-	if len(result.Citations) != 1 || result.Citations[0] != "https://example.com/image.png" {
-		t.Fatalf("expected image URL citation to be collected, got %#v", result.Citations)
-	}
-}
-
-func TestParseResponsesCapturesGeneratedImageWithoutBase64Trace(t *testing.T) {
-	payload := mustDecodeObject(t, `{
-		"id": "resp_1",
-		"output": [
-			{
-				"type":"image_generation_call",
-				"id":"img_1",
-				"status":"completed",
-				"output_format":"png",
-				"revised_prompt":"A dog running",
-				"result":"ZmluYWw="
-			}
-		]
-	}`)
-
-	result := buildGenerateOutputFromParsedForAdapter(portllm.EndpointResponses, portllm.AdapterOpenAIResponses, payload, false)
-	if len(result.GeneratedImages) != 1 {
-		t.Fatalf("expected one generated image, got %#v", result.GeneratedImages)
-	}
-	image := result.GeneratedImages[0]
-	if image.B64JSON != "ZmluYWw=" || image.MIMEType != "image/png" || image.RevisedPrompt != "A dog running" {
-		t.Fatalf("unexpected generated image: %#v", image)
-	}
-	if len(result.ServerToolCalls) != 1 {
-		t.Fatalf("expected one image tool trace, got %#v", result.ServerToolCalls)
-	}
-	outputJSON := result.ServerToolCalls[0].OutputJSON
-	if strings.Contains(outputJSON, "ZmluYWw=") {
-		t.Fatalf("expected image base64 to be excluded from tool trace, got %q", outputJSON)
-	}
-	if !strings.Contains(outputJSON, `"image_generated":true`) {
-		t.Fatalf("expected generated image metadata in tool trace, got %q", outputJSON)
-	}
-}
-
-func TestResponsesStreamAcceptsLargePartialImageAndKeepsOnlyFinalImage(t *testing.T) {
-	partial := strings.Repeat("A", 2*1024*1024)
-	partialPayload, err := json.Marshal(map[string]any{
-		"type":                "response.image_generation_call.partial_image",
-		"item_id":             "img_1",
-		"output_format":       "png",
-		"output_index":        0,
-		"partial_image_index": 3,
-		"partial_image_b64":   partial,
-	})
-	if err != nil {
-		t.Fatalf("marshal partial image event: %v", err)
-	}
-	completedPayload, err := json.Marshal(map[string]any{
-		"type": "response.completed",
-		"response": map[string]any{
-			"id": "resp_1",
-			"output": []any{
-				map[string]any{
-					"type":          "image_generation_call",
-					"id":            "img_1",
-					"status":        "completed",
-					"output_format": "png",
-					"result":        "ZmluYWw=",
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("marshal completed event: %v", err)
-	}
-	rawStream := strings.Join([]string{
-		"event: response.image_generation_call.partial_image",
-		"data: " + string(partialPayload),
-		"",
-		"event: response.completed",
-		"data: " + string(completedPayload),
-		"",
-	}, "\n")
-
-	result := &portllm.GenerateOutput{ToolCalls: make([]portllm.ToolCall, 0), ServerToolCalls: make([]portllm.ToolCall, 0)}
-	partialEvents := 0
-	err = consumeOpenAIGenerateStream(portllm.EndpointResponses, portllm.AdapterOpenAIResponses, strings.NewReader(rawStream), result, func(event portllm.GenerateStreamEvent) error {
-		if event.GeneratedImage == nil {
-			return nil
-		}
-		partialEvents++
-		if !event.GeneratedImagePartial || event.GeneratedImageIndex != 3 {
-			t.Fatalf("unexpected partial image event metadata: %#v", event)
-		}
-		if event.GeneratedImage.B64JSON != partial || event.GeneratedImage.MIMEType != "image/png" {
-			t.Fatalf("unexpected partial image event: %#v", event.GeneratedImage)
-		}
-		return nil
-	}, false)
-	if err != nil {
-		t.Fatalf("consume large image stream: %v", err)
-	}
-	if partialEvents != 1 {
-		t.Fatalf("expected one partial image event, got %d", partialEvents)
-	}
-	if len(result.GeneratedImages) != 1 || result.GeneratedImages[0].B64JSON != "ZmluYWw=" {
-		t.Fatalf("expected only the final image to be persisted, got %#v", result.GeneratedImages)
-	}
-	if len(result.ServerToolCalls) != 1 || strings.Contains(result.ServerToolCalls[0].OutputJSON, "ZmluYWw=") {
-		t.Fatalf("expected sanitized final image tool trace, got %#v", result.ServerToolCalls)
 	}
 }
 

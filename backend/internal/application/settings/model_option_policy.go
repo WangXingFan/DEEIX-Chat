@@ -10,18 +10,10 @@ var validModelOptionProtocolKeys = map[string]struct{}{
 	"openai_chat_completions":     {},
 	"openrouter_chat_completions": {},
 	"openrouter_responses":        {},
-	"openrouter_images":           {},
-	"openai_image_generations":    {},
-	"openai_image_edits":          {},
 	"openai_responses":            {},
 	"anthropic_messages":          {},
 	"xai_responses":               {},
-	"xai_image":                   {},
-	"xai_image_edits":             {},
-	"xai_video":                   {},
-	"xai_video_extensions":        {},
 	"gemini_generate_content":     {},
-	"google_image_generation":     {},
 	"gemini_interactions":         {},
 }
 

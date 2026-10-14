@@ -346,7 +346,7 @@ func (s *Service) loadImageForModeration(ctx context.Context, userID uint, fileI
 	if len(data) > 20*1024*1024 {
 		return empty, errModerationImageTooLarge
 	}
-	detectedMIME := detectGeneratedImageMIME(data)
+	detectedMIME := sniffImageMIME(data)
 	if detectedMIME == "" {
 		return empty, errUnsupportedModerationImage
 	}
@@ -404,24 +404,6 @@ func (s *Service) loadOutputImagesForModeration(ctx context.Context, coord *appc
 			Data:     prepared.Data,
 			MimeType: prepared.Mime,
 			SHA256:   prepared.SHA256,
-		})
-	}
-	return out
-}
-
-func loadOutputImagesFromFiles(coord *appcm.RunCoordinator, files []model.FileObject, dataByFileID map[string][]byte) []appcm.OutputImageSource {
-	out := make([]appcm.OutputImageSource, 0, len(files))
-	for _, file := range files {
-		data := dataByFileID[file.FileID]
-		if len(data) == 0 {
-			coord.RecordOutputImageFailure(file.FileID, errEmptyModerationImage)
-			continue
-		}
-		out = append(out, appcm.OutputImageSource{
-			FileID:   file.FileID,
-			Data:     data,
-			MimeType: textutil.FirstNonEmpty(file.DetectedMIME, file.MimeType, "image/png"),
-			SHA256:   file.SHA256,
 		})
 	}
 	return out

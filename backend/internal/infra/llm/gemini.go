@@ -199,8 +199,6 @@ func geminiProtectedProviderOptionKeys() []string {
 		"frequency_penalty",
 		"generationConfig",
 		"generation_config",
-		"image_config",
-		"imageConfig",
 		"includeThoughts",
 		"include_thoughts",
 		"input",
@@ -209,8 +207,6 @@ func geminiProtectedProviderOptionKeys() []string {
 		"max_completion_tokens",
 		"max_output_tokens",
 		"maxOutputTokens",
-		"media_resolution",
-		"mediaResolution",
 		"messages",
 		"model",
 		"output_schema",
@@ -317,8 +313,6 @@ func applyGeminiGenerationOptions(generationConfig map[string]any, options map[s
 		generationConfig["enableEnhancedCivicAnswers"] = value
 	}
 	copyGeminiOption(generationConfig, options, "speechConfig", "speechConfig", "speech_config")
-	copyGeminiOption(generationConfig, options, "imageConfig", "imageConfig", "image_config")
-	copyGeminiOption(generationConfig, options, "mediaResolution", "mediaResolution", "media_resolution")
 	copyGeminiOption(generationConfig, options, "responseMimeType", "responseMimeType", "response_mime_type")
 	applyGeminiResponseFormat(generationConfig, options)
 	applyGeminiThinkingConfig(generationConfig, options)
@@ -770,7 +764,6 @@ func parseGeminiResponse(body []byte) (*portllm.GenerateOutput, error) {
 		ServerToolCalls:     parseGeminiServerToolCalls(parsed),
 		ServerSideToolUsage: parseGeminiServerSideToolUsage(parsed),
 		Citations:           parseGeminiCitations(parsed),
-		GeneratedImages:     extractGeminiGeneratedImages(parsed, text),
 		RawJSON:             string(body),
 	}
 	return result, nil
@@ -1405,7 +1398,6 @@ func applyGeminiStreamChunk(
 			}
 		}
 	}
-	result.GeneratedImages = append(result.GeneratedImages, extractGeminiGeneratedImages(parsed, result.Text)...)
 
 	// 函数调用（流式最后一帧可能包含）
 	for _, raw := range asSlice(content["parts"]) {

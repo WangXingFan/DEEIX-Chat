@@ -479,10 +479,10 @@ func TestDeleteModelVendorMapsStructuredBlockers(t *testing.T) {
 }
 
 func TestSetModelProtocolsReplacesEveryBindingInOneTransaction(t *testing.T) {
-	templateRoute := modelProtocolSource(1, 10, 100, "openai_image_edits")
+	templateRoute := modelProtocolSource(1, 10, 100, "openai_responses")
 	templateRoute.Priority = 2
 	templateRoute.Weight = 3
-	retainedRoute := modelProtocolSource(2, 10, 100, "openai_image_generations")
+	retainedRoute := modelProtocolSource(2, 10, 100, "openai_chat_completions")
 	retainedRoute.Status = "inactive"
 	retainedRoute.Priority = 7
 	retainedRoute.Weight = 11
@@ -494,21 +494,21 @@ func TestSetModelProtocolsReplacesEveryBindingInOneTransaction(t *testing.T) {
 	repo := &modelUpdateRepo{
 		model: domainchannel.PlatformModel{
 			ID:                1,
-			PlatformModelName: "image-model",
-			KindsJSON:         `["image_gen","image_edit"]`,
+			PlatformModelName: "chat-model",
+			KindsJSON:         `["chat"]`,
 			Status:            "active",
 		},
 		sources: []repository.ChannelModelSourceRow{
 			templateRoute,
 			retainedRoute,
-			modelProtocolSource(3, 20, 200, "openai_image_generations"),
+			modelProtocolSource(3, 20, 200, "openai_chat_completions"),
 		},
 	}
 	service := newTestService(config.Config{}, repo, repo, nil, nil)
 
 	view, err := service.SetModelProtocols(t.Context(), 1, SetModelProtocolsInput{
-		Protocols: []string{"openai_image_generations"},
-		KindsJSON: `["image_gen"]`,
+		Protocols: []string{"openai_chat_completions"},
+		KindsJSON: `["chat"]`,
 	})
 	if err != nil {
 		t.Fatalf("SetModelProtocols() error = %v", err)
@@ -516,7 +516,7 @@ func TestSetModelProtocolsReplacesEveryBindingInOneTransaction(t *testing.T) {
 	if !repo.transactionCommitted {
 		t.Fatal("expected protocol update transaction to commit")
 	}
-	if view.KindsJSON != `["image_gen"]` {
+	if view.KindsJSON != `["chat"]` {
 		t.Fatalf("expected updated kinds, got %q", view.KindsJSON)
 	}
 	if len(repo.routeReplacements) != 2 {
@@ -529,7 +529,7 @@ func TestSetModelProtocolsReplacesEveryBindingInOneTransaction(t *testing.T) {
 		t.Fatalf("expected complete second binding route IDs, got %v", repo.routeReplacements[1].ExistingRouteIDs)
 	}
 	for _, replacement := range repo.routeReplacements {
-		if len(replacement.Routes) != 1 || replacement.Routes[0].Protocol != "openai_image_generations" {
+		if len(replacement.Routes) != 1 || replacement.Routes[0].Protocol != "openai_chat_completions" {
 			t.Fatalf("unexpected replacement routes: %#v", replacement.Routes)
 		}
 	}

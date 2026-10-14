@@ -2,7 +2,6 @@ package conversation
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -59,23 +58,6 @@ type auditWriter interface {
 	Write(ctx context.Context, input appaudit.WriteInput)
 }
 
-// generatedMediaDownloader 定义会话用例所需的最小媒体下载端口，避免应用层感知 HTTP 细节。
-type generatedMediaDownloader interface {
-	DownloadImage(ctx context.Context, sourceURL string, trustedProviderEndpoint string, maxBytes int64) ([]byte, string, error)
-	DownloadVideo(ctx context.Context, sourceURL string, trustedProviderEndpoint string, apiKey string, maxBytes int64) ([]byte, string, error)
-}
-
-// mediaArtifactResponseTooLarge 是跨层错误能力契约，不要求应用层依赖具体适配器错误类型。
-type mediaArtifactResponseTooLarge interface {
-	MediaArtifactResponseTooLarge()
-}
-
-// isMediaArtifactResponseTooLarge 判断下载错误是否应映射为既有文件大小业务错误。
-func isMediaArtifactResponseTooLarge(err error) bool {
-	var target mediaArtifactResponseTooLarge
-	return errors.As(err, &target)
-}
-
 type basicServiceBillingContextKey struct{}
 
 type basicServiceBillingContext struct {
@@ -98,7 +80,6 @@ type Service struct {
 	cache                 repository.UserSettingCacheRepository
 	routeResolver         routeResolver
 	llmClient             llmGateway
-	mediaDownloader       generatedMediaDownloader
 	uploadSvc             *appupload.Service
 	compactSvc            *appcompact.Service
 	embeddingSvc          *appembedding.Service
@@ -235,7 +216,6 @@ type Dependencies struct {
 	Cache             repository.ConversationCacheRepository
 	RouteResolver     routeResolver
 	LLMClient         llmGateway
-	MediaDownloader   generatedMediaDownloader
 	CompactService    *appcompact.Service
 	EmbeddingService  *appembedding.Service
 	ProcessingService *appprocessing.Service
@@ -254,7 +234,6 @@ func NewServiceWithRuntime(deps Dependencies) *Service {
 		cache:             deps.Cache,
 		routeResolver:     deps.RouteResolver,
 		llmClient:         deps.LLMClient,
-		mediaDownloader:   deps.MediaDownloader,
 		compactSvc:        deps.CompactService,
 		embeddingSvc:      deps.EmbeddingService,
 		processingSvc:     deps.ProcessingService,

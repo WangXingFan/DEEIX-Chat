@@ -406,16 +406,6 @@ func buildOpenAIRequestURL(baseURL string, endpoint string) string {
 	switch endpoint {
 	case portllm.EndpointChatCompletions:
 		return buildVersionedEndpointURL(baseURL, "v1", "/chat/completions")
-	case portllm.EndpointImageGenerations:
-		return buildVersionedEndpointURL(baseURL, "v1", "/images/generations")
-	case portllm.EndpointImageEdits:
-		return buildVersionedEndpointURL(baseURL, "v1", "/images/edits")
-	case portllm.EndpointImages:
-		return buildVersionedEndpointURL(baseURL, "v1", "/images")
-	case portllm.EndpointVideoGenerations:
-		return buildVersionedEndpointURL(baseURL, "v1", "/videos/generations")
-	case portllm.EndpointVideoExtensions:
-		return buildVersionedEndpointURL(baseURL, "v1", "/videos/extensions")
 	default:
 		return buildVersionedEndpointURL(baseURL, "v1", "/responses")
 	}
@@ -679,9 +669,6 @@ func mergeGenerateOutput(dst *portllm.GenerateOutput, src *portllm.GenerateOutpu
 	}
 	if len(src.Citations) > 0 {
 		dst.Citations = append(dst.Citations[:0], src.Citations...)
-	}
-	if len(src.GeneratedImages) > 0 {
-		dst.GeneratedImages = append(dst.GeneratedImages[:0], src.GeneratedImages...)
 	}
 	if strings.TrimSpace(src.RawJSON) != "" {
 		dst.RawJSON = src.RawJSON

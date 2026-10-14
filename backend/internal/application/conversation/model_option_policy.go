@@ -164,19 +164,6 @@ func sanitizeModelOptionValues(options map[string]any, protocolKey string) {
 	switch protocolKey {
 	case "openai_chat_completions", "openai_responses", "openrouter_responses":
 		sanitizeOpenAIServiceTier(options)
-	case "xai_video":
-		llm.SanitizeXAIVideoOptions(options)
-	case "xai_video_extensions":
-		llm.SanitizeXAIVideoExtensionOptions(options)
-	case "openai_image_generations", "openai_image_edits":
-		value, ok := modelParamIntFromOption(options["partial_images"])
-		if !ok {
-			delete(options, "partial_images")
-			return
-		}
-		if value < 0 || value > 3 {
-			delete(options, "partial_images")
-		}
 	}
 }
 
@@ -198,19 +185,6 @@ func sanitizeOpenAIServiceTier(options map[string]any) {
 	}
 }
 
-func modelParamIntFromOption(value any) (int, bool) {
-	switch typed := value.(type) {
-	case int:
-		return typed, true
-	case int64:
-		return int(typed), true
-	case float64:
-		return int(typed), true
-	default:
-		return 0, false
-	}
-}
-
 func modelOptionPolicyProtocolKey(protocol string) string {
 	switch llm.NormalizeAdapter(protocol) {
 	case "openai":
@@ -225,32 +199,16 @@ func modelOptionPolicyProtocolKey(protocol string) string {
 		return "gemini_generate_content"
 	case llm.AdapterGoogleGenerateContent:
 		return "gemini_generate_content"
-	case llm.AdapterGoogleImageGeneration:
-		return "google_image_generation"
 	case llm.AdapterGeminiInteractions:
 		return "gemini_interactions"
 	case llm.AdapterOpenAIChatCompletions:
 		return "openai_chat_completions"
 	case llm.AdapterOpenRouterChat:
 		return "openrouter_chat_completions"
-	case llm.AdapterOpenRouterImages:
-		return "openrouter_images"
 	case llm.AdapterOpenRouterResponses:
 		return "openrouter_responses"
-	case llm.AdapterOpenAIImageGenerations:
-		return "openai_image_generations"
-	case llm.AdapterOpenAIImageEdits:
-		return "openai_image_edits"
 	case llm.AdapterAnthropicMessages:
 		return "anthropic_messages"
-	case llm.AdapterXAIImage:
-		return "xai_image"
-	case llm.AdapterXAIImageEdits:
-		return "xai_image_edits"
-	case llm.AdapterXAIVideo:
-		return "xai_video"
-	case llm.AdapterXAIVideoExtensions:
-		return "xai_video_extensions"
 	case llm.AdapterXAIResponses:
 		return "xai_responses"
 	default:

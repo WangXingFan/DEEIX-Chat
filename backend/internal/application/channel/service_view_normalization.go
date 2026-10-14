@@ -310,7 +310,7 @@ func validateKinds(kinds []string) bool {
 		switch kind {
 		case modelKindChat:
 			hasPrimary = true
-		case modelKindAudio, modelKindImageGen, modelKindImageEdit, modelKindVideoGen, modelKindVideoExtension:
+		case modelKindAudio:
 			hasPrimary = true
 		default:
 			return false
@@ -579,7 +579,7 @@ func detectModelIcon(candidates ...string) string {
 			switch {
 			case strings.HasPrefix(value, "claude"):
 				return "claude"
-			case strings.HasPrefix(value, "nano-banana"), isGeminiImageGenerationModel(value):
+			case strings.HasPrefix(value, "nano-banana"):
 				return "nanobanana"
 			case strings.HasPrefix(value, "gemma"):
 				return "gemma"

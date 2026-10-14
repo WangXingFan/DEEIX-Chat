@@ -122,8 +122,6 @@ func authenticatedRateLimitPolicy(c *gin.Context, baseRPM int) rateLimitPolicy {
 	method := c.Request.Method
 
 	switch {
-	case isMediaGenerationRoute(method, route):
-		return newRateLimitPolicy("media_generation", atLeast(baseRPM/2, 30), errRateLimitExceeded)
 	case isMessageGenerationRoute(method, route):
 		return newRateLimitPolicy("message_generation", atLeast(baseRPM, defaultAuthenticatedRateLimitRPM), errRateLimitExceeded)
 	case isFileUploadRoute(method, route):
@@ -191,11 +189,6 @@ func isMessageGenerationRoute(method string, route string) bool {
 	return method == http.MethodPost && (strings.HasSuffix(route, "/messages") ||
 		strings.HasSuffix(route, "/messages/stream") ||
 		strings.HasSuffix(route, "/cancel"))
-}
-
-func isMediaGenerationRoute(method string, route string) bool {
-	return method == http.MethodPost && (strings.Contains(route, "/media/images/") ||
-		strings.Contains(route, "/media/videos/"))
 }
 
 func isFileUploadRoute(method string, route string) bool {

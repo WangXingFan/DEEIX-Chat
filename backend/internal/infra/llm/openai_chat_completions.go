@@ -608,7 +608,7 @@ func parseOpenAICompatibleUsageForAdapter(adapter string, parsed map[string]any)
 
 func openAICompatibleOutputIncludesReasoning(adapter string) bool {
 	switch portllm.NormalizeAdapter(adapter) {
-	case portllm.AdapterXAIResponses, portllm.AdapterXAIImage, portllm.AdapterXAIImageEdits:
+	case portllm.AdapterXAIResponses:
 		return false
 	default:
 		return true

@@ -330,15 +330,6 @@ func (c *generationCall) handleStreamEvent(generationCtx context.Context, curren
 			}
 		}
 	}
-	if event.GeneratedImage != nil {
-		r.attemptHadSideEffect = true
-		if r.input.OnEvent != nil && strings.TrimSpace(event.GeneratedImage.B64JSON) != "" {
-			c.observation.markObservable()
-		}
-		if err := emitMediaImageDelta(r.input.OnEvent, event); err != nil {
-			return err
-		}
-	}
 	if event.Reasoning != nil && event.Reasoning.Text != "" {
 		r.attemptHadSideEffect = true
 		if event.Reasoning.Kind != messageTraceThinkKindSignature {

@@ -113,24 +113,28 @@ func TestUserUpstreamProtocolChangeRollsBackUnsupportedModels(t *testing.T) {
 	}
 	repo := channelrepo.NewRepo(db)
 	service := appchannel.NewServiceWithRuntime(config.NewRuntime(config.Config{}), repo, repo, nil, nil)
-	if _, err := service.ImportUserModels(t.Context(), 7, upstream.ID, []string{"gpt-image-1"}); err != nil {
+	if _, err := service.ImportUserModels(t.Context(), 7, upstream.ID, []string{"gpt-4o"}); err != nil {
+		t.Fatal(err)
+	}
+	// 旧库可能保留下线前的媒体 kinds；此时协议刷新必须整事务回滚，不能留下半更新的绑定。
+	if err := db.Model(&models.LLMPlatformModel{}).Where("owner_user_id = ?", 7).Update("kinds_json", `["image_gen"]`).Error; err != nil {
 		t.Fatal(err)
 	}
 	name, compatible := "after", "anthropic"
 	if _, err := service.UpdateUserUpstream(t.Context(), 7, upstream.ID, appchannel.UpdateUpstreamInput{Name: &name, Compatible: &compatible}); err == nil {
-		t.Fatal("accepted unsupported image protocol")
+		t.Fatal("accepted protocol refresh for unsupported legacy kinds")
 	}
 	stored, err := repo.GetUpstreamByID(t.Context(), upstream.ID)
 	if err != nil || stored.Name != "before" || stored.Compatible != "openai" {
 		t.Fatalf("upstream update not rolled back: %#v %v", stored, err)
 	}
 	bindings, err := service.ListUserUpstreamModels(t.Context(), 7, upstream.ID)
-	if err != nil || len(bindings) != 2 {
+	if err != nil || len(bindings) != 1 {
 		t.Fatalf("bindings not preserved: %#v %v", bindings, err)
 	}
 }
 
-func TestUserModelDeletionRetainsOtherProtocolsAndOwners(t *testing.T) {
+func TestUserModelDeletionIsScopedToOwner(t *testing.T) {
 	db := openUserUpstreamTestDB(t)
 	repo := channelrepo.NewRepo(db)
 	service := appchannel.NewServiceWithRuntime(config.NewRuntime(config.Config{}), repo, repo, nil, nil)
@@ -146,12 +150,12 @@ func TestUserModelDeletionRetainsOtherProtocolsAndOwners(t *testing.T) {
 		if err := db.Create(upstream).Error; err != nil {
 			t.Fatal(err)
 		}
-		if _, err := service.ImportUserModels(ctx, upstream.OwnerUserID, upstream.ID, []string{"gpt-image-1"}); err != nil {
+		if _, err := service.ImportUserModels(ctx, upstream.OwnerUserID, upstream.ID, []string{"gpt-4o"}); err != nil {
 			t.Fatal(err)
 		}
 		bindings, err := service.ListUserUpstreamModels(ctx, upstream.OwnerUserID, upstream.ID)
-		if err != nil || len(bindings) != 2 {
-			t.Fatalf("image bindings: %#v %v", bindings, err)
+		if err != nil || len(bindings) != 1 {
+			t.Fatalf("bindings: %#v %v", bindings, err)
 		}
 		identity := bindings[0].PlatformModelName
 		if identities[identity] {
@@ -168,12 +172,6 @@ func TestUserModelDeletionRetainsOtherProtocolsAndOwners(t *testing.T) {
 		t.Fatal("foreign delete accepted")
 	}
 	if err := service.DeleteUserUpstreamModel(ctx, 7, first.ID, bindings[0].RouteID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repo.GetModelByName(ctx, bindings[0].PlatformModelName); err != nil {
-		t.Fatalf("model removed before last protocol: %v", err)
-	}
-	if err := service.DeleteUserUpstreamModel(ctx, 7, first.ID, bindings[1].RouteID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repo.GetModelByName(ctx, bindings[0].PlatformModelName); !errors.Is(err, appchannel.ErrModelNotFound) {

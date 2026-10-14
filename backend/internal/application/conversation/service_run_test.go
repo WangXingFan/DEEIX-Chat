@@ -178,36 +178,6 @@ func TestGenerationEntrypointsRejectDuplicateRunBeforeSideEffects(t *testing.T) 
 				return err
 			},
 		},
-		{
-			name: "image",
-			run: func(service *Service) error {
-				_, err := service.StreamMediaImage(context.Background(), MediaImageInput{
-					UserID:            7,
-					ConversationID:    11,
-					TaskType:          MediaImageTaskGeneration,
-					Prompt:            "draw a cat",
-					PlatformModelName: "image-model",
-					ClientRunID:       "run_duplicate",
-					BranchReason:      "default",
-				})
-				return err
-			},
-		},
-		{
-			name: "video",
-			run: func(service *Service) error {
-				_, err := service.StreamMediaVideo(context.Background(), MediaVideoInput{
-					UserID:            7,
-					ConversationID:    11,
-					TaskType:          MediaVideoTaskGeneration,
-					Prompt:            "animate a cat",
-					PlatformModelName: "video-model",
-					ClientRunID:       "run_duplicate",
-					BranchReason:      "default",
-				})
-				return err
-			},
-		},
 	}
 
 	for _, test := range tests {

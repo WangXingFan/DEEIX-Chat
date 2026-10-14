@@ -118,7 +118,6 @@ type platformModelIdentityResolver interface {
 
 type modelPricingCatalogProvider interface {
 	ListActivePlatformModelNames(ctx context.Context) (map[string]struct{}, error)
-	SupportsVideoGeneration(ctx context.Context, platformModelName string) (bool, error)
 }
 
 // BilledReasonModerationBlockedUpstreamUsage 标注被内容审核拦截却仍要结算的账本：
@@ -1187,17 +1186,9 @@ func (s *Service) AuthorizeUsage(ctx context.Context, userID uint, platformModel
 	if pricing.IsFree {
 		return authorization, nil
 	}
+	// 按秒计费曾只服务于视频生成；随媒体生成下线，任何模型都不再支持该模式。
 	if domainbilling.NormalizePricingMode(pricing.PricingMode) == domainbilling.PricingModeDuration {
-		if s.modelPricingCatalog == nil {
-			return nil, ErrModelPricingRequired
-		}
-		supported, supportErr := s.modelPricingCatalog.SupportsVideoGeneration(ctx, platformModelName)
-		if supportErr != nil {
-			return nil, supportErr
-		}
-		if !supported {
-			return nil, ErrModelPricingRequired
-		}
+		return nil, ErrModelPricingRequired
 	}
 	reservationNanousd, err := s.repo.GetBillingPrepaidAmountNanousd(ctx)
 	if err != nil {
@@ -2179,17 +2170,9 @@ func (s *Service) UpsertModelPricing(ctx context.Context, input ModelPricingInpu
 		return nil, err
 	}
 	pricingMode := domainbilling.NormalizePricingMode(input.PricingMode)
+	// 按秒计费曾只服务于视频生成；随媒体生成下线，任何模型都不再支持该模式。
 	if pricingMode == domainbilling.PricingModeDuration {
-		if s.modelPricingCatalog == nil {
-			return nil, ErrInvalidModelPricing
-		}
-		supported, supportErr := s.modelPricingCatalog.SupportsVideoGeneration(ctx, platformModelName)
-		if supportErr != nil {
-			return nil, supportErr
-		}
-		if !supported {
-			return nil, ErrInvalidModelPricing
-		}
+		return nil, ErrInvalidModelPricing
 	}
 	var inputNanousdPerMTokens int64
 	var cacheReadNanousdPerMTokens int64

@@ -155,59 +155,6 @@ func TestMessageGenerationCanceledUsesWrappedCause(t *testing.T) {
 	}
 }
 
-func TestMessageErrorSummarySuggestsDisablingImageStreamForParseFailure(t *testing.T) {
-	err := wrapUpstreamRequestError(&llm.UpstreamError{
-		StatusCode: 500,
-		Message:    "invalid character 'e' looking for beginning of value",
-		Body:       `{"error":{"message":"invalid character 'e' looking for beginning of value"}}`,
-		Debug: &llm.UpstreamDebugSnapshot{
-			Request: llm.UpstreamDebugRequest{
-				Method: "POST",
-				Path:   "/v1/images/generations",
-				Body:   `{"model":"gpt-image-2","prompt":"a cat","stream":true}`,
-			},
-			Response: llm.UpstreamDebugResponse{
-				StatusCode: 500,
-				Body:       `{"error":{"message":"invalid character 'e' looking for beginning of value"}}`,
-			},
-		},
-	})
-
-	summary := messageErrorSummary(err)
-	if !strings.Contains(summary, "Tips：当前上游可能不支持流式响应") || !strings.Contains(summary, "image.stream=false") {
-		t.Fatalf("expected image stream configuration hint, got %q", summary)
-	}
-	if code := MessageErrorCode(err); code != MessageErrorCodeMediaImageStreamUnsupported {
-		t.Fatalf("MessageErrorCode() = %q, want %q", code, MessageErrorCodeMediaImageStreamUnsupported)
-	}
-}
-
-func TestMessageErrorSummarySuggestsDisablingGeminiImageStreamForParseFailure(t *testing.T) {
-	err := wrapUpstreamRequestError(&llm.UpstreamError{
-		StatusCode: 500,
-		Message:    "invalid character 'e' looking for beginning of value",
-		Debug: &llm.UpstreamDebugSnapshot{
-			Request: llm.UpstreamDebugRequest{
-				Method: "POST",
-				Path:   "/v1beta/models/nano-banana-pro:streamGenerateContent",
-				Body:   `{"contents":[{"role":"user","parts":[{"text":"a cat"}]}],"generationConfig":{"responseModalities":["TEXT","IMAGE"]}}`,
-			},
-			Response: llm.UpstreamDebugResponse{
-				StatusCode: 500,
-				Body:       `{"error":{"message":"invalid character 'e' looking for beginning of value"}}`,
-			},
-		},
-	})
-
-	summary := messageErrorSummary(err)
-	if !strings.Contains(summary, "Tips：当前上游可能不支持流式响应") || !strings.Contains(summary, "image.stream=false") {
-		t.Fatalf("expected gemini image stream configuration hint, got %q", summary)
-	}
-	if code := MessageErrorCode(err); code != MessageErrorCodeMediaImageStreamUnsupported {
-		t.Fatalf("MessageErrorCode() = %q, want %q", code, MessageErrorCodeMediaImageStreamUnsupported)
-	}
-}
-
 func TestMessageErrorSummaryDoesNotSuggestImageStreamForChatStreamParseFailure(t *testing.T) {
 	err := wrapUpstreamRequestError(&llm.UpstreamError{
 		StatusCode: 500,

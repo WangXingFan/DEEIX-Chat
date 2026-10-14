@@ -83,12 +83,6 @@ func TestDescribeCodeRequiresRegisteredCode(t *testing.T) {
 			want:   Description{Status: http.StatusTooManyRequests, Code: CodeUpstreamRateLimited, Message: "upstream rate limited"},
 		},
 		{
-			name:   "registered media code",
-			status: http.StatusBadGateway,
-			code:   "media.artifact_unavailable",
-			want:   Description{Status: http.StatusBadGateway, Code: "media.artifact_unavailable", Message: "generated media artifact is temporarily unavailable"},
-		},
-		{
 			name:   "registered empty response code",
 			status: http.StatusBadGateway,
 			code:   "llm.empty_response",

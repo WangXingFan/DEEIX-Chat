@@ -29,17 +29,3 @@ func IsText(mimeType string, fileName string) bool {
 		return false
 	}
 }
-
-// ImageExtension 返回受支持图片 MIME 对应的文件扩展名，未知格式默认使用 PNG。
-func ImageExtension(mimeType string) string {
-	switch strings.ToLower(strings.TrimSpace(mimeType)) {
-	case "image/jpeg", "image/jpg":
-		return ".jpg"
-	case "image/webp":
-		return ".webp"
-	case "image/gif":
-		return ".gif"
-	default:
-		return ".png"
-	}
-}

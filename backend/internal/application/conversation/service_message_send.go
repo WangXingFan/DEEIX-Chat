@@ -726,7 +726,7 @@ func (s *Service) sendMessageInternal(
 	effectiveInputTokens := runner.usage.effectiveInputTokens(plan.estimatedPromptTokens)
 	effectiveOutputTokens, effectiveReasoningTokens := runner.usage.effectiveOutputTokens()
 
-	if strings.TrimSpace(assistantText) == "" && len(upstreamOutput.GeneratedImages) == 0 {
+	if strings.TrimSpace(assistantText) == "" {
 		retErr = ErrUpstreamEmptyResponse
 		return nil, retErr
 	}
@@ -802,7 +802,6 @@ func (s *Service) sendMessageInternal(
 		AssistantMessage:          assistantMessage,
 		AssistantText:             assistantText,
 		AssistantReasoningContent: assistantReasoningContent,
-		GeneratedImages:           upstreamOutput.GeneratedImages,
 		InputTokens:               effectiveInputTokens,
 		CacheReadTokens:           totalUsage.CacheReadTokens,
 		CacheWriteTokens:          totalUsage.CacheWriteTokens,

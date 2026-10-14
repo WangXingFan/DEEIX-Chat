@@ -101,8 +101,6 @@ var codeMessages = map[string]string{
 	"llm.remote_models_snapshot_changed":            "remote models snapshot changed",
 	"llm.upstream_model_binding_changed":            "upstream model binding changed; reload and retry",
 	"llm.upstream_model_conflict":                   "model upstream source conflict",
-	"media.artifact_unavailable":                    "generated media artifact is temporarily unavailable",
-	"media.image_stream_unsupported":                "upstream may not support image streaming; disable image.stream for this model",
 	"payment.checkout_failed":                       "create checkout failed",
 	"payment.epay_gateway_invalid":                  "epay gateway url is invalid",
 	"payment.provider_unavailable":                  "payment provider is unavailable",

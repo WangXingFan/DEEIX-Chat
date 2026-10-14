@@ -158,19 +158,6 @@ func TestDescribeSendMessageErrorPreservesEmptyResponseAfterUpstreamWrapping(t *
 	}
 }
 
-func TestDescribeSendMessageErrorClassifiesGeneratedMediaArtifactFailure(t *testing.T) {
-	mapped := describeSendMessageError(appconversation.ErrGeneratedMediaArtifactUnavailable)
-	if mapped.Status != http.StatusBadGateway {
-		t.Fatalf("expected artifact failure to be mapped to gateway failure, got status=%d", mapped.Status)
-	}
-	if mapped.Code != appconversation.MessageErrorCodeMediaArtifactUnavailable {
-		t.Fatalf("unexpected artifact error code: %#v", mapped)
-	}
-	if mapped.Message != appconversation.ErrGeneratedMediaArtifactUnavailable.Error() {
-		t.Fatalf("unexpected public artifact message: %#v", mapped)
-	}
-}
-
 // TestDescribeSendMessageErrorContract 固定消息发送 / 生成 / 计费路径上每个哨兵的 HTTP 状态、错误码与对外文案。
 // 错误码是前端本地化依赖的 API 契约（apps/web/i18n/messages/*/errors.json），改动任何一项都必须同步前端。
 func TestDescribeSendMessageErrorContract(t *testing.T) {
@@ -199,20 +186,9 @@ func TestDescribeSendMessageErrorContract(t *testing.T) {
 		{appconversation.ErrModelRouteNotConfigured, http.StatusServiceUnavailable, "llm.model_route_not_configured", "model route is not configured"},
 		{appconversation.ErrModelAccessDenied, http.StatusForbidden, "llm.model_access_denied", "you do not have access to this model"},
 		{appconversation.ErrStorageQuotaExceeded, http.StatusConflict, "quota.exceeded", "quota exceeded"},
-		{appconversation.ErrGeneratedMediaArtifactUnavailable, http.StatusBadGateway, "media.artifact_unavailable", "generated media artifact is temporarily unavailable"},
 		{appconversation.ErrUpstreamEmptyResponse, http.StatusBadGateway, "llm.empty_response", "model returned empty response"},
 		{appconversation.ErrMessageGenerationCanceled, http.StatusBadRequest, "conversation_run.canceled", "message generation canceled"},
 		{appconversation.ErrMessageGenerationInterrupted, http.StatusServiceUnavailable, "conversation_run.stream_interrupted", "generation stream was interrupted; retry this message"},
-		{appconversation.ErrMediaImagePromptRequired, http.StatusBadRequest, "media.image_prompt_required", "image prompt is required"},
-		{appconversation.ErrMediaImageGenerationRejectsInputs, http.StatusBadRequest, "media.image_generation_rejects_inputs", "image generation does not accept input images"},
-		{appconversation.ErrMediaImageEditInputRequired, http.StatusBadRequest, "media.image_edit_input_required", "image edit requires at least one input image"},
-		{appconversation.ErrMediaImageEditTooManyInputs, http.StatusBadRequest, "media.image_edit_too_many_inputs", "too many image edit input images"},
-		{appconversation.ErrMediaImageEditInputInvalid, http.StatusBadRequest, "media.image_edit_input_invalid", "image edit input image is invalid"},
-		{appconversation.ErrMediaVideoPromptRequired, http.StatusBadRequest, "media.video_prompt_required", "video prompt is required"},
-		{appconversation.ErrMediaVideoInputInvalid, http.StatusBadRequest, "media.video_input_invalid", "video generation input is invalid"},
-		{appconversation.ErrMediaVideoTooManyInputs, http.StatusBadRequest, "media.video_too_many_inputs", "too many video generation input images"},
-		{appconversation.ErrMediaRouteProtocolMismatch, http.StatusServiceUnavailable, "media.route_protocol_mismatch", "media route protocol does not match task"},
-		{appconversation.ErrInvalidMediaGenerationTask, http.StatusBadRequest, "media.invalid_task", "invalid media generation task"},
 		{appconversation.ErrDuplicateMessageGenerationRun, http.StatusConflict, "message_generation_run.already_exists", "message generation run already exists"},
 		{appbilling.ErrUsageConcurrencyLimitExceeded, http.StatusTooManyRequests, "billing.concurrency_limit_exceeded", "too many concurrent paid requests"},
 		{appbilling.ErrUsageReservationConflict, http.StatusConflict, "billing.reservation_conflict", "usage request already exists"},
@@ -306,28 +282,5 @@ func TestStreamAndHTTPErrorContractsAgree(t *testing.T) {
 		if payload["errorCode"] != described.Code || payload["message"] != described.Message || payload["status"] != described.Status {
 			t.Fatalf("stream payload %#v disagrees with description %#v", payload, described)
 		}
-	}
-}
-
-func TestStreamErrorPayloadClassifiesImageStreamConfigurationFailure(t *testing.T) {
-	err := errors.Join(appconversation.ErrUpstreamRequestFailed, &llm.UpstreamError{
-		StatusCode: 500,
-		Message:    "invalid character 'e' looking for beginning of value",
-		Debug: &llm.UpstreamDebugSnapshot{
-			Request: llm.UpstreamDebugRequest{
-				Method: "POST",
-				Path:   "/v1/images/generations",
-				Body:   `{"model":"gpt-image-2","prompt":"a cat","stream":true}`,
-			},
-			Response: llm.UpstreamDebugResponse{
-				StatusCode: 500,
-				Body:       `{"error":{"message":"invalid character 'e' looking for beginning of value"}}`,
-			},
-		},
-	})
-
-	payload := streamErrorPayload(err)
-	if got := payload["errorCode"]; got != appconversation.MessageErrorCodeMediaImageStreamUnsupported {
-		t.Fatalf("errorCode = %#v, want %q", got, appconversation.MessageErrorCodeMediaImageStreamUnsupported)
 	}
 }

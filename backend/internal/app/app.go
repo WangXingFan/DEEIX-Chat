@@ -43,7 +43,6 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/geoip"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/identityprovider"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/llm"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/mediaartifact"
 	openrouterpricing "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/modelpricing/openrouter"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/objectstorage"
 	platformlogger "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/observability/logger"
@@ -94,7 +93,6 @@ type App struct {
 	identityProviderClient *identityprovider.Client
 	llmClient              *llm.Client
 	embeddingClient        *embedding.Client
-	mediaArtifactClient    *mediaartifact.Client
 	moderationClient       *moderationclient.Client
 	conversationService    *conversation.Service
 	contentModeration      *appcontentmoderation.Service
@@ -318,9 +316,7 @@ func NewAppWithOptions(opts Options) (*App, error) {
 	channelRepo := channelrepo.NewRepo(db)
 	channelCache := cacheBackend.Channel()
 	trustedOutboundPolicy := cfg.TrustedOutboundPolicy()
-	strictOutboundPolicy := cfg.StrictOutboundPolicy()
 	llmClient := llm.NewClient(trustedOutboundPolicy)
-	mediaArtifactClient := mediaartifact.New(strictOutboundPolicy)
 	channelService := channel.NewServiceWithRuntime(runtimeCfg, channelRepo, channelRepo, channelCache, llmClient)
 	channelService.SetLogger(log)
 	channelService.SetObjectStoreProvider(objectStoreProvider)
@@ -369,7 +365,6 @@ func NewAppWithOptions(opts Options) (*App, error) {
 		Cache:             conversationCache,
 		RouteResolver:     channelService,
 		LLMClient:         llmClient,
-		MediaDownloader:   mediaArtifactClient,
 		CompactService:    compactService,
 		EmbeddingService:  embeddingService,
 		ProcessingService: processingService,
@@ -486,7 +481,6 @@ func NewAppWithOptions(opts Options) (*App, error) {
 		identityProviderClient: identityProviderClient,
 		llmClient:              llmClient,
 		embeddingClient:        embedClient,
-		mediaArtifactClient:    mediaArtifactClient,
 		moderationClient:       moderationClient,
 		conversationService:    conversationService,
 		contentModeration:      contentModerationService,
@@ -648,9 +642,6 @@ func (a *App) Close() {
 	}
 	if a.embeddingClient != nil {
 		a.embeddingClient.CloseIdleConnections()
-	}
-	if a.mediaArtifactClient != nil {
-		a.mediaArtifactClient.CloseIdleConnections()
 	}
 	if a.moderationClient != nil {
 		a.moderationClient.CloseIdleConnections()

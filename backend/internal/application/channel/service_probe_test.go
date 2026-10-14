@@ -97,18 +97,18 @@ func TestFailedModelProbeDoesNotExposeUpstreamMessage(t *testing.T) {
 	}
 }
 
-func TestFilterModelProbeRowsUsesRouteProtocolWhenTaskIsEmpty(t *testing.T) {
+func TestFilterModelProbeRowsKeepsRoutesAllowedForChat(t *testing.T) {
 	rows := []repository.ChannelUpstreamRouteRow{
-		{ModelKindsJSON: `["image_gen","image_edit"]`, Protocol: "openai_image_generations"},
-		{ModelKindsJSON: `["image_gen","image_edit"]`, Protocol: "openai_image_edits"},
-		{ModelKindsJSON: `["image_gen","image_edit"]`, Protocol: "openai_responses"},
+		{ModelKindsJSON: `["chat"]`, Protocol: "openai_responses"},
+		{ModelKindsJSON: `["chat"]`, Protocol: "openai_chat_completions"},
+		{ModelKindsJSON: `["image_gen"]`, Protocol: "openai_responses"},
 	}
 
 	got := filterModelProbeRows(rows, "")
 	if len(got) != 2 {
-		t.Fatalf("expected two image routes, got %d", len(got))
+		t.Fatalf("expected two chat routes, got %d", len(got))
 	}
-	if got[0].Protocol != "openai_image_generations" || got[1].Protocol != "openai_image_edits" {
+	if got[0].Protocol != "openai_responses" || got[1].Protocol != "openai_chat_completions" {
 		t.Fatalf("unexpected filtered route order: %#v", got)
 	}
 }

@@ -23,7 +23,6 @@ type persistMessageGenerationInput struct {
 	AssistantMessage          *model.Message
 	AssistantText             string
 	AssistantReasoningContent string
-	GeneratedImages           []llm.GeneratedImage
 	InputTokens               int64
 	CacheReadTokens           int64
 	CacheWriteTokens          int64
@@ -88,12 +87,6 @@ func (s *Service) persistSuccessfulMessageGeneration(ctx context.Context, input 
 		input.UserMessage.CacheReadTokens = input.CacheReadTokens
 		input.UserMessage.CacheWriteTokens = input.CacheWriteTokens
 		input.UserMessage.TokenUsage = input.InputTokens + input.CacheReadTokens + input.CacheWriteTokens
-	}
-
-	if completed, err := s.persistAssistantImagePayloadIfPresent(ctx, input); err != nil {
-		return err
-	} else if completed {
-		return s.finishSuccessfulMessageGeneration(ctx, input)
 	}
 
 	if !input.ReuseUserMessage {
@@ -161,118 +154,6 @@ func assistantCompletionCacheWriteTokens(input persistMessageGenerationInput) in
 		return input.CacheWriteTokens
 	}
 	return 0
-}
-
-// persistAssistantImagePayloadIfPresent 保存结构化图片或兼容旧文本图片载荷。
-func (s *Service) persistAssistantImagePayloadIfPresent(ctx context.Context, input persistMessageGenerationInput) (bool, error) {
-	var normalized *assistantImageContentNormalization
-	var err error
-	if len(input.GeneratedImages) > 0 {
-		trustedProviderEndpoint := ""
-		if input.Route != nil {
-			trustedProviderEndpoint = input.Route.BaseURL
-		}
-		normalized, err = s.normalizeAssistantGeneratedImages(ctx, assistantGeneratedImagesInput{
-			UserID:                  input.SendInput.UserID,
-			ConversationID:          input.SendInput.ConversationID,
-			AssistantMessageID:      input.AssistantMessage.ID,
-			ModelName:               successfulMessageGenerationModelName(input),
-			TrustedProviderEndpoint: trustedProviderEndpoint,
-			GeneratedImages:         input.GeneratedImages,
-		})
-	} else {
-		normalized, err = s.normalizeAssistantImageContent(ctx, assistantImageContentInput{
-			UserID:             input.SendInput.UserID,
-			ConversationID:     input.SendInput.ConversationID,
-			AssistantMessageID: input.AssistantMessage.ID,
-			ModelName:          successfulMessageGenerationModelName(input),
-			Content:            input.AssistantText,
-		})
-	}
-	if err != nil || normalized == nil {
-		return false, err
-	}
-	contentType := "image"
-	content := normalized.Content
-	if len(input.GeneratedImages) > 0 && strings.TrimSpace(input.AssistantText) != "" {
-		contentType = "mixed"
-		content = strings.TrimSpace(input.AssistantText) + "\n\n" + normalized.Content
-	}
-
-	if input.ReuseUserMessage {
-		if err := s.repo.CompleteAssistantMessageWithGeneratedAttachments(
-			ctx,
-			input.AssistantMessage.ID,
-			repository.AssistantMessageCompletionUpdate{
-				ContentType:      contentType,
-				Content:          content,
-				ReasoningContent: input.AssistantReasoningContent,
-				KnowledgeSources: input.AssistantMessage.KnowledgeSources,
-				InputTokens:      input.InputTokens,
-				OutputTokens:     input.OutputTokens,
-				CacheReadTokens:  input.CacheReadTokens,
-				CacheWriteTokens: input.CacheWriteTokens,
-				ReasoningTokens:  input.ReasoningTokens,
-				LatencyMS:        input.AssistantLatency,
-				Status:           "success",
-			},
-			normalized.AttachmentRows,
-		); err != nil {
-			return false, err
-		}
-	} else {
-		if err := s.repo.CompleteAssistantMessageWithAttachments(
-			ctx,
-			input.UserMessage.ID,
-			repository.MessageUsageUpdate{
-				InputTokens:      input.InputTokens,
-				CacheReadTokens:  input.CacheReadTokens,
-				CacheWriteTokens: input.CacheWriteTokens,
-			},
-			input.AssistantMessage.ID,
-			repository.AssistantMessageCompletionUpdate{
-				ContentType:      contentType,
-				Content:          content,
-				ReasoningContent: input.AssistantReasoningContent,
-				KnowledgeSources: input.AssistantMessage.KnowledgeSources,
-				OutputTokens:     input.OutputTokens,
-				ReasoningTokens:  input.ReasoningTokens,
-				LatencyMS:        input.AssistantLatency,
-				Status:           "success",
-			},
-			normalized.AttachmentRows,
-		); err != nil {
-			return false, err
-		}
-	}
-
-	input.AssistantMessage.ContentType = contentType
-	input.AssistantMessage.Content = content
-	input.AssistantMessage.ReasoningContent = input.AssistantReasoningContent
-	if input.ReuseUserMessage {
-		input.AssistantMessage.InputTokens = input.InputTokens
-		input.AssistantMessage.CacheReadTokens = input.CacheReadTokens
-		input.AssistantMessage.CacheWriteTokens = input.CacheWriteTokens
-	}
-	input.AssistantMessage.TokenUsage = input.OutputTokens + input.ReasoningTokens
-	if input.ReuseUserMessage {
-		input.AssistantMessage.TokenUsage += input.InputTokens + input.CacheReadTokens + input.CacheWriteTokens
-	}
-	input.AssistantMessage.OutputTokens = input.OutputTokens
-	input.AssistantMessage.ReasoningTokens = input.ReasoningTokens
-	input.AssistantMessage.LatencyMS = input.AssistantLatency
-	input.AssistantMessage.Status = "success"
-	input.AssistantMessage.Attachments = marshalAttachmentSnapshots(normalized.AttachmentSnapshots)
-	return true, nil
-}
-
-func successfulMessageGenerationModelName(input persistMessageGenerationInput) string {
-	if input.Conversation != nil {
-		if value := strings.TrimSpace(input.Conversation.Model); value != "" {
-			return value
-		}
-	}
-	return strings.TrimSpace(input.SendInput.PlatformModelName)
 }
 
 func (s *Service) finishSuccessfulMessageGeneration(ctx context.Context, input persistMessageGenerationInput) error {

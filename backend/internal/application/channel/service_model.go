@@ -379,23 +379,6 @@ func (s *Service) ListActivePlatformModelNames(ctx context.Context) (map[string]
 	return keys, nil
 }
 
-// SupportsVideoGeneration 返回平台模型是否具有可按时长计费的视频能力。
-func (s *Service) SupportsVideoGeneration(ctx context.Context, platformModelName string) (bool, error) {
-	name, err := normalizePlatformModelName(platformModelName)
-	if err != nil {
-		return false, nil
-	}
-	kindsJSON, found, err := s.repo.GetActiveRoutableModelKindsJSON(ctx, name)
-	if err != nil {
-		return false, err
-	}
-	if !found {
-		return false, nil
-	}
-	kinds := parseKinds(kindsJSON)
-	return hasModelKind(kinds, modelKindVideoGen) || hasModelKind(kinds, modelKindVideoExtension), nil
-}
-
 // CreateModel 创建平台模型目录项。
 //
 // 创建模型只负责本地目录与展示元数据。

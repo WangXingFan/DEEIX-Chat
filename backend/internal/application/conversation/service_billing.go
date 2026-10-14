@@ -14,7 +14,6 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/channel"
 	domainbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/billing"
 	model "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/conversation"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/ports/llm"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
 )
 
@@ -377,13 +376,6 @@ func (s *Service) buildSendMessageUsageLedger(ctx context.Context, input SendMes
 	if result == nil {
 		return nil, nil
 	}
-	isVideoGeneration := sendMessageResultIsVideoGeneration(result)
-	mediaType := ""
-	inputImageCount := int64(0)
-	if isVideoGeneration {
-		mediaType = "video"
-		inputImageCount, _ = countAttachmentKinds(result.UserMessage.Attachments)
-	}
 	latencyMS := result.LatencyMS
 	if latencyMS <= 0 {
 		latencyMS = result.AssistantMessage.LatencyMS
@@ -412,10 +404,6 @@ func (s *Service) buildSendMessageUsageLedger(ctx context.Context, input SendMes
 		OutputTokens:       result.AssistantMessage.OutputTokens,
 		ReasoningTokens:    result.AssistantMessage.ReasoningTokens,
 		CallCount:          sendMessageBillingCallCount(result),
-		DurationBillable:   isVideoGeneration,
-		DurationSeconds:    sendMessageBillingDurationSeconds(result),
-		MediaType:          mediaType,
-		InputImageCount:    inputImageCount,
 		LatencyMS:          latencyMS,
 		RawUsageJSON:       result.RawUsageJSON,
 		BillingAt:          result.StartedAt,
@@ -450,21 +438,6 @@ func sendMessageBillingCacheWriteTokens(result *SendMessageResult) int64 {
 		return result.AssistantMessage.CacheWriteTokens
 	}
 	return result.UserMessage.CacheWriteTokens
-}
-
-func sendMessageResultIsVideoGeneration(result *SendMessageResult) bool {
-	return result != nil &&
-		result.Billable &&
-		strings.EqualFold(strings.TrimSpace(result.AssistantMessage.Status), "success") &&
-		strings.EqualFold(strings.TrimSpace(result.AssistantMessage.ContentType), "video") &&
-		llm.IsVideoGenerationAdapter(result.UpstreamProtocol)
-}
-
-func sendMessageBillingDurationSeconds(result *SendMessageResult) int64 {
-	if !sendMessageResultIsVideoGeneration(result) || result.DurationSeconds <= 0 {
-		return 0
-	}
-	return result.DurationSeconds
 }
 
 // sendMessageBillingCallCount 返回按次计费的调用数：本次运行成功返回的上游 LLM 调用数，

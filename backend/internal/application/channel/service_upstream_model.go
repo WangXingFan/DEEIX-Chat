@@ -230,15 +230,13 @@ func (s *Service) validateRouteProtocolCombination(
 	if err != nil {
 		return err
 	}
-	protocols := make([]string, 0, len(routes)+1)
 	for _, route := range routes {
-		if route.ID != routeID {
-			protocols = append(protocols, route.Protocol)
+		if route.ID == routeID {
+			continue
 		}
-	}
-	protocols = append(protocols, protocol)
-	if !isSupportedRouteProtocolCombination(protocols) {
-		return ErrInvalidRouteProtocolCombination
+		if strings.TrimSpace(route.Protocol) != strings.TrimSpace(protocol) {
+			return ErrInvalidRouteProtocolCombination
+		}
 	}
 	return nil
 }

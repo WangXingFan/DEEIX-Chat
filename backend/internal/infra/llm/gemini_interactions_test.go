@@ -2,7 +2,6 @@ package llm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -16,69 +15,49 @@ func TestGeminiInteractionsAdapterDefaults(t *testing.T) {
 	if got := portllm.DefaultEndpointForAdapter(portllm.AdapterGeminiInteractions); got != portllm.EndpointInteractions {
 		t.Fatalf("expected interactions endpoint, got %q", got)
 	}
-	if !portllm.IsVideoGenerationAdapter(portllm.AdapterGeminiInteractions) {
-		t.Fatal("expected Gemini Interactions to be a video generation adapter")
-	}
 	if !portllm.SupportsStreamingAdapter(portllm.AdapterGeminiInteractions) {
 		t.Fatal("Gemini Interactions should support official streaming")
 	}
-	if !portllm.IsImageGenerationAdapter(portllm.AdapterGeminiInteractions) {
-		t.Fatal("Gemini Interactions should support image generation")
-	}
-	if !portllm.IsImageEditAdapter(portllm.AdapterGeminiInteractions) {
-		t.Fatal("Gemini Interactions should support image editing")
+	if !portllm.IsImplementedAdapter(portllm.AdapterGeminiInteractions) {
+		t.Fatal("expected Gemini Interactions adapter to be implemented")
 	}
 }
 
 func TestBuildGeminiInteractionRequestBody(t *testing.T) {
 	payload, err := buildGeminiInteractionRequestBody(portllm.RouteConfig{
 		Endpoint:      portllm.EndpointInteractions,
-		UpstreamModel: "gemini-omni-flash-preview",
+		UpstreamModel: "gemini-3-flash-preview",
 	}, portllm.GenerateInput{
 		Messages: []portllm.Message{{
 			Role: "user",
 			Parts: []portllm.ContentPart{
-				{Kind: portllm.ContentPartText, Text: "A short cinematic product video"},
+				{Kind: portllm.ContentPartText, Text: "Summarize the attached figure"},
 				{Kind: portllm.ContentPartImage, MimeType: "image/png", Data: []byte("image-bytes")},
 			},
 		}},
 		Options: map[string]any{
-			"response_format": map[string]any{"type": "video", "aspect_ratio": "16:9", "delivery": "b64_json"},
-			"generation_config": map[string]any{
-				"video_config": map[string]any{"task": "IMAGE_TO_VIDEO"},
-			},
-			"input": "override",
+			"response_format": map[string]any{"type": "text", "mime_type": "application/json", "schema": map[string]any{"type": "object"}},
+			"input":           "override",
 		},
 	})
 	if err != nil {
 		t.Fatalf("build Gemini interaction request body: %v", err)
 	}
-	if payload["model"] != "gemini-omni-flash-preview" {
+	if payload["model"] != "gemini-3-flash-preview" {
 		t.Fatalf("unexpected model: %#v", payload)
 	}
 	responseFormat, ok := payload["response_format"].(map[string]any)
-	if !ok || responseFormat["type"] != "video" {
-		t.Fatalf("expected video response format, got %#v", payload["response_format"])
+	if !ok || responseFormat["type"] != "text" || responseFormat["mime_type"] != "application/json" {
+		t.Fatalf("expected text response format, got %#v", payload["response_format"])
 	}
-	if responseFormat["delivery"] != "uri" {
-		t.Fatalf("expected video delivery to use URI downloads, got %#v", payload["response_format"])
-	}
-	if responseFormat["aspect_ratio"] != "16:9" {
-		t.Fatalf("expected response_format aspect ratio, got %#v", payload["response_format"])
-	}
-	config, ok := payload["generation_config"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected generation config, got %#v", payload["generation_config"])
-	}
-	videoConfig, ok := config["video_config"].(map[string]any)
-	if !ok || videoConfig["task"] != "image_to_video" {
-		t.Fatalf("expected video config task, got %#v", payload["generation_config"])
+	if schema := asMap(responseFormat["schema"]); schema["type"] != "object" {
+		t.Fatalf("expected response_format schema, got %#v", payload["response_format"])
 	}
 	input, ok := payload["input"].([]map[string]any)
 	if !ok || len(input) != 2 {
 		t.Fatalf("expected text and image input parts, got %#v", payload["input"])
 	}
-	if input[0]["type"] != "text" || input[0]["text"] != "A short cinematic product video" {
+	if input[0]["type"] != "text" || input[0]["text"] != "Summarize the attached figure" {
 		t.Fatalf("unexpected text part: %#v", input[0])
 	}
 	if input[1]["type"] != "image" || input[1]["mime_type"] != "image/png" || input[1]["data"] == "" {
@@ -103,7 +82,7 @@ func TestBuildGeminiInteractionRequestBodySupportsUniversalOptionsAndTools(t *te
 		UpstreamModel: "gemini-3-flash-preview",
 	}, portllm.GenerateInput{
 		Messages: []portllm.Message{
-			{Role: "user", Content: "Create a short answer and an image."},
+			{Role: "user", Content: "Create a short structured answer."},
 			{
 				Role:    "assistant",
 				Content: "I need the weather first.",
@@ -144,12 +123,6 @@ func TestBuildGeminiInteractionRequestBodySupportsUniversalOptionsAndTools(t *te
 						},
 					},
 				},
-				map[string]any{
-					"type":         "image",
-					"aspect_ratio": "1:1",
-					"image_size":   "1K",
-					"mime_type":    "image/jpeg",
-				},
 			},
 			"generation_config": map[string]any{
 				"temperature":        0.4,
@@ -164,8 +137,8 @@ func TestBuildGeminiInteractionRequestBodySupportsUniversalOptionsAndTools(t *te
 		t.Fatalf("build Gemini interaction universal body: %v", err)
 	}
 	formats, ok := payload["response_format"].([]any)
-	if !ok || len(formats) != 2 {
-		t.Fatalf("expected response_format array, got %#v", payload["response_format"])
+	if !ok || len(formats) != 1 {
+		t.Fatalf("expected a single text response_format entry, got %#v", payload["response_format"])
 	}
 	if _, leaked := asMap(payload["response_format"])["_list"]; leaked {
 		t.Fatalf("response_format must not use private _list wrapper: %#v", payload["response_format"])
@@ -173,10 +146,6 @@ func TestBuildGeminiInteractionRequestBodySupportsUniversalOptionsAndTools(t *te
 	textFormat := asMap(formats[0])
 	if textFormat["mime_type"] != "application/json" || asMap(textFormat["schema"])["type"] != "object" {
 		t.Fatalf("unexpected structured text response_format: %#v", textFormat)
-	}
-	imageFormat := asMap(formats[1])
-	if imageFormat["type"] != "image" || imageFormat["aspect_ratio"] != "1:1" || imageFormat["image_size"] != "1K" || imageFormat["mime_type"] != "image/jpeg" {
-		t.Fatalf("unexpected image response_format: %#v", imageFormat)
 	}
 	config, ok := payload["generation_config"].(map[string]any)
 	if !ok || config["temperature"] != 0.4 || config["top_p"] != 0.9 || config["max_output_tokens"] != 512 || config["thinking_level"] != "low" || config["thinking_summaries"] != "auto" {
@@ -309,11 +278,11 @@ func TestBuildGeminiInteractionRequestBodyAcceptsTypedResponseFormatList(t *test
 		Endpoint:      portllm.EndpointInteractions,
 		UpstreamModel: "gemini-3-flash-preview",
 	}, portllm.GenerateInput{
-		Messages: []portllm.Message{{Role: "user", Content: "Return text and image."}},
+		Messages: []portllm.Message{{Role: "user", Content: "Return JSON matching the schema."}},
 		Options: map[string]any{
 			"response_format": []map[string]any{
-				{"type": "text"},
-				{"type": "image", "image_size": "2K"},
+				{"type": "text", "mime_type": "application/json", "schema": map[string]any{"type": "object"}},
+				{"type": "audio"},
 			},
 		},
 	})
@@ -321,38 +290,12 @@ func TestBuildGeminiInteractionRequestBodyAcceptsTypedResponseFormatList(t *test
 		t.Fatalf("build Gemini interaction typed response format body: %v", err)
 	}
 	formats, ok := payload["response_format"].([]any)
-	if !ok || len(formats) != 2 {
-		t.Fatalf("expected response_format array, got %#v", payload["response_format"])
+	if !ok || len(formats) != 1 {
+		t.Fatalf("expected a single text response_format entry, got %#v", payload["response_format"])
 	}
-	imageFormat := asMap(formats[1])
-	if imageFormat["type"] != "image" || imageFormat["image_size"] != "2K" {
-		t.Fatalf("unexpected typed response_format image entry: %#v", imageFormat)
-	}
-}
-
-func TestBuildGeminiInteractionRequestBodyNormalizesVideoOptions(t *testing.T) {
-	payload, err := buildGeminiInteractionRequestBody(portllm.RouteConfig{
-		Endpoint:      portllm.EndpointInteractions,
-		UpstreamModel: "gemini-omni-flash-preview",
-	}, portllm.GenerateInput{
-		Messages: []portllm.Message{{Role: "user", Content: "Edit this video."}},
-		Options: map[string]any{
-			"response_format": map[string]any{"type": "video", "aspect_ratio": "1:1"},
-			"generation_config": map[string]any{
-				"video_config": map[string]any{"task": "edit"},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("build Gemini interaction video body: %v", err)
-	}
-	responseFormat := asMap(payload["response_format"])
-	if _, ok := responseFormat["aspect_ratio"]; ok {
-		t.Fatalf("unsupported video aspect ratio should be dropped, got %#v", responseFormat)
-	}
-	videoConfig := asMap(asMap(payload["generation_config"])["video_config"])
-	if videoConfig["task"] != "edit" {
-		t.Fatalf("expected video edit task to normalize to edit, got %#v", videoConfig)
+	textFormat := asMap(formats[0])
+	if textFormat["type"] != "text" || textFormat["mime_type"] != "application/json" {
+		t.Fatalf("unexpected typed response_format text entry: %#v", textFormat)
 	}
 }
 
@@ -384,41 +327,6 @@ func TestBuildGeminiInteractionRequestBodyUsesConversationSteps(t *testing.T) {
 	}
 	if steps[0]["type"] != "user_input" || steps[1]["type"] != "model_output" || steps[2]["content"] != "Reply with OK." {
 		t.Fatalf("unexpected steps: %#v", steps)
-	}
-}
-
-func TestParseGeminiInteractionOutputExtractsVideoURIAndInlineData(t *testing.T) {
-	inline := base64.StdEncoding.EncodeToString([]byte("video"))
-	body := []byte(`{
-		"id": "interaction-1",
-		"steps": [{
-			"type": "model_output",
-			"content": [
-				{"type": "video", "uri": "https://example.com/video.mp4", "mime_type": "video/mp4"},
-				{"type": "video", "uri": "https://example.com/video.mp4", "mime_type": "video/mp4"},
-				{"type": "video", "data": "` + inline + `", "mime_type": "video/webm"}
-			]
-		}],
-		"usage": {"total_input_tokens": 3, "total_output_tokens": 5}
-	}`)
-	output, err := parseGeminiInteractionOutput(body)
-	if err != nil {
-		t.Fatalf("parse Gemini interaction output: %v", err)
-	}
-	if output.ResponseID != "interaction-1" {
-		t.Fatalf("unexpected response id: %q", output.ResponseID)
-	}
-	if got := len(output.GeneratedVideos); got != 2 {
-		t.Fatalf("expected duplicate URI to be deduped, got %d videos: %#v", got, output.GeneratedVideos)
-	}
-	if output.GeneratedVideos[0].URL != "https://example.com/video.mp4" || output.GeneratedVideos[0].MIMEType != "video/mp4" {
-		t.Fatalf("unexpected URI video: %#v", output.GeneratedVideos[0])
-	}
-	if output.GeneratedVideos[1].B64JSON != inline || output.GeneratedVideos[1].MIMEType != "video/webm" {
-		t.Fatalf("unexpected inline video: %#v", output.GeneratedVideos[1])
-	}
-	if output.Usage.InputTokens != 3 || output.Usage.OutputTokens != 5 {
-		t.Fatalf("unexpected usage: %#v", output.Usage)
 	}
 }
 
@@ -454,43 +362,6 @@ func TestParseGeminiInteractionOutputExtractsReasoningAndOfficialUsage(t *testin
 	}
 	if !strings.Contains(output.Usage.RawUsageJSON, `"total_tool_use_tokens":2`) {
 		t.Fatalf("expected raw usage to preserve tool-use tokens, got %q", output.Usage.RawUsageJSON)
-	}
-}
-
-func TestParseGeminiInteractionOutputExtractsTextAndImages(t *testing.T) {
-	inline := base64.StdEncoding.EncodeToString([]byte("png"))
-	inputInline := base64.StdEncoding.EncodeToString([]byte("source"))
-	body := []byte(`{
-		"id": "interaction-2",
-		"steps": [
-			{"type": "user_input", "content": [
-				{"type": "image", "data": "` + inputInline + `", "mime_type": "image/png"}
-			]},
-			{"type": "model_output", "content": [
-				{"type": "text", "text": "A revised prompt"},
-				{"type": "image", "data": "` + inline + `", "mime_type": "image/png"},
-				{"type": "image", "uri": "https://example.com/image.png", "mime_type": "image/png"}
-			]}
-		]
-	}`)
-	output, err := parseGeminiInteractionOutput(body)
-	if err != nil {
-		t.Fatalf("parse Gemini interaction output: %v", err)
-	}
-	if output.Text != "A revised prompt" {
-		t.Fatalf("expected text from steps, got %q", output.Text)
-	}
-	if len(output.GeneratedImages) != 2 {
-		t.Fatalf("expected generated images, got %#v", output.GeneratedImages)
-	}
-	if output.GeneratedImages[0].B64JSON != inline || output.GeneratedImages[0].RevisedPrompt != "A revised prompt" {
-		t.Fatalf("unexpected inline image: %#v", output.GeneratedImages[0])
-	}
-	if output.GeneratedImages[0].B64JSON == inputInline {
-		t.Fatalf("user input image must not be treated as generated output: %#v", output.GeneratedImages)
-	}
-	if output.GeneratedImages[1].URL != "https://example.com/image.png" {
-		t.Fatalf("unexpected URI image: %#v", output.GeneratedImages[1])
 	}
 }
 
@@ -713,26 +584,25 @@ func TestGenerateGeminiInteractionPostsInteractionsRequest(t *testing.T) {
 			t.Fatalf("decode request payload: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"id":"interaction-1","steps":[{"type":"model_output","content":[{"type":"video","uri":"https://example.com/video.mp4","mime_type":"video/mp4"}]}]}`))
+		_, _ = w.Write([]byte(`{"id":"interaction-1","steps":[{"type":"model_output","content":[{"type":"text","text":"hello"}]}]}`))
 	}))
 	defer server.Close()
 
 	output, err := newTestClient().generateGeminiInteraction(context.Background(), portllm.RouteConfig{
 		BaseURL:       server.URL,
 		APIKey:        "test-key",
-		UpstreamModel: "gemini-omni-flash-preview",
+		UpstreamModel: "gemini-3-flash-preview",
 	}, portllm.GenerateInput{
-		Messages: []portllm.Message{{Role: "user", Content: "Make a short video"}},
-		Options:  map[string]any{"response_format": map[string]any{"type": "video"}},
+		Messages: []portllm.Message{{Role: "user", Content: "How does AI work?"}},
 	})
 	if err != nil {
 		t.Fatalf("generate Gemini interaction: %v", err)
 	}
-	if capturedPayload["model"] != "gemini-omni-flash-preview" || capturedPayload["input"] != "Make a short video" {
+	if capturedPayload["model"] != "gemini-3-flash-preview" || capturedPayload["input"] != "How does AI work?" {
 		t.Fatalf("unexpected request payload: %#v", capturedPayload)
 	}
-	if len(output.GeneratedVideos) != 1 || output.GeneratedVideos[0].URL != "https://example.com/video.mp4" {
-		t.Fatalf("unexpected generated videos: %#v", output.GeneratedVideos)
+	if output.ResponseID != "interaction-1" || output.Text != "hello" {
+		t.Fatalf("unexpected output: %#v", output)
 	}
 }
 
@@ -780,14 +650,6 @@ data: {"event_type":"step.start","index":4,"step":{"type":"google_search_result"
 
 data: {"event_type":"step.delta","index":4,"delta":{"type":"google_search_result","result":[{"title":"Gemini","url":"https://ai.google.dev/gemini-api/docs/streaming"}],"signature":"result-signature"}}
 
-data: {"event_type":"step.start","index":5,"step":{"type":"model_output"}}
-
-data: {"event_type":"step.delta","index":5,"delta":{"type":"image","mime_type":"image/jpeg","data":"aW1hZ2U="}}
-
-data: {"event_type":"step.start","index":6,"step":{"type":"model_output"}}
-
-data: {"event_type":"step.delta","index":6,"delta":{"type":"video","mime_type":"video/mp4","uri":"https://example.com/video.mp4"}}
-
 data: {"event_type":"interaction.completed","interaction":{"id":"interaction-stream-1","status":"completed","usage":{"total_input_tokens":4,"total_cached_tokens":1,"total_output_tokens":2,"total_thought_tokens":3,"total_tool_use_tokens":1}}}
 
 data: [DONE]
@@ -800,7 +662,6 @@ data: [DONE]
 	var reasoningDeltas []portllm.ReasoningDelta
 	var usageEvents []portllm.Usage
 	var serverToolEvents []portllm.ToolCall
-	var imageEvents []portllm.GenerateStreamEvent
 	output, err := newTestClient().GenerateStream(context.Background(), portllm.RouteConfig{
 		Protocol:      portllm.AdapterGeminiInteractions,
 		BaseURL:       server.URL,
@@ -820,9 +681,6 @@ data: [DONE]
 		}
 		if event.ServerToolCall != nil {
 			serverToolEvents = append(serverToolEvents, *event.ServerToolCall)
-		}
-		if event.GeneratedImage != nil {
-			imageEvents = append(imageEvents, event)
 		}
 		return nil
 	})
@@ -858,15 +716,6 @@ data: [DONE]
 	}
 	if len(output.Citations) != 1 || output.Citations[0] != "https://ai.google.dev/gemini-api/docs/streaming" {
 		t.Fatalf("unexpected citations: %#v", output.Citations)
-	}
-	if len(output.GeneratedImages) != 1 || output.GeneratedImages[0].B64JSON != "aW1hZ2U=" || output.GeneratedImages[0].MIMEType != "image/jpeg" || output.GeneratedImages[0].RevisedPrompt != "Hello world" {
-		t.Fatalf("unexpected streamed images: %#v", output.GeneratedImages)
-	}
-	if len(imageEvents) != 1 || !imageEvents[0].GeneratedImagePartial || imageEvents[0].GeneratedImageIndex != 0 {
-		t.Fatalf("unexpected streamed image events: %#v", imageEvents)
-	}
-	if len(output.GeneratedVideos) != 1 || output.GeneratedVideos[0].URL != "https://example.com/video.mp4" || output.GeneratedVideos[0].MIMEType != "video/mp4" {
-		t.Fatalf("unexpected streamed videos: %#v", output.GeneratedVideos)
 	}
 	if len(usageEvents) != 2 || output.Usage.InputTokens != 3 || output.Usage.CacheReadTokens != 1 || output.Usage.OutputTokens != 2 || output.Usage.ReasoningTokens != 3 || output.Usage.ServiceTier != "standard" {
 		t.Fatalf("unexpected stream usage events=%#v output=%#v", usageEvents, output.Usage)

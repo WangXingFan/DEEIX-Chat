@@ -19,17 +19,3 @@ func TestIsText(t *testing.T) {
 		}
 	}
 }
-
-func TestImageExtension(t *testing.T) {
-	tests := map[string]string{
-		"image/jpeg": ".jpg",
-		"IMAGE/WEBP": ".webp",
-		"image/gif":  ".gif",
-		"":           ".png",
-	}
-	for mimeType, want := range tests {
-		if got := ImageExtension(mimeType); got != want {
-			t.Fatalf("ImageExtension(%q) = %q, want %q", mimeType, got, want)
-		}
-	}
-}

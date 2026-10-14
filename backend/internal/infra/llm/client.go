@@ -446,44 +446,6 @@ func rawUsageJSONFromPath(payload map[string]any, keys ...string) string {
 	return string(raw)
 }
 
-// generatedMediaDurationSeconds 将上游媒体时长统一向上取整为可计费秒数。
-func generatedMediaDurationSeconds(values ...any) int64 {
-	for _, value := range values {
-		var seconds float64
-		switch typed := value.(type) {
-		case int:
-			seconds = float64(typed)
-		case int64:
-			seconds = float64(typed)
-		case float64:
-			seconds = typed
-		case float32:
-			seconds = float64(typed)
-		case string:
-			text := strings.TrimSpace(strings.ToLower(typed))
-			for _, suffix := range []string{"seconds", "second", "secs", "sec", "s"} {
-				text = strings.TrimSuffix(text, suffix)
-			}
-			parsed, err := strconv.ParseFloat(strings.TrimSpace(text), 64)
-			if err != nil {
-				continue
-			}
-			seconds = parsed
-		default:
-			continue
-		}
-		if seconds <= 0 {
-			continue
-		}
-		whole := int64(seconds)
-		if float64(whole) < seconds {
-			whole++
-		}
-		return whole
-	}
-	return 0
-}
-
 // doGenerationRequest 记录 POST 请求是否已经写入连接。请求写出后若在响应头
 // 返回前断线，无法判断上游是否已开始生成，因此按已接受处理，避免跨路由重复生成。
 func doGenerationRequest(do func(*http.Request) (*http.Response, error), req *http.Request) (*http.Response, error) {
@@ -517,22 +479,14 @@ func NewClient(outboundPolicy security.OutboundPolicy) *Client {
 		return newRouteHTTPClient(policy, strictPolicy, trustedOrigin, variant)
 	})
 	client.adapters = map[string]transportAdapter{
-		portllm.AdapterOpenAIResponses:        &openAIResponsesAdapter{client: client},
-		portllm.AdapterOpenRouterChat:         &openRouterChatCompletionsAdapter{client: client},
-		portllm.AdapterOpenRouterResponses:    &openRouterResponsesAdapter{client: client},
-		portllm.AdapterOpenRouterImages:       &openRouterImagesAdapter{client: client},
-		portllm.AdapterOpenAIChatCompletions:  &openAIChatCompletionsAdapter{client: client},
-		portllm.AdapterOpenAIImageGenerations: &openAIImageGenerationsAdapter{client: client},
-		portllm.AdapterOpenAIImageEdits:       &openAIImageEditsAdapter{client: client},
-		portllm.AdapterXAIResponses:           &xAIResponsesAdapter{client: client},
-		portllm.AdapterXAIImage:               &xAIImageAdapter{client: client},
-		portllm.AdapterXAIImageEdits:          &xAIImageEditsAdapter{client: client},
-		portllm.AdapterXAIVideo:               &xAIVideoAdapter{client: client},
-		portllm.AdapterXAIVideoExtensions:     &xAIVideoExtensionsAdapter{client: client},
-		portllm.AdapterAnthropicMessages:      &anthropicMessagesAdapter{client: client},
-		portllm.AdapterGoogleGenerateContent:  &geminiGenerateContentAdapter{client: client},
-		portllm.AdapterGoogleImageGeneration:  &geminiImageGenerationAdapter{client: client},
-		portllm.AdapterGeminiInteractions:     &geminiInteractionsAdapter{client: client},
+		portllm.AdapterOpenAIResponses:       &openAIResponsesAdapter{client: client},
+		portllm.AdapterOpenRouterChat:        &openRouterChatCompletionsAdapter{client: client},
+		portllm.AdapterOpenRouterResponses:   &openRouterResponsesAdapter{client: client},
+		portllm.AdapterOpenAIChatCompletions: &openAIChatCompletionsAdapter{client: client},
+		portllm.AdapterXAIResponses:          &xAIResponsesAdapter{client: client},
+		portllm.AdapterAnthropicMessages:     &anthropicMessagesAdapter{client: client},
+		portllm.AdapterGoogleGenerateContent: &geminiGenerateContentAdapter{client: client},
+		portllm.AdapterGeminiInteractions:    &geminiInteractionsAdapter{client: client},
 	}
 	return client
 }
@@ -659,7 +613,7 @@ func shouldFallbackToOpenAICompatibleModels(route portllm.RouteConfig) bool {
 		return false
 	}
 	switch portllm.NormalizeAdapter(route.Protocol) {
-	case portllm.AdapterAnthropicMessages, portllm.AdapterGoogleGenerateContent, portllm.AdapterGoogleImageGeneration:
+	case portllm.AdapterAnthropicMessages, portllm.AdapterGoogleGenerateContent:
 		return true
 	default:
 		return false
@@ -1318,16 +1272,6 @@ func normalizeEndpoint(raw string) string {
 	switch strings.TrimSpace(raw) {
 	case portllm.EndpointChatCompletions:
 		return portllm.EndpointChatCompletions
-	case portllm.EndpointImageGenerations:
-		return portllm.EndpointImageGenerations
-	case portllm.EndpointImageEdits:
-		return portllm.EndpointImageEdits
-	case portllm.EndpointImages:
-		return portllm.EndpointImages
-	case portllm.EndpointVideoGenerations:
-		return portllm.EndpointVideoGenerations
-	case portllm.EndpointVideoExtensions:
-		return portllm.EndpointVideoExtensions
 	case portllm.EndpointInteractions:
 		return portllm.EndpointInteractions
 	default:
