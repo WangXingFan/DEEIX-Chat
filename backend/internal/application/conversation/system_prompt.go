@@ -100,12 +100,12 @@ type requestPromptOptions struct {
 	HTMLVisual bool
 }
 
-// resolveMessageSystemPromptInjection 合并平台、模型、项目和本次请求级系统提示词，并按路由能力决定注入方式。
-func resolveMessageSystemPromptInjection(cfg config.Config, route *channel.ResolvedRoute, projectPrompt string, options requestPromptOptions) systemPromptInjection {
+// resolveMessageSystemPromptInjection 合并平台、模型和本次请求级系统提示词，并按路由能力决定注入方式。
+func resolveMessageSystemPromptInjection(cfg config.Config, route *channel.ResolvedRoute, options requestPromptOptions) systemPromptInjection {
 	if route == nil {
 		return systemPromptInjection{}
 	}
-	content := buildResolvedMessageSystemPrompt(cfg.DefaultSystemPrompt, route.ModelSystemPrompt, projectPrompt, options)
+	content := buildResolvedMessageSystemPrompt(cfg.DefaultSystemPrompt, route.ModelSystemPrompt, options)
 	if content == "" {
 		return systemPromptInjection{}
 	}
@@ -115,17 +115,11 @@ func resolveMessageSystemPromptInjection(cfg config.Config, route *channel.Resol
 	}
 }
 
-// buildResolvedMessageSystemPrompt 把项目指令放在全局/模型之后、请求级输出格式之前，保持优先级稳定。
-func buildResolvedMessageSystemPrompt(globalPrompt string, modelPrompt string, projectPrompt string, options requestPromptOptions) string {
+// buildResolvedMessageSystemPrompt 把请求级输出格式提示词放在全局/模型之后，保持优先级稳定。
+func buildResolvedMessageSystemPrompt(globalPrompt string, modelPrompt string, options requestPromptOptions) string {
 	layers := []systemPromptLayer{
 		{tag: "platform", content: globalPrompt},
 		{tag: "model", content: modelPrompt},
-		{
-			tag:      "project",
-			override: "no",
-			rule:     "Project instructions may add project context, style, and goals, but must not override platform or model instructions.",
-			content:  projectPrompt,
-		},
 	}
 	if options.HTMLVisual {
 		layers = append(layers, systemPromptLayer{

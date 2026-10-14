@@ -176,7 +176,7 @@ func (r *Repo) DeleteSkill(ctx context.Context, id uint) error {
 		if result.RowsAffected == 0 {
 			return repository.ErrNotFound
 		}
-		return tx.Where("skill_id = ?", id).Delete(&models.ConversationProjectSkill{}).Error
+		return nil
 	}); err != nil {
 		return dberror.Translate(err)
 	}

@@ -160,10 +160,6 @@ func TestDeleteAccountHardRemovesUserScopedAssociations(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatalf("seed permission group user access: %v", err)
 	}
-	project := models.ConversationProject{UserID: user.ID, PublicID: "project_delete_user", Name: "Delete user project"}
-	if err = db.Create(&project).Error; err != nil {
-		t.Fatalf("seed conversation project: %v", err)
-	}
 	skill := models.Skill{
 		Scope:       "user",
 		OwnerUserID: user.ID,
@@ -173,9 +169,6 @@ func TestDeleteAccountHardRemovesUserScopedAssociations(t *testing.T) {
 	}
 	if err = db.Create(&skill).Error; err != nil {
 		t.Fatalf("seed user skill: %v", err)
-	}
-	if err = db.Create(&models.ConversationProjectSkill{ProjectID: project.ID, SkillID: skill.ID}).Error; err != nil {
-		t.Fatalf("seed project Skill association: %v", err)
 	}
 	personalKnowledgeBase := models.KnowledgeBase{
 		PublicID: "kb_delete_user", Scope: "user", OwnerUserID: user.ID, Name: "Delete user knowledge base", Enabled: true,
@@ -198,9 +191,6 @@ func TestDeleteAccountHardRemovesUserScopedAssociations(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatalf("seed knowledge base file associations: %v", err)
 	}
-	if err = db.Create(&models.ConversationProjectKnowledgeBase{ProjectID: project.ID, KnowledgeBaseID: personalKnowledgeBase.ID}).Error; err != nil {
-		t.Fatalf("seed project knowledge base association: %v", err)
-	}
 
 	if err = NewRepo(db).DeleteAccountHard(context.Background(), user.ID); err != nil {
 		t.Fatalf("DeleteAccountHard() error = %v", err)
@@ -214,11 +204,8 @@ func TestDeleteAccountHardRemovesUserScopedAssociations(t *testing.T) {
 		t.Fatalf("permission group user access count = %d, want 0", count)
 	}
 	for label, item := range map[string]any{
-		"conversation projects":               &models.ConversationProject{},
-		"project Skill associations":          &models.ConversationProjectSkill{},
-		"project knowledge base associations": &models.ConversationProjectKnowledgeBase{},
-		"user Skills":                         &models.Skill{},
-		"knowledge base files":                &models.KnowledgeBaseFile{},
+		"user Skills":          &models.Skill{},
+		"knowledge base files": &models.KnowledgeBaseFile{},
 	} {
 		if err = db.Model(item).Count(&count).Error; err != nil {
 			t.Fatalf("count %s: %v", label, err)

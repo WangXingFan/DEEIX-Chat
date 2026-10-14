@@ -66,14 +66,7 @@ type ConversationListInput struct {
 	Limit         int
 	StatusFilter  string
 	StarredFilter string
-	ProjectFilter string
 	SearchQuery   string
-}
-
-// DeleteConversationProjectOptions 控制删除哪些项目所属的记录。
-type DeleteConversationProjectOptions struct {
-	DeleteConversations bool
-	DeleteFiles         bool
 }
 
 // ConversationMetadataRepository 封装会话元信息与用户访问能力。
@@ -83,14 +76,6 @@ type ConversationMetadataRepository interface {
 	ListConversationsForSearch(ctx context.Context, userID uint, offset int, limit int, searchQuery string) ([]domainconversation.Conversation, error)
 	GetConversationByUser(ctx context.Context, conversationID uint, userID uint) (*domainconversation.Conversation, error)
 	GetConversationByPublicID(ctx context.Context, publicID string, userID uint) (*domainconversation.Conversation, error)
-	CreateConversationProject(ctx context.Context, item *domainconversation.ConversationProject) error
-	ListConversationProjects(ctx context.Context, userID uint, statusFilter string) ([]domainconversation.ConversationProject, error)
-	GetConversationProjectByPublicID(ctx context.Context, userID uint, publicID string) (*domainconversation.ConversationProject, error)
-	UpdateConversationProjectMetadataByPublicID(ctx context.Context, userID uint, publicID string, patch domainconversation.ConversationProjectPatch) (*domainconversation.ConversationProject, error)
-	DeleteConversationProjectByPublicID(ctx context.Context, userID uint, publicID string, options DeleteConversationProjectOptions) ([]string, error)
-	ReorderConversationProjects(ctx context.Context, userID uint, publicIDs []string) error
-	UpdateConversationProjectAssignmentByPublicID(ctx context.Context, userID uint, conversationPublicID string, projectID *uint) (*domainconversation.Conversation, error)
-	BatchUpdateConversationProjectByPublicIDs(ctx context.Context, userID uint, conversationPublicIDs []string, projectID *uint) (int64, error)
 	UpdateConversationTitleByPublicID(ctx context.Context, userID uint, publicID string, title string) (*domainconversation.Conversation, error)
 	UpdateConversationMetadata(ctx context.Context, conversationID uint, patch ConversationMetadataPatch) (*domainconversation.Conversation, error)
 	UpdateConversationLabelsByPublicID(ctx context.Context, userID uint, publicID string, labelsJSON string) (*domainconversation.Conversation, error)

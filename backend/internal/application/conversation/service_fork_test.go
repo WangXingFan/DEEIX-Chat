@@ -55,7 +55,6 @@ func newForkConversationService(repo repository.ConversationRepository) *Service
 }
 
 func TestForkConversationFromMessageBuildsAtomicFork(t *testing.T) {
-	projectID := uint(3)
 	rootID := uint(101)
 	leafID := uint(102)
 	sourceID := uint(88)
@@ -64,10 +63,6 @@ func TestForkConversationFromMessageBuildsAtomicFork(t *testing.T) {
 		conversation: &model.Conversation{
 			ID:                    10,
 			UserID:                7,
-			ProjectID:             &projectID,
-			ProjectPublicID:       "project_public",
-			ProjectName:           "Project",
-			ProjectSystemPrompt:   "Project instructions",
 			PublicID:              "conv_source",
 			Title:                 "Source title",
 			LabelsJSON:            `["important"]`,
@@ -109,11 +104,6 @@ func TestForkConversationFromMessageBuildsAtomicFork(t *testing.T) {
 	}
 	if created.LastResponseID != "" || created.LastCompactedAt != nil {
 		t.Fatalf("fork retained upstream state: lastResponseID=%q lastCompactedAt=%v", created.LastResponseID, created.LastCompactedAt)
-	}
-	if created.ProjectPublicID != repo.conversation.ProjectPublicID ||
-		created.ProjectName != repo.conversation.ProjectName ||
-		created.ProjectSystemPrompt != repo.conversation.ProjectSystemPrompt {
-		t.Fatalf("fork lost project summary: %+v", created)
 	}
 	if len(repo.createInput.Messages) != 2 {
 		t.Fatalf("len(createInput.Messages) = %d, want 2", len(repo.createInput.Messages))

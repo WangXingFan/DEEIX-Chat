@@ -21,7 +21,6 @@ func TestRepositoryVisibilityResolutionAndDeletion(t *testing.T) {
 	if err = db.AutoMigrate(
 		&models.KnowledgeBase{},
 		&models.KnowledgeBaseFile{},
-		&models.ConversationProjectKnowledgeBase{},
 		&models.FileObject{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
@@ -62,9 +61,6 @@ func TestRepositoryVisibilityResolutionAndDeletion(t *testing.T) {
 	}
 	if err = db.Create(&links).Error; err != nil {
 		t.Fatalf("seed links: %v", err)
-	}
-	if err = db.Create(&models.ConversationProjectKnowledgeBase{ProjectID: 101, KnowledgeBaseID: items[0].ID}).Error; err != nil {
-		t.Fatalf("seed project knowledge base link: %v", err)
 	}
 
 	repo := NewRepo(db)
@@ -204,14 +200,6 @@ func TestRepositoryVisibilityResolutionAndDeletion(t *testing.T) {
 	if _, err = repo.PatchKnowledgeBase(context.Background(), items[0].ID, repository.KnowledgeBasePatch{Enabled: &disabled}); err != nil {
 		t.Fatalf("disable built-in knowledge base: %v", err)
 	}
-	var projectLinkCount int64
-	if err = db.Model(&models.ConversationProjectKnowledgeBase{}).Where("knowledge_base_id = ?", items[0].ID).Count(&projectLinkCount).Error; err != nil {
-		t.Fatalf("count project links after disable: %v", err)
-	}
-	if projectLinkCount != 1 {
-		t.Fatalf("project links after disable = %d, want 1", projectLinkCount)
-	}
-
 	cleanupCandidates, err := repo.DeleteKnowledgeBase(context.Background(), items[2].ID)
 	if err != nil {
 		t.Fatalf("DeleteKnowledgeBase() error = %v", err)

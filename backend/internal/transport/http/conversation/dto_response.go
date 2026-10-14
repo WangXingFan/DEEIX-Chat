@@ -18,8 +18,6 @@ import (
 type ConversationResponse struct {
 	PublicID        string     `json:"publicID"`
 	UserID          uint       `json:"userID"`
-	ProjectID       string     `json:"projectID"`
-	ProjectName     string     `json:"projectName"`
 	Title           string     `json:"title"`
 	LabelsJSON      string     `json:"labelsJSON"`
 	Model           string     `json:"model"`
@@ -39,8 +37,6 @@ type ConversationResponse struct {
 // ConversationSearchResultResponse 会话搜索结果 DTO。
 type ConversationSearchResultResponse struct {
 	PublicID     string    `json:"publicID"`
-	ProjectID    string    `json:"projectID"`
-	ProjectName  string    `json:"projectName"`
 	Title        string    `json:"title"`
 	LabelsJSON   string    `json:"labelsJSON"`
 	IsStarred    bool      `json:"isStarred"`
@@ -78,8 +74,6 @@ func toConversationResponse(item *model.Conversation) ConversationResponse {
 	return ConversationResponse{
 		PublicID:        item.PublicID,
 		UserID:          item.UserID,
-		ProjectID:       item.ProjectPublicID,
-		ProjectName:     item.ProjectName,
 		Title:           item.Title,
 		LabelsJSON:      labelsJSON,
 		Model:           item.Model,
@@ -104,8 +98,6 @@ func toConversationSearchResultResponse(item appconversation.ConversationSearchR
 	}
 	return ConversationSearchResultResponse{
 		PublicID:     item.Conversation.PublicID,
-		ProjectID:    item.Conversation.ProjectPublicID,
-		ProjectName:  item.Conversation.ProjectName,
 		Title:        item.Conversation.Title,
 		LabelsJSON:   labelsJSON,
 		IsStarred:    item.Conversation.IsStarred,
@@ -122,49 +114,6 @@ func toConversationPreviewMessageResponse(item model.Message) ConversationPrevie
 		Content:      item.Content,
 		ErrorMessage: item.ErrorMessage,
 	}
-}
-
-// ConversationProjectResponse 对外会话项目响应 DTO。
-type ConversationProjectResponse struct {
-	PublicID                string    `json:"publicID"`
-	Name                    string    `json:"name"`
-	Description             string    `json:"description"`
-	SystemPrompt            string    `json:"systemPrompt"`
-	DefaultModel            string    `json:"defaultModel"`
-	DefaultSkillIDs         []uint    `json:"defaultSkillIDs"`
-	DefaultKnowledgeBaseIDs []string  `json:"defaultKnowledgeBaseIDs"`
-	Color                   string    `json:"color"`
-	Icon                    string    `json:"icon"`
-	SortOrder               int       `json:"sortOrder"`
-	Status                  string    `json:"status"`
-	CreatedAt               time.Time `json:"createdAt"`
-	UpdatedAt               time.Time `json:"updatedAt"`
-}
-
-func toConversationProjectResponse(item *model.ConversationProject) ConversationProjectResponse {
-	if item == nil {
-		return ConversationProjectResponse{}
-	}
-	return ConversationProjectResponse{
-		PublicID:                item.PublicID,
-		Name:                    item.Name,
-		Description:             item.Description,
-		SystemPrompt:            item.SystemPrompt,
-		DefaultModel:            item.DefaultModel,
-		DefaultSkillIDs:         append([]uint{}, item.DefaultSkillIDs...),
-		DefaultKnowledgeBaseIDs: append([]string{}, item.DefaultKnowledgeBaseIDs...),
-		Color:                   item.Color,
-		Icon:                    item.Icon,
-		SortOrder:               item.SortOrder,
-		Status:                  item.Status,
-		CreatedAt:               item.CreatedAt,
-		UpdatedAt:               item.UpdatedAt,
-	}
-}
-
-// BatchSetConversationProjectResponse 批量设置会话项目归属响应 DTO。
-type BatchSetConversationProjectResponse struct {
-	Updated int64 `json:"updated"`
 }
 
 // ConversationDeleteResponse 删除会话响应 DTO。
@@ -1171,24 +1120,6 @@ type ConversationSearchListResponseDoc struct {
 type ConversationPreviewMessageListResponseDoc struct {
 	ErrorMsg string                               `json:"errorMsg"`
 	Data     []ConversationPreviewMessageResponse `json:"data"`
-}
-
-// ConversationProjectResponseDoc 会话项目响应文档。
-type ConversationProjectResponseDoc struct {
-	ErrorMsg string                      `json:"errorMsg"`
-	Data     ConversationProjectResponse `json:"data"`
-}
-
-// ConversationProjectListResponseDoc 会话项目列表响应文档。
-type ConversationProjectListResponseDoc struct {
-	ErrorMsg string                        `json:"errorMsg"`
-	Data     []ConversationProjectResponse `json:"data"`
-}
-
-// BatchSetConversationProjectResponseDoc 批量设置会话项目响应文档。
-type BatchSetConversationProjectResponseDoc struct {
-	ErrorMsg string                              `json:"errorMsg"`
-	Data     BatchSetConversationProjectResponse `json:"data"`
 }
 
 // MessageListResponseDoc 消息分页响应文档。

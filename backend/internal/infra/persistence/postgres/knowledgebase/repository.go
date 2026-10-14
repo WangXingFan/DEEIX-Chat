@@ -190,9 +190,6 @@ func (r *Repo) DeleteKnowledgeBase(ctx context.Context, id uint) ([]repository.K
 			Scan(&candidates).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("knowledge_base_id = ?", id).Delete(&models.ConversationProjectKnowledgeBase{}).Error; err != nil {
-			return err
-		}
 		if err := tx.Where("knowledge_base_id = ?", id).Delete(&models.KnowledgeBaseFile{}).Error; err != nil {
 			return err
 		}

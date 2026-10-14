@@ -20,12 +20,6 @@ var (
 	ErrInvalidConversationTitle = apperr.New("conversation.invalid_title", "invalid conversation title")
 	// ErrInvalidConversationLabels 会话标签不合法。
 	ErrInvalidConversationLabels = apperr.New("request.invalid_conversation_labels", "invalid conversation labels")
-	// ErrConversationProjectNotFound 会话项目不存在或无权限。
-	ErrConversationProjectNotFound = apperr.New("conversation_project.not_found", "conversation project not found")
-	// ErrInvalidConversationProject 会话项目请求不合法。
-	ErrInvalidConversationProject = apperr.New("request.invalid_conversation_project", "invalid conversation project")
-	// ErrConversationProjectLimitExceeded 单用户会话项目数量超限。
-	ErrConversationProjectLimitExceeded = repository.ErrConversationProjectLimitExceeded
 	// ErrInvalidFileReference 文件引用无效。
 	ErrInvalidFileReference = apperr.New("file.invalid_reference", "invalid file reference")
 	// ErrInvalidFileName 文件名不合法。

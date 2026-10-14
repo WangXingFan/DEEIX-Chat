@@ -249,99 +249,6 @@ func TestListRecentContextArtifactsFiltersBranchBeforeLimit(t *testing.T) {
 	}
 }
 
-func TestConversationProjectDefaultsRoundTripAndDelete(t *testing.T) {
-	db := openConversationRepositoryTestDB(t)
-	repo := NewRepo(db)
-	ctx := context.Background()
-	knowledgeBases := []models.KnowledgeBase{
-		{PublicID: "kb_default_one", Scope: "builtin", Name: "Default one", Enabled: true},
-		{PublicID: "kb_default_two", Scope: "user", OwnerUserID: 1, Name: "Default two", Enabled: true},
-	}
-	if err := db.Create(&knowledgeBases).Error; err != nil {
-		t.Fatalf("seed knowledge bases: %v", err)
-	}
-	project := domainconversation.ConversationProject{
-		UserID:                  1,
-		PublicID:                "project_defaults",
-		Name:                    "Project defaults",
-		DefaultModel:            "model-a",
-		DefaultSkillIDs:         []uint{11, 5},
-		DefaultKnowledgeBaseIDs: []string{"kb_default_two", "kb_default_one"},
-		Status:                  "active",
-	}
-	if err := repo.CreateConversationProject(ctx, &project); err != nil {
-		t.Fatalf("CreateConversationProject() error = %v", err)
-	}
-	if !reflect.DeepEqual(project.DefaultSkillIDs, []uint{11, 5}) ||
-		!reflect.DeepEqual(project.DefaultKnowledgeBaseIDs, []string{"kb_default_two", "kb_default_one"}) {
-		t.Fatalf("created defaults = Skills %v KnowledgeBases %v", project.DefaultSkillIDs, project.DefaultKnowledgeBaseIDs)
-	}
-
-	loaded, err := repo.GetConversationProjectByPublicID(ctx, 1, project.PublicID)
-	if err != nil {
-		t.Fatalf("GetConversationProjectByPublicID() error = %v", err)
-	}
-	if loaded.DefaultModel != "model-a" ||
-		!reflect.DeepEqual(loaded.DefaultSkillIDs, []uint{11, 5}) ||
-		!reflect.DeepEqual(loaded.DefaultKnowledgeBaseIDs, []string{"kb_default_two", "kb_default_one"}) {
-		t.Fatalf("loaded project defaults = %#v", loaded)
-	}
-	badProject := domainconversation.ConversationProject{
-		UserID:                  1,
-		PublicID:                "project_other_user_base",
-		Name:                    "Invalid project defaults",
-		DefaultKnowledgeBaseIDs: []string{"kb_other_user"},
-		Status:                  "active",
-	}
-	if err = db.Create(&models.KnowledgeBase{PublicID: "kb_other_user", Scope: "user", OwnerUserID: 2, Name: "Other user", Enabled: true}).Error; err != nil {
-		t.Fatalf("seed other user's knowledge base: %v", err)
-	}
-	if err = repo.CreateConversationProject(ctx, &badProject); !errors.Is(err, repository.ErrNotFound) {
-		t.Fatalf("CreateConversationProject(other user's knowledge base) error = %v, want ErrNotFound", err)
-	}
-	var badProjectCount int64
-	if err = db.Model(&models.ConversationProject{}).Where("public_id = ?", badProject.PublicID).Count(&badProjectCount).Error; err != nil {
-		t.Fatalf("count rolled back project: %v", err)
-	}
-	if badProjectCount != 0 {
-		t.Fatalf("rolled back project count = %d, want 0", badProjectCount)
-	}
-
-	nextSkillIDs := []uint{5}
-	nextKnowledgeBaseIDs := []string{"kb_default_one"}
-	nextDefaultModel := "model-b"
-	updated, err := repo.UpdateConversationProjectMetadataByPublicID(ctx, 1, project.PublicID, domainconversation.ConversationProjectPatch{
-		DefaultModel:            &nextDefaultModel,
-		DefaultSkillIDs:         &nextSkillIDs,
-		DefaultKnowledgeBaseIDs: &nextKnowledgeBaseIDs,
-	})
-	if err != nil {
-		t.Fatalf("UpdateConversationProjectMetadataByPublicID() error = %v", err)
-	}
-	if updated.DefaultModel != nextDefaultModel ||
-		!reflect.DeepEqual(updated.DefaultSkillIDs, nextSkillIDs) ||
-		!reflect.DeepEqual(updated.DefaultKnowledgeBaseIDs, nextKnowledgeBaseIDs) {
-		t.Fatalf("updated project defaults = %#v", updated)
-	}
-
-	if _, err = repo.DeleteConversationProjectByPublicID(ctx, 1, project.PublicID, repository.DeleteConversationProjectOptions{}); err != nil {
-		t.Fatalf("DeleteConversationProjectByPublicID() error = %v", err)
-	}
-	var associationCount int64
-	if err = db.Model(&models.ConversationProjectSkill{}).Where("project_id = ?", project.ID).Count(&associationCount).Error; err != nil {
-		t.Fatalf("count project Skill associations: %v", err)
-	}
-	if associationCount != 0 {
-		t.Fatalf("project Skill association count = %d, want 0", associationCount)
-	}
-	if err = db.Model(&models.ConversationProjectKnowledgeBase{}).Where("project_id = ?", project.ID).Count(&associationCount).Error; err != nil {
-		t.Fatalf("count project knowledge base associations: %v", err)
-	}
-	if associationCount != 0 {
-		t.Fatalf("project knowledge base association count = %d, want 0", associationCount)
-	}
-}
-
 func TestListConversationEventLogsHydratesRunRouteSnapshot(t *testing.T) {
 	db := openConversationRepositoryTestDB(t)
 	repo := NewRepo(db)
@@ -1008,33 +915,11 @@ func TestUpdateConversationMetadataCanReplaceAutomaticFallbackTitle(t *testing.T
 	}
 }
 
-func TestListConversationsByUserSearchesMetadataProjectsAndMessages(t *testing.T) {
+func TestListConversationsByUserSearchesMetadataAndMessages(t *testing.T) {
 	db := openConversationRepositoryTestDB(t)
 	repo := NewRepo(db)
 	ctx := context.Background()
 
-	project := models.ConversationProject{
-		UserID:      1,
-		PublicID:    "proj_research",
-		Name:        "Research Notes",
-		Description: "knowledge base",
-		Status:      "active",
-	}
-	if err := db.Create(&project).Error; err != nil {
-		t.Fatalf("create project: %v", err)
-	}
-
-	projectConversation := models.Conversation{
-		UserID:     1,
-		ProjectID:  &project.ID,
-		PublicID:   "conv_project_search",
-		Title:      "Project conversation",
-		LabelsJSON: "[]",
-		Model:      "gpt-test",
-		Provider:   "openai",
-		SessionKey: "session_project_search",
-		Status:     "active",
-	}
 	titleConversation := models.Conversation{
 		UserID:     1,
 		PublicID:   "conv_title_search",
@@ -1086,7 +971,6 @@ func TestListConversationsByUserSearchesMetadataProjectsAndMessages(t *testing.T
 		Status:     "active",
 	}
 	for _, conversation := range []models.Conversation{
-		projectConversation,
 		titleConversation,
 		messageConversation,
 		toolOnlyConversation,
@@ -1137,7 +1021,6 @@ func TestListConversationsByUserSearchesMetadataProjectsAndMessages(t *testing.T
 		wantID string
 	}{
 		{name: "title", query: "budget", wantID: "conv_title_search"},
-		{name: "project", query: "research", wantID: "conv_project_search"},
 		{name: "message", query: "aurorakeyword", wantID: "conv_message_search"},
 		{name: "literal wildcard", query: "%", wantID: "conv_literal_wildcard_search"},
 		{name: "tool messages are excluded", query: "internaltoolonlykeyword", wantID: ""},
@@ -1151,7 +1034,6 @@ func TestListConversationsByUserSearchesMetadataProjectsAndMessages(t *testing.T
 				Limit:         10,
 				StatusFilter:  "active",
 				StarredFilter: "all",
-				ProjectFilter: "all",
 				SearchQuery:   tt.query,
 			})
 			if err != nil {
@@ -1312,7 +1194,7 @@ func openConversationRepositoryTestDB(t *testing.T) *gorm.DB {
 			_ = sqlDB.Close()
 		}
 	})
-	if err := db.AutoMigrate(&models.Conversation{}, &models.ConversationProject{}, &models.ConversationProjectSkill{}, &models.KnowledgeBase{}, &models.ConversationProjectKnowledgeBase{}, &models.Message{}, &models.Attachment{}, &models.FileObject{}, &models.ConversationRun{}, &models.ChatRunEvent{}); err != nil {
+	if err := db.AutoMigrate(&models.Conversation{}, &models.KnowledgeBase{}, &models.Message{}, &models.Attachment{}, &models.FileObject{}, &models.ConversationRun{}, &models.ChatRunEvent{}); err != nil {
 		t.Fatalf("migrate models: %v", err)
 	}
 	return db

@@ -7,7 +7,6 @@ import "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/apperr"
 var (
 	errAtLeastOneOfFileNameOrRAGOptOutRequired = apperr.New("request.required", "at least one of file_name or rag_opt_out is required")
 	errConversationNoTitleableContent          = apperr.New("conversation.no_titleable_content", "conversation has no titleable content")
-	errConversationProjectLimitExceeded        = apperr.New("conversation.project_limit_exceeded", "conversation project limit exceeded")
 	errFileExtractNotReady                     = apperr.New("file.extract_not_ready", "file extract is not ready")
 	errFileEmbeddingUnavailable                = apperr.New("file.embedding_unavailable", "embedding is unavailable for this file size")
 	errFileRequired                            = apperr.New("file.required", "file is required")
@@ -15,7 +14,6 @@ var (
 	errInvalidBeforeMessageID                  = apperr.New("before_message.invalid_id", "invalid before message id")
 	errInvalidContextArtifactID                = apperr.New("context_artifact.invalid_id", "invalid context artifact id")
 	errInvalidConversationID                   = apperr.New("conversation.invalid_id", "invalid conversation id")
-	errInvalidConversationProjectID            = apperr.New("conversation_project.invalid_id", "invalid conversation project id")
 	errInvalidFileID                           = apperr.New("file.invalid_id", "invalid file id")
 	errInvalidFile                             = apperr.New("request.invalid_file", "invalid file")
 	errInvalidFileStream                       = apperr.New("file.invalid_stream", "invalid file stream")

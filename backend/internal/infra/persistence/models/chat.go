@@ -6,7 +6,6 @@ import "time"
 type Conversation struct {
 	BaseModel
 	UserID                uint       `gorm:"not null;index:idx_chat_conversations_user_id;comment:用户ID"`
-	ProjectID             *uint      `gorm:"index:idx_chat_conversations_project_id;comment:项目分组ID"`
 	PublicID              string     `gorm:"size:32;not null;default:'';index:idx_chat_conversations_public_id;comment:公开会话ID"`
 	Title                 string     `gorm:"size:255;not null;default:'';comment:会话标题"`
 	LabelsJSON            string     `gorm:"type:text;not null;default:'[]';comment:会话标签JSON"`
@@ -27,50 +26,6 @@ type Conversation struct {
 // TableName 指定表名。
 func (Conversation) TableName() string {
 	return "chat_conversations"
-}
-
-// ConversationProject 存储用户会话项目分组。
-type ConversationProject struct {
-	BaseModel
-	UserID       uint   `gorm:"not null;index:idx_chat_conversation_projects_user_id;comment:用户ID"`
-	PublicID     string `gorm:"size:32;not null;default:'';uniqueIndex:idx_chat_conversation_projects_public_id;comment:公开项目ID"`
-	Name         string `gorm:"size:80;not null;default:'';comment:项目名称"`
-	Description  string `gorm:"size:255;not null;default:'';comment:项目描述"`
-	SystemPrompt string `gorm:"type:text;not null;default:'';comment:项目级系统提示词"`
-	DefaultModel string `gorm:"size:128;not null;default:'';comment:项目新会话默认平台模型；空值表示继承全局默认"`
-	Color        string `gorm:"size:32;not null;default:'';comment:项目颜色"`
-	Icon         string `gorm:"size:32;not null;default:'';comment:项目图标"`
-	SortOrder    int    `gorm:"not null;default:0;index:idx_chat_conversation_projects_sort_order;comment:展示顺序"`
-	Status       string `gorm:"size:32;not null;default:'active';index:idx_chat_conversation_projects_status;comment:项目状态(active/archived)"`
-}
-
-// TableName 指定表名。
-func (ConversationProject) TableName() string {
-	return "chat_conversation_projects"
-}
-
-// ConversationProjectSkill 记录项目默认加载的 Skill。
-type ConversationProjectSkill struct {
-	ProjectID uint `gorm:"primaryKey;comment:项目ID"`
-	SkillID   uint `gorm:"primaryKey;index:idx_project_skills_skill;comment:Skill ID"`
-	SortOrder int  `gorm:"not null;default:0;comment:项目内排序"`
-}
-
-// TableName 指定项目 Skill 关联表名。
-func (ConversationProjectSkill) TableName() string {
-	return "chat_conversation_project_skills"
-}
-
-// ConversationProjectKnowledgeBase 记录项目默认使用的知识库。
-type ConversationProjectKnowledgeBase struct {
-	ProjectID       uint `gorm:"primaryKey;comment:项目ID"`
-	KnowledgeBaseID uint `gorm:"primaryKey;index:idx_project_knowledge_bases_base;comment:知识库ID"`
-	SortOrder       int  `gorm:"not null;default:0;comment:项目内排序"`
-}
-
-// TableName 指定项目知识库关联表名。
-func (ConversationProjectKnowledgeBase) TableName() string {
-	return "chat_conversation_project_knowledge_bases"
 }
 
 // Message 存储会话内消息。

@@ -67,7 +67,6 @@ func (s *Service) ForkConversationFromMessage(ctx context.Context, userID uint, 
 
 	target := &model.Conversation{
 		UserID:                userID,
-		ProjectID:             conversation.ProjectID,
 		PublicID:              normalizePublicID(uuid.NewString()),
 		Title:                 conversation.Title,
 		LabelsJSON:            conversation.LabelsJSON,
@@ -116,9 +115,6 @@ func (s *Service) ForkConversationFromMessage(ctx context.Context, userID uint, 
 		}
 		return nil, err
 	}
-	target.ProjectPublicID = conversation.ProjectPublicID
-	target.ProjectName = conversation.ProjectName
-	target.ProjectSystemPrompt = conversation.ProjectSystemPrompt
 	return target, nil
 }
 

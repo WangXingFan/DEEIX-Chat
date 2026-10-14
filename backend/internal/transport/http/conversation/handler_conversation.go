@@ -37,12 +37,8 @@ func (h *Handler) CreateConversation(c *gin.Context) {
 		return
 	}
 
-	item, err := h.service.CreateConversation(c.Request.Context(), userID, req.Title, req.Model, req.ProjectID)
+	item, err := h.service.CreateConversation(c.Request.Context(), userID, req.Title, req.Model)
 	if err != nil {
-		if errors.Is(err, appconversation.ErrConversationProjectNotFound) {
-			response.ErrorFrom(c, http.StatusNotFound, err)
-			return
-		}
 		response.InternalError(c)
 		return
 	}
@@ -67,8 +63,7 @@ func (h *Handler) CreateConversation(c *gin.Context) {
 // @Param page_size query int false "每页数量（1-1000，默认 20）"
 // @Param status query string false "状态筛选: active|archived|all"
 // @Param starred query string false "星标筛选: all|starred|unstarred"
-// @Param project query string false "项目筛选: all|unassigned|项目 public_id"
-// @Param q query string false "搜索关键词，匹配会话元数据、项目名称和消息正文"
+// @Param q query string false "搜索关键词，匹配会话元数据、标签和消息正文"
 // @Success 200 {object} ConversationListResponseDoc
 // @Failure 500 {object} ErrorDoc
 // @Router /conversations [get]
@@ -78,7 +73,6 @@ func (h *Handler) ListConversations(c *gin.Context) {
 	page, pageSize := pagination.Parse(c.Query("page"), c.Query("page_size"))
 	statusFilter := normalizeConversationStatusFilter(c.Query("status"))
 	starredFilter := normalizeConversationStarredFilter(c.Query("starred"))
-	projectFilter := c.Query("project")
 	searchQuery := c.Query("q")
 
 	items, total, err := h.service.ListConversations(c.Request.Context(), appconversation.ListConversationsInput{
@@ -87,7 +81,6 @@ func (h *Handler) ListConversations(c *gin.Context) {
 		PageSize:      pageSize,
 		StatusFilter:  statusFilter,
 		StarredFilter: starredFilter,
-		ProjectFilter: projectFilter,
 		SearchQuery:   searchQuery,
 	})
 	if err != nil {
@@ -103,7 +96,7 @@ func (h *Handler) ListConversations(c *gin.Context) {
 
 // SearchConversations godoc
 // @Summary 搜索会话
-// @Description 分页搜索当前用户的会话标题、元数据、项目和消息正文，并返回是否还有下一页
+// @Description 分页搜索当前用户的会话标题、元数据、标签和消息正文，并返回是否还有下一页
 // @Tags chat
 // @Accept json
 // @Produce json

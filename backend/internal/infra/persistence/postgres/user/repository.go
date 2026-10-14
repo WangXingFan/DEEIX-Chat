@@ -866,8 +866,6 @@ func (r *Repo) DeleteAccountHard(ctx context.Context, userID uint) error {
 		}
 
 		conversationSubQuery := tx.Unscoped().Model(&models.Conversation{}).Select("id").Where("user_id = ?", userID)
-		projectSubQuery := tx.Unscoped().Model(&models.ConversationProject{}).Select("id").Where("user_id = ?", userID)
-		userSkillSubQuery := tx.Model(&models.Skill{}).Select("id").Where("scope = ? AND owner_user_id = ?", domainskill.ScopeUser, userID)
 		userKnowledgeBaseSubQuery := tx.Model(&models.KnowledgeBase{}).Select("id").Where("scope = ? AND owner_user_id = ?", domainknowledgebase.ScopeUser, userID)
 		userFileSubQuery := tx.Unscoped().Model(&models.FileObject{}).Select("id").Where("user_id = ?", userID)
 		runSubQuery := tx.Unscoped().Model(&models.ConversationRun{}).Select("run_id").Where("user_id = ?", userID)
@@ -958,26 +956,6 @@ func (r *Repo) DeleteAccountHard(ctx context.Context, userID uint) error {
 				label: "chat_conversations",
 				run: func(db *gorm.DB) error {
 					return db.Unscoped().Where("user_id = ?", userID).Delete(&models.Conversation{}).Error
-				},
-			},
-			{
-				label: "chat_conversation_project_skills",
-				run: func(db *gorm.DB) error {
-					return db.Where("project_id IN (?) OR skill_id IN (?)", projectSubQuery, userSkillSubQuery).
-						Delete(&models.ConversationProjectSkill{}).Error
-				},
-			},
-			{
-				label: "chat_conversation_project_knowledge_bases",
-				run: func(db *gorm.DB) error {
-					return db.Where("project_id IN (?) OR knowledge_base_id IN (?)", projectSubQuery, userKnowledgeBaseSubQuery).
-						Delete(&models.ConversationProjectKnowledgeBase{}).Error
-				},
-			},
-			{
-				label: "chat_conversation_projects",
-				run: func(db *gorm.DB) error {
-					return db.Unscoped().Where("user_id = ?", userID).Delete(&models.ConversationProject{}).Error
 				},
 			},
 			{

@@ -41,47 +41,20 @@ type ListConversationsInput struct {
 	PageSize      int
 	StatusFilter  string
 	StarredFilter string
-	ProjectFilter string
 	SearchQuery   string
 }
 
 // CreateConversation 创建用户新会话。
-func (s *Service) CreateConversation(ctx context.Context, userID uint, title string, modelName string, projectPublicID string) (*model.Conversation, error) {
+func (s *Service) CreateConversation(ctx context.Context, userID uint, title string, modelName string) (*model.Conversation, error) {
 	normalizedTitle := strings.TrimSpace(title)
 	if normalizedTitle == "" {
 		normalizedTitle = "新对话"
 	}
 
 	normalizedModel := strings.TrimSpace(modelName)
-	var projectID *uint
-	var project *model.ConversationProject
-	if normalizedProjectID := strings.TrimSpace(projectPublicID); normalizedProjectID != "" {
-		resolvedProject, err := s.repo.GetConversationProjectByPublicID(ctx, userID, normalizedProjectID)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return nil, ErrConversationProjectNotFound
-			}
-			return nil, err
-		}
-		project = resolvedProject
-		projectID = &project.ID
-		if normalizedModel == "" {
-			projectDefaultModel := strings.TrimSpace(project.DefaultModel)
-			if projectDefaultModel != "" {
-				available, availabilityErr := s.isAvailableConversationProjectDefaultModel(ctx, userID, projectDefaultModel)
-				if availabilityErr != nil {
-					return nil, availabilityErr
-				}
-				if available {
-					normalizedModel = projectDefaultModel
-				}
-			}
-		}
-	}
 
 	item := &model.Conversation{
 		UserID:          userID,
-		ProjectID:       projectID,
 		PublicID:        normalizePublicID(uuid.NewString()),
 		Title:           normalizedTitle,
 		LabelsJSON:      "[]",
@@ -97,11 +70,6 @@ func (s *Service) CreateConversation(ctx context.Context, userID uint, title str
 	if err := s.repo.CreateConversation(ctx, item); err != nil {
 		return nil, err
 	}
-	if project != nil {
-		item.ProjectPublicID = project.PublicID
-		item.ProjectName = project.Name
-		item.ProjectSystemPrompt = project.SystemPrompt
-	}
 	return item, nil
 }
 
@@ -114,7 +82,6 @@ func (s *Service) ListConversations(ctx context.Context, input ListConversations
 		Limit:         limit,
 		StatusFilter:  input.StatusFilter,
 		StarredFilter: input.StarredFilter,
-		ProjectFilter: normalizeConversationProjectFilter(input.ProjectFilter),
 		SearchQuery:   input.SearchQuery,
 	})
 }

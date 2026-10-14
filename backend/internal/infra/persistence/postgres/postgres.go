@@ -117,7 +117,6 @@ func migrate(db *gorm.DB, cfg config.Config) error {
 		"llm_platform_models":            "平台模型表",
 		"llm_model_routes":               "平台模型路由绑定表",
 		"chat_conversations":             "聊天会话表",
-		"chat_conversation_projects":     "会话项目分组表",
 		"chat_messages":                  "会话消息表",
 		"chat_feedback":                  "会话消息反馈表",
 		"chat_attachments":               "多模态附件元信息表",
@@ -143,7 +142,6 @@ func migrate(db *gorm.DB, cfg config.Config) error {
 		"user_settings":                  "用户个人偏好配置表",
 		"file_chunks":                    "RAG文件分片表",
 	}
-	tableComments["chat_conversation_project_skills"] = "项目默认 Skill 关联表"
 
 	for table, comment := range tableComments {
 		statement := fmt.Sprintf(`COMMENT ON TABLE "%s" IS '%s'`, table, escapeSQLLiteral(comment))
@@ -322,25 +320,10 @@ func applyIdentityProviderBaseline(db *gorm.DB) error {
 
 func applyConversationBaselineIndexes(db *gorm.DB) error {
 	statements := []string{
-		`ALTER TABLE "chat_conversations"
-		ADD COLUMN IF NOT EXISTS "project_id" bigint`,
-		`COMMENT ON COLUMN "chat_conversations"."project_id" IS '项目分组ID'`,
-		`ALTER TABLE "chat_conversation_projects"
-		ADD COLUMN IF NOT EXISTS "system_prompt" text NOT NULL DEFAULT ''`,
-		`COMMENT ON COLUMN "chat_conversation_projects"."system_prompt" IS '项目级系统提示词'`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_status_starred_updated_at
 		ON "chat_conversations" ("user_id", "status", "is_starred", "updated_at" DESC, "id" DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_status_starred_starred_at
 		ON "chat_conversations" ("user_id", "status", "is_starred", "starred_at" DESC, "id" DESC)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_conversation_projects_public_id
-		ON "chat_conversation_projects" ("public_id")
-		WHERE deleted_at IS NULL`,
-		`CREATE INDEX IF NOT EXISTS idx_chat_conversation_projects_user_status_sort
-		ON "chat_conversation_projects" ("user_id", "status", "sort_order" ASC, "id" DESC)
-		WHERE deleted_at IS NULL`,
-		`CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_project_status_updated
-		ON "chat_conversations" ("user_id", "project_id", "status", "updated_at" DESC, "id" DESC)
-		WHERE deleted_at IS NULL`,
 		`ALTER TABLE "chat_messages"
 		ADD COLUMN IF NOT EXISTS "reasoning_content" text NOT NULL DEFAULT ''`,
 		`COMMENT ON COLUMN "chat_messages"."reasoning_content" IS '上游推理内容回灌上下文'`,

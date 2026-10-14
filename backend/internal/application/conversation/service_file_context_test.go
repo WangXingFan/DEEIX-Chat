@@ -695,3 +695,11 @@ func TestInjectUserContextCombinesDataContexts(t *testing.T) {
 		}
 	}
 }
+
+type knowledgeBaseResolverStub struct {
+	resolveFiles func(context.Context, uint, []string) ([]domainknowledgebase.KnowledgeBase, []model.FileObject, error)
+}
+
+func (s knowledgeBaseResolverStub) ResolveFiles(ctx context.Context, userID uint, publicIDs []string) ([]domainknowledgebase.KnowledgeBase, []model.FileObject, error) {
+	return s.resolveFiles(ctx, userID, publicIDs)
+}

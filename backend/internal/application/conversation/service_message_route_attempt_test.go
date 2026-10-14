@@ -18,9 +18,8 @@ func TestBuildMessageRoutePromptRebuildsRouteSpecificFields(t *testing.T) {
 		{Role: "user", Content: "follow up"},
 	}
 	baseInput := messageRoutePromptInput{
-		UserContent:         "follow up",
-		DomainMessages:      domainMessages,
-		ProjectSystemPrompt: "project policy",
+		UserContent:    "follow up",
+		DomainMessages: domainMessages,
 		Config: config.Config{
 			DefaultSystemPrompt: "platform policy",
 		},

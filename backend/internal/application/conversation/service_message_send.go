@@ -574,7 +574,6 @@ func (s *Service) sendMessageInternal(
 	recordSkillPromptTrace(traceRecorder, skillPrompts)
 	routePromptInput := messageRoutePromptInput{
 		UserContent:             input.Content,
-		ProjectSystemPrompt:     conversation.ProjectSystemPrompt,
 		HTMLVisualPromptEnabled: input.HTMLVisualPromptEnabled,
 		DomainMessages:          promptScope.activeMessages(),
 		StableAttachments:       stableFullContextAttachments,
