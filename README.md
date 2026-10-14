@@ -38,7 +38,7 @@ The system is designed around simple deployment, efficient static delivery, and 
 | --- | --- |
 | Conversations | A multimodal chat interface for daily use, with streaming, branches, retries, edits, feedback, rich rendering, and traceable model execution metadata. |
 | Models and routing | A platform-model layer for upstream channels, real models, route bindings, priority, weights, circuit breaking, vendor mapping, and capability configuration. Users can add private upstreams and models themselves; private model keys are isolated per user and always route only to their owning upstream. |
-| Protocols and adaptation | Unified support for OpenAI, Anthropic, Google/Gemini, xAI, OpenRouter, and OpenAI-compatible protocols across text, image, tools, and provider-native capability differences. |
+| Protocols and adaptation | Unified support for OpenAI, Anthropic, Google/Gemini, xAI, OpenRouter, and OpenAI-compatible protocols across text, tools, and provider-native capability differences. |
 | Files and retrieval | File upload, preview, extraction, OCR, storage quota, full-context injection, chunking, embeddings, and semantic retrieval so file content can naturally enter the conversation context. |
 | Context and memory | Message windows, token budgets, summary compression, conversation memory, long-term memory, and RAG evidence records for controlled-cost continuity. |
 | Billing and payments | Model pricing, per-call tool pricing, subscriptions, top-ups, balances, usage ledgers, billing snapshots, Stripe Checkout, EPay, and webhook validation. |
@@ -47,7 +47,6 @@ The system is designed around simple deployment, efficient static delivery, and 
 | Deployment and operations | Single-runtime frontend/API serving, Docker deployment, SQLite or PostgreSQL, in-memory cache or Redis, S3-compatible storage, Swagger, structured logs, version endpoint, GeoIP, and OpenTelemetry. |
 
 <p align="center">
-  <img src="./docs/assets/screenshots/DEEIX-Chat-Image.png" alt="DEEIX Chat image generation" width="49.45%" />
   <img src="./docs/assets/screenshots/DEEIX-Chat-Dark.png" alt="DEEIX Chat dark mode" width="49.45%" />
 </p>
 
@@ -462,7 +461,7 @@ Static configuration environment variables:
 
 Authentication, registration, conversation settings, model option policies, file processing, RAG, embedding, billing, and payments are runtime business settings, not static YAML configuration. Their defaults are seeded by the backend and maintained in the admin console.
 
-When SSRF protection is enabled in production, administrator-saved model, Embedding, OIDC/OAuth2, and custom Turnstile endpoints are authorized locally by exact origin (`scheme + host + port`) and do not require entries in the global allowlist. Model and Embedding redirects retain standard compatibility: public cross-origin targets are allowed, while private cross-origin targets must match `SSRF_ALLOWED_HOSTS` or `SSRF_ALLOWED_CIDRS`; OIDC/OAuth2 and Turnstile keep their stricter identity boundary. Generated media is downloaded, validated, and stored by the backend: a private artifact URL inherits trust only when it has the same origin as the selected model endpoint; public cross-origin artifact URLs remain subject to the strict public-network policy, and private cross-origin artifact URLs are blocked. The global allowlist also remains available for deployment-level integrations that cannot be tied to an administrator-saved endpoint, such as selected GeoIP or extraction deployments. Link-local, multicast, unspecified, and known metadata targets always remain blocked. Invalid allowlist entries stop backend startup, and global allowlist changes require a restart.
+When SSRF protection is enabled in production, administrator-saved model, Embedding, OIDC/OAuth2, and custom Turnstile endpoints are authorized locally by exact origin (`scheme + host + port`) and do not require entries in the global allowlist. Model and Embedding redirects retain standard compatibility: public cross-origin targets are allowed, while private cross-origin targets must match `SSRF_ALLOWED_HOSTS` or `SSRF_ALLOWED_CIDRS`; OIDC/OAuth2 and Turnstile keep their stricter identity boundary. The global allowlist also remains available for deployment-level integrations that cannot be tied to an administrator-saved endpoint, such as selected GeoIP or extraction deployments. Link-local, multicast, unspecified, and known metadata targets always remain blocked. Invalid allowlist entries stop backend startup, and global allowlist changes require a restart.
 
 ### OAuth callbacks for Web, App, and Desktop
 

@@ -114,7 +114,6 @@ Next.js 的 route group（`(app)`、`(auth)`、`(project)`、`(shell)`）只用�
 | `/chat` | 对话工作区 |
 | `/recent` | 最近会话 |
 | `/knowledge-bases` | 知识库管理 |
-| `/preview/image-loading` | 开发用图片生成加载态预览 |
 | `/settings/general` | 通用偏好 |
 | `/settings/chat` | 对话偏好 |
 | `/settings/account` | 账户与身份源 |
