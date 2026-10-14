@@ -1549,7 +1549,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "管理员分页查看对话运行轨迹、工具、MCP 与处理事件",
+                "description": "管理员分页查看对话运行轨迹与处理事件",
                 "consumes": [
                     "application/json"
                 ],
@@ -5307,453 +5307,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/AdminErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/servers": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员查看已配置的 MCP 服务及其工具统计",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "获取 MCP 服务列表",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ServerListResponseDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员创建一个 MCP 服务配置",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "创建 MCP 服务",
-                "parameters": [
-                    {
-                        "description": "MCP 服务配置",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/CreateServerRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ServerDataResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/servers/order": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员保存 MCP 服务及其工具的展示顺序",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "调整 MCP 服务及工具顺序",
-                "parameters": [
-                    {
-                        "description": "MCP 排序配置",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ReorderServersRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ServerToolOrderListResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/servers/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员删除一个 MCP 服务及其工具",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "删除 MCP 服务",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "MCP 服务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/DeleteServerResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员更新一个 MCP 服务配置",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "更新 MCP 服务",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "MCP 服务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "MCP 服务配置",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/CreateServerRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ServerDataResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/servers/{id}/sync": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员从 MCP 服务同步工具定义",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "同步 MCP 工具",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "MCP 服务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否用远端元数据覆盖管理员自定义的工具名称和说明",
-                        "name": "overwrite_customized_metadata",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ToolListResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/servers/{id}/tools": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员查看指定 MCP 服务已同步的工具",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "获取 MCP 服务工具",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "MCP 服务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ToolListResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/servers/{id}/tools/status": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员批量启用或停用指定 MCP 服务的工具",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "批量更新 MCP 工具状态",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "MCP 服务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "MCP 工具状态",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/UpdateServerToolsStatusRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ToolListResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/mcp/tools/{id}": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "管理员更新 MCP 工具的展示信息、附件处理配置或状态",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin-mcp"
-                ],
-                "summary": "更新 MCP 工具",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "MCP 工具 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "MCP 工具配置",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/UpdateToolRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ToolResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
                         }
                     }
                 }
@@ -9962,68 +9515,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/conversation-runs/{run_id}/tool-calls/{tool_call_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "查询当前用户指定会话运行内的持久化工具调用结果；超限字段仅返回原始大小与省略标记",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "查询工具调用结果详情",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "运行 ID",
-                        "name": "run_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "工具调用 ID",
-                        "name": "tool_call_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationToolCallDetailResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/conversations": {
             "get": {
                 "security": [
@@ -12918,37 +12409,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/mcp/tools": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "获取当前聊天侧可选择的 MCP 工具",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "mcp"
-                ],
-                "summary": "获取可用 MCP 工具",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ToolListResponseDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/McpErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/me": {
             "get": {
                 "security": [
@@ -14464,30 +13924,6 @@ const docTemplate = `{
                     "settings"
                 ],
                 "summary": "查询公开登录页配置",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/Envelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/settings/mcp-policy": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "查询 MCP 工具运行策略",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -16206,15 +15642,6 @@ const docTemplate = `{
                         "usage"
                     ]
                 },
-                "nativeToolBillingEnabled": {
-                    "type": "boolean"
-                },
-                "nativeToolPricing": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/NativeToolPricingRequest"
-                    }
-                },
                 "prepaidAmountUSD": {
                     "type": "number",
                     "minimum": 0
@@ -16230,8 +15657,6 @@ const docTemplate = `{
                 "displayCurrency",
                 "epayTypes",
                 "mode",
-                "nativeToolBillingEnabled",
-                "nativeToolPricing",
                 "paymentProviders",
                 "prepaidAmountNanousd",
                 "prepaidAmountUSD",
@@ -16249,15 +15674,6 @@ const docTemplate = `{
                 },
                 "mode": {
                     "type": "string"
-                },
-                "nativeToolBillingEnabled": {
-                    "type": "boolean"
-                },
-                "nativeToolPricing": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/NativeToolPricingResponse"
-                    }
                 },
                 "paymentProviders": {
                     "type": "array",
@@ -17932,8 +17348,6 @@ const docTemplate = `{
                 "status",
                 "summary",
                 "title",
-                "toolCallID",
-                "toolName",
                 "updatedAt",
                 "upstreamModelName",
                 "upstreamName",
@@ -18048,12 +17462,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "title": {
-                    "type": "string"
-                },
-                "toolCallID": {
-                    "type": "string"
-                },
-                "toolName": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -18264,12 +17672,10 @@ const docTemplate = `{
                 "color",
                 "createdAt",
                 "defaultKnowledgeBaseIDs",
-                "defaultMCPToolIDs",
                 "defaultModel",
                 "defaultSkillIDs",
                 "description",
                 "icon",
-                "mcpDefaultMode",
                 "name",
                 "publicID",
                 "sortOrder",
@@ -18290,12 +17696,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "defaultMCPToolIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
                 "defaultModel": {
                     "type": "string"
                 },
@@ -18309,9 +17709,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "icon": {
-                    "type": "string"
-                },
-                "mcpDefaultMode": {
                     "type": "string"
                 },
                 "name": {
@@ -18553,68 +17950,6 @@ const docTemplate = `{
                 }
             }
         },
-        "ConversationToolCallDetailResponse": {
-            "type": "object",
-            "required": [
-                "errorJSON",
-                "errorOmitted",
-                "errorSizeBytes",
-                "outputJSON",
-                "outputOmitted",
-                "outputSizeBytes",
-                "runID",
-                "status",
-                "toolCallID",
-                "toolName"
-            ],
-            "properties": {
-                "errorJSON": {
-                    "type": "string"
-                },
-                "errorOmitted": {
-                    "type": "boolean"
-                },
-                "errorSizeBytes": {
-                    "type": "integer"
-                },
-                "outputJSON": {
-                    "type": "string"
-                },
-                "outputOmitted": {
-                    "type": "boolean"
-                },
-                "outputSizeBytes": {
-                    "type": "integer"
-                },
-                "runID": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "toolCallID": {
-                    "type": "string"
-                },
-                "toolName": {
-                    "type": "string"
-                }
-            }
-        },
-        "ConversationToolCallDetailResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ConversationToolCallDetailResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
         "ConversationUpdateResponseDoc": {
             "type": "object",
             "required": [
@@ -18692,13 +18027,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "defaultMCPToolIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
                 "defaultModel": {
                     "type": "string",
                     "maxLength": 128
@@ -18717,13 +18045,6 @@ const docTemplate = `{
                 "icon": {
                     "type": "string",
                     "maxLength": 32
-                },
-                "mcpDefaultMode": {
-                    "type": "string",
-                    "enum": [
-                        "inherit",
-                        "custom"
-                    ]
                 },
                 "name": {
                     "type": "string",
@@ -18957,30 +18278,6 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 100,
                     "minimum": 1
-                }
-            }
-        },
-        "CreateServerRequest": {
-            "type": "object",
-            "required": [
-                "baseURL",
-                "name"
-            ],
-            "properties": {
-                "authToken": {
-                    "type": "string"
-                },
-                "baseURL": {
-                    "type": "string"
-                },
-                "headersJSON": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
                 }
             }
         },
@@ -19248,32 +18545,6 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/DeletePermissionGroupResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
-        "DeleteServerResponse": {
-            "type": "object",
-            "required": [
-                "deleted"
-            ],
-            "properties": {
-                "deleted": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "DeleteServerResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/DeleteServerResponse"
                 },
                 "errorMsg": {
                     "type": "string"
@@ -21280,17 +20551,6 @@ const docTemplate = `{
                 }
             }
         },
-        "McpErrorDoc": {
-            "type": "object",
-            "required": [
-                "errorMsg"
-            ],
-            "properties": {
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
         "MeResponse": {
             "type": "object",
             "required": [
@@ -23185,69 +22445,6 @@ const docTemplate = `{
                 }
             }
         },
-        "NativeToolPricingRequest": {
-            "type": "object",
-            "properties": {
-                "billable": {
-                    "type": "boolean"
-                },
-                "priceLabel": {
-                    "type": "string"
-                },
-                "priceNanousd": {
-                    "type": "integer"
-                },
-                "toolKey": {
-                    "type": "string"
-                },
-                "unit": {
-                    "type": "string"
-                }
-            }
-        },
-        "NativeToolPricingResponse": {
-            "type": "object",
-            "required": [
-                "billable",
-                "description",
-                "label",
-                "priceLabel",
-                "priceNanousd",
-                "provider",
-                "toolKey",
-                "type",
-                "unit"
-            ],
-            "properties": {
-                "billable": {
-                    "type": "boolean"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "priceLabel": {
-                    "type": "string"
-                },
-                "priceNanousd": {
-                    "type": "integer"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "toolKey": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "unit": {
-                    "type": "string"
-                }
-            }
-        },
         "OpenRouterOfficialPricingDataResponse": {
             "type": "object",
             "required": [
@@ -24992,38 +24189,6 @@ const docTemplate = `{
                 }
             }
         },
-        "ReorderServerOrderItem": {
-            "type": "object",
-            "required": [
-                "serverID",
-                "toolIDs"
-            ],
-            "properties": {
-                "serverID": {
-                    "type": "integer"
-                },
-                "toolIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "ReorderServersRequest": {
-            "type": "object",
-            "required": [
-                "servers"
-            ],
-            "properties": {
-                "servers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ReorderServerOrderItem"
-                    }
-                }
-            }
-        },
         "ResetUpstreamCircuitResponseDoc": {
             "type": "object",
             "required": [
@@ -25161,7 +24326,6 @@ const docTemplate = `{
                 "startedAt",
                 "status",
                 "taskType",
-                "toolCallsCount",
                 "totalLatencyMS",
                 "updatedAt",
                 "upstreamID",
@@ -25246,9 +24410,6 @@ const docTemplate = `{
                 },
                 "taskType": {
                     "type": "string"
-                },
-                "toolCallsCount": {
-                    "type": "integer"
                 },
                 "totalLatencyMS": {
                     "type": "integer"
@@ -25345,13 +24506,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 32
                 },
-                "selectedToolIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
                 "skillIDs": {
                     "type": "array",
                     "maxItems": 128,
@@ -25395,169 +24549,6 @@ const docTemplate = `{
                 },
                 "errorMsg": {
                     "type": "string"
-                }
-            }
-        },
-        "ServerDataResponse": {
-            "type": "object",
-            "required": [
-                "server"
-            ],
-            "properties": {
-                "server": {
-                    "$ref": "#/definitions/ServerResponse"
-                }
-            }
-        },
-        "ServerDataResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ServerDataResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
-        "ServerListResponse": {
-            "type": "object",
-            "required": [
-                "results"
-            ],
-            "properties": {
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ServerResponse"
-                    }
-                }
-            }
-        },
-        "ServerListResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ServerListResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
-        "ServerResponse": {
-            "type": "object",
-            "required": [
-                "activeToolCount",
-                "baseURL",
-                "createdAt",
-                "headersJSON",
-                "id",
-                "lastError",
-                "lastSyncedAt",
-                "name",
-                "requiresToolMetadataSyncConfirmation",
-                "sortOrder",
-                "status",
-                "toolCount",
-                "updatedAt"
-            ],
-            "properties": {
-                "activeToolCount": {
-                    "type": "integer"
-                },
-                "baseURL": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "headersJSON": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "lastError": {
-                    "type": "string"
-                },
-                "lastSyncedAt": {
-                    "type": "string",
-                    "x-nullable": true,
-                    "x-omitempty": false
-                },
-                "name": {
-                    "type": "string"
-                },
-                "requiresToolMetadataSyncConfirmation": {
-                    "type": "boolean"
-                },
-                "sortOrder": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "toolCount": {
-                    "type": "integer"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "ServerToolOrderListResponse": {
-            "type": "object",
-            "required": [
-                "results"
-            ],
-            "properties": {
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ServerToolOrderResponse"
-                    }
-                }
-            }
-        },
-        "ServerToolOrderListResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ServerToolOrderListResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
-        "ServerToolOrderResponse": {
-            "type": "object",
-            "required": [
-                "server",
-                "tools"
-            ],
-            "properties": {
-                "server": {
-                    "$ref": "#/definitions/ServerResponse"
-                },
-                "tools": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ToolResponse"
-                    }
                 }
             }
         },
@@ -26304,13 +25295,6 @@ const docTemplate = `{
                     "type": "object",
                     "additionalProperties": {}
                 },
-                "selectedToolIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
                 "sessionID": {
                     "type": "string",
                     "maxLength": 64
@@ -26321,130 +25305,6 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
-                }
-            }
-        },
-        "ToolListResponse": {
-            "type": "object",
-            "required": [
-                "results"
-            ],
-            "properties": {
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ToolResponse"
-                    }
-                }
-            }
-        },
-        "ToolListResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ToolListResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
-                }
-            }
-        },
-        "ToolResponse": {
-            "type": "object",
-            "required": [
-                "attachmentArgument",
-                "attachmentEncoding",
-                "attachmentInputMode",
-                "attachmentPromptArgument",
-                "createdAt",
-                "description",
-                "displayName",
-                "id",
-                "inputSchemaJSON",
-                "name",
-                "priceNanousd",
-                "serverID",
-                "serverName",
-                "sortOrder",
-                "status",
-                "updatedAt"
-            ],
-            "properties": {
-                "attachmentArgument": {
-                    "type": "string"
-                },
-                "attachmentEncoding": {
-                    "type": "string",
-                    "enum": [
-                        "",
-                        "base64",
-                        "data_url"
-                    ]
-                },
-                "attachmentInputMode": {
-                    "type": "string",
-                    "enum": [
-                        "none",
-                        "image"
-                    ]
-                },
-                "attachmentPromptArgument": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "inputSchemaJSON": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "priceNanousd": {
-                    "type": "integer"
-                },
-                "serverID": {
-                    "type": "integer"
-                },
-                "serverName": {
-                    "type": "string"
-                },
-                "sortOrder": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "ToolResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ToolResponse"
-                },
-                "errorMsg": {
-                    "type": "string"
                 }
             }
         },
@@ -26757,13 +25617,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "defaultMCPToolIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
-                },
                 "defaultModel": {
                     "type": "string",
                     "maxLength": 128
@@ -26782,13 +25635,6 @@ const docTemplate = `{
                 "icon": {
                     "type": "string",
                     "maxLength": 32
-                },
-                "mcpDefaultMode": {
-                    "type": "string",
-                    "enum": [
-                        "inherit",
-                        "custom"
-                    ]
                 },
                 "name": {
                     "type": "string",
@@ -27053,63 +25899,6 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 10000,
                     "minimum": 0
-                }
-            }
-        },
-        "UpdateServerToolsStatusRequest": {
-            "type": "object",
-            "required": [
-                "status",
-                "toolIDs"
-            ],
-            "properties": {
-                "status": {
-                    "type": "string"
-                },
-                "toolIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-        "UpdateToolRequest": {
-            "type": "object",
-            "properties": {
-                "attachmentArgument": {
-                    "type": "string"
-                },
-                "attachmentEncoding": {
-                    "type": "string",
-                    "enum": [
-                        "base64",
-                        "data_url"
-                    ]
-                },
-                "attachmentInputMode": {
-                    "type": "string",
-                    "enum": [
-                        "none",
-                        "image"
-                    ]
-                },
-                "attachmentPromptArgument": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "priceNanousd": {
-                    "description": "PriceNanousd 单次调用价格（nano USD），0 表示不单独计费。",
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "status": {
-                    "type": "string"
                 }
             }
         },

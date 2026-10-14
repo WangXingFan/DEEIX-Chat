@@ -311,8 +311,6 @@ export interface BillingConfigDataResponse {
 export interface BillingConfigRequest {
   displayCurrency?: "USD" | "CNY";
   mode: "self" | "period" | "usage";
-  nativeToolBillingEnabled?: boolean;
-  nativeToolPricing?: NativeToolPricingRequest[];
   /** @min 0 */
   prepaidAmountUSD?: number;
   usdToCNYRate?: number;
@@ -322,8 +320,6 @@ export interface BillingConfigResponse {
   displayCurrency: string;
   epayTypes: PaymentTypeResponse[];
   mode: string;
-  nativeToolBillingEnabled: boolean;
-  nativeToolPricing: NativeToolPricingResponse[];
   paymentProviders: string[];
   prepaidAmountNanousd: number;
   prepaidAmountUSD: number;
@@ -855,8 +851,6 @@ export interface ConversationEventResponse {
   status: string;
   summary: string;
   title: string;
-  toolCallID: string;
-  toolName: string;
   updatedAt: string;
   upstreamModelName: string;
   upstreamName: string;
@@ -918,12 +912,10 @@ export interface ConversationProjectResponse {
   color: string;
   createdAt: string;
   defaultKnowledgeBaseIDs: string[];
-  defaultMCPToolIDs: number[];
   defaultModel: string;
   defaultSkillIDs: number[];
   description: string;
   icon: string;
-  mcpDefaultMode: string;
   name: string;
   publicID: string;
   sortOrder: number;
@@ -993,24 +985,6 @@ export interface ConversationSearchResultResponse {
   updatedAt: string;
 }
 
-export interface ConversationToolCallDetailResponse {
-  errorJSON: string;
-  errorOmitted: boolean;
-  errorSizeBytes: number;
-  outputJSON: string;
-  outputOmitted: boolean;
-  outputSizeBytes: number;
-  runID: string;
-  status: string;
-  toolCallID: string;
-  toolName: string;
-}
-
-export interface ConversationToolCallDetailResponseDoc {
-  data: ConversationToolCallDetailResponse;
-  errorMsg: string;
-}
-
 export interface ConversationUpdateResponseDoc {
   data: ConversationResponse;
   errorMsg: string;
@@ -1041,8 +1015,6 @@ export interface CreateConversationProjectRequest {
   color?: string;
   /** @maxItems 8 */
   defaultKnowledgeBaseIDs: string[];
-  /** @maxItems 128 */
-  defaultMCPToolIDs?: number[];
   /** @maxLength 128 */
   defaultModel?: string;
   /** @maxItems 128 */
@@ -1051,7 +1023,6 @@ export interface CreateConversationProjectRequest {
   description?: string;
   /** @maxLength 32 */
   icon?: string;
-  mcpDefaultMode?: "inherit" | "custom";
   /** @maxLength 80 */
   name: string;
   /** @maxLength 12000 */
@@ -1163,14 +1134,6 @@ export interface CreateRedemptionCodeRequest {
    * @max 100
    */
   quantity?: number;
-}
-
-export interface CreateServerRequest {
-  authToken?: string;
-  baseURL: string;
-  headersJSON?: string;
-  name: string;
-  status?: string;
 }
 
 export interface CreateUpstreamRequest {
@@ -1285,15 +1248,6 @@ export interface DeletePermissionGroupResponse {
 
 export interface DeletePermissionGroupResponseDoc {
   data: DeletePermissionGroupResponse;
-  errorMsg: string;
-}
-
-export interface DeleteServerResponse {
-  deleted: boolean;
-}
-
-export interface DeleteServerResponseDoc {
-  data: DeleteServerResponse;
   errorMsg: string;
 }
 
@@ -1929,10 +1883,6 @@ export interface LogoutResponseDoc {
   errorMsg: string;
 }
 
-export interface McpErrorDoc {
-  errorMsg: string;
-}
-
 export interface MeResponse {
   user: AuthUserResponse;
 }
@@ -2483,26 +2433,6 @@ export interface ModelVendorResponse {
   name: string;
   sortOrder: number;
   updatedAt: string;
-}
-
-export interface NativeToolPricingRequest {
-  billable?: boolean;
-  priceLabel?: string;
-  priceNanousd?: number;
-  toolKey?: string;
-  unit?: string;
-}
-
-export interface NativeToolPricingResponse {
-  billable: boolean;
-  description: string;
-  label: string;
-  priceLabel: string;
-  priceNanousd: number;
-  provider: string;
-  toolKey: string;
-  type: string;
-  unit: string;
 }
 
 export interface OpenRouterOfficialPricingDataResponse {
@@ -3089,15 +3019,6 @@ export interface ReorderModelsRequest {
   modelIDs: number[];
 }
 
-export interface ReorderServerOrderItem {
-  serverID: number;
-  toolIDs: number[];
-}
-
-export interface ReorderServersRequest {
-  servers: ReorderServerOrderItem[];
-}
-
 export interface ResetUpstreamCircuitResponseDoc {
   data: CircuitResetResponse;
   errorMsg: string;
@@ -3165,7 +3086,6 @@ export interface RunResponse {
   startedAt: string;
   status: string;
   taskType: string;
-  toolCallsCount: number;
   totalLatencyMS: number;
   updatedAt: string;
   upstreamID: number;
@@ -3195,8 +3115,6 @@ export interface SendMessageRequest {
   /** @maxLength 32 */
   parentMessagePublicID?: string;
   /** @maxItems 128 */
-  selectedToolIDs?: number[];
-  /** @maxItems 128 */
   skillIDs?: number[];
   /** @maxLength 32 */
   sourceMessagePublicID?: string;
@@ -3211,54 +3129,6 @@ export interface SendMessageResponse {
 export interface SendMessageResponseDoc {
   data: SendMessageResponse;
   errorMsg: string;
-}
-
-export interface ServerDataResponse {
-  server: ServerResponse;
-}
-
-export interface ServerDataResponseDoc {
-  data: ServerDataResponse;
-  errorMsg: string;
-}
-
-export interface ServerListResponse {
-  results: ServerResponse[];
-}
-
-export interface ServerListResponseDoc {
-  data: ServerListResponse;
-  errorMsg: string;
-}
-
-export interface ServerResponse {
-  activeToolCount: number;
-  baseURL: string;
-  createdAt: string;
-  headersJSON: string;
-  id: number;
-  lastError: string;
-  lastSyncedAt: string | null;
-  name: string;
-  requiresToolMetadataSyncConfirmation: boolean;
-  sortOrder: number;
-  status: string;
-  toolCount: number;
-  updatedAt: string;
-}
-
-export interface ServerToolOrderListResponse {
-  results: ServerToolOrderResponse[];
-}
-
-export interface ServerToolOrderListResponseDoc {
-  data: ServerToolOrderListResponse;
-  errorMsg: string;
-}
-
-export interface ServerToolOrderResponse {
-  server: ServerResponse;
-  tools: ToolResponse[];
 }
 
 export interface SetConversationArchiveRequest {
@@ -3512,45 +3382,10 @@ export interface TemporaryChatMessageRequest {
   /** @maxLength 128 */
   model: string;
   options?: Record<string, any>;
-  /** @maxItems 128 */
-  selectedToolIDs?: number[];
   /** @maxLength 64 */
   sessionID: string;
   /** @maxItems 128 */
   skillIDs?: number[];
-}
-
-export interface ToolListResponse {
-  results: ToolResponse[];
-}
-
-export interface ToolListResponseDoc {
-  data: ToolListResponse;
-  errorMsg: string;
-}
-
-export interface ToolResponse {
-  attachmentArgument: string;
-  attachmentEncoding: "" | "base64" | "data_url";
-  attachmentInputMode: "none" | "image";
-  attachmentPromptArgument: string;
-  createdAt: string;
-  description: string;
-  displayName: string;
-  id: number;
-  inputSchemaJSON: string;
-  name: string;
-  priceNanousd: number;
-  serverID: number;
-  serverName: string;
-  sortOrder: number;
-  status: string;
-  updatedAt: string;
-}
-
-export interface ToolResponseDoc {
-  data: ToolResponse;
-  errorMsg: string;
 }
 
 export interface TwoFactorCodeRequest {
@@ -3670,8 +3505,6 @@ export interface UpdateConversationProjectRequest {
   color?: string;
   /** @maxItems 8 */
   defaultKnowledgeBaseIDs: string[];
-  /** @maxItems 128 */
-  defaultMCPToolIDs?: number[];
   /** @maxLength 128 */
   defaultModel?: string;
   /** @maxItems 128 */
@@ -3680,7 +3513,6 @@ export interface UpdateConversationProjectRequest {
   description?: string;
   /** @maxLength 32 */
   icon?: string;
-  mcpDefaultMode?: "inherit" | "custom";
   /** @maxLength 80 */
   name?: string;
   status?: "active" | "archived";
@@ -3794,26 +3626,6 @@ export interface UpdatePermissionGroupRequest {
    * @max 10000
    */
   rateMultiplierPercent?: number;
-}
-
-export interface UpdateServerToolsStatusRequest {
-  status: string;
-  toolIDs: number[];
-}
-
-export interface UpdateToolRequest {
-  attachmentArgument?: string;
-  attachmentEncoding?: "base64" | "data_url";
-  attachmentInputMode?: "none" | "image";
-  attachmentPromptArgument?: string;
-  description?: string;
-  displayName?: string;
-  /**
-   * PriceNanousd 单次调用价格（nano USD），0 表示不单独计费。
-   * @min 0
-   */
-  priceNanousd?: number;
-  status?: string;
 }
 
 export interface UpdateUpstreamRequest {
@@ -5022,7 +4834,7 @@ export namespace Admin {
   }
 
   /**
-   * @description 管理员分页查看对话运行轨迹、工具、MCP 与处理事件
+   * @description 管理员分页查看对话运行轨迹与处理事件
    * @tags admin
    * @name ConversationEventsList
    * @summary 管理员查询对话事件
@@ -6378,171 +6190,6 @@ export namespace Admin {
     export type RequestBody = CleanupLogsRequest;
     export type RequestHeaders = {};
     export type ResponseBody = CleanupLogsResponseDoc;
-  }
-
-  /**
-   * @description 管理员查看已配置的 MCP 服务及其工具统计
-   * @tags admin-mcp
-   * @name McpServersList
-   * @summary 获取 MCP 服务列表
-   * @request GET:/admin/mcp/servers
-   * @secure
-   */
-  export namespace McpServersList {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ServerListResponseDoc;
-  }
-
-  /**
-   * @description 管理员创建一个 MCP 服务配置
-   * @tags admin-mcp
-   * @name McpServersCreate
-   * @summary 创建 MCP 服务
-   * @request POST:/admin/mcp/servers
-   * @secure
-   */
-  export namespace McpServersCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = CreateServerRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ServerDataResponseDoc;
-  }
-
-  /**
-   * @description 管理员保存 MCP 服务及其工具的展示顺序
-   * @tags admin-mcp
-   * @name McpServersOrderPartialUpdate
-   * @summary 调整 MCP 服务及工具顺序
-   * @request PATCH:/admin/mcp/servers/order
-   * @secure
-   */
-  export namespace McpServersOrderPartialUpdate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = ReorderServersRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ServerToolOrderListResponseDoc;
-  }
-
-  /**
-   * @description 管理员删除一个 MCP 服务及其工具
-   * @tags admin-mcp
-   * @name McpServersDelete
-   * @summary 删除 MCP 服务
-   * @request DELETE:/admin/mcp/servers/{id}
-   * @secure
-   */
-  export namespace McpServersDelete {
-    export type RequestParams = {
-      /** MCP 服务 ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = DeleteServerResponseDoc;
-  }
-
-  /**
-   * @description 管理员更新一个 MCP 服务配置
-   * @tags admin-mcp
-   * @name McpServersPartialUpdate
-   * @summary 更新 MCP 服务
-   * @request PATCH:/admin/mcp/servers/{id}
-   * @secure
-   */
-  export namespace McpServersPartialUpdate {
-    export type RequestParams = {
-      /** MCP 服务 ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = CreateServerRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ServerDataResponseDoc;
-  }
-
-  /**
-   * @description 管理员从 MCP 服务同步工具定义
-   * @tags admin-mcp
-   * @name McpServersSyncCreate
-   * @summary 同步 MCP 工具
-   * @request POST:/admin/mcp/servers/{id}/sync
-   * @secure
-   */
-  export namespace McpServersSyncCreate {
-    export type RequestParams = {
-      /** MCP 服务 ID */
-      id: number;
-    };
-    export type RequestQuery = {
-      /** 是否用远端元数据覆盖管理员自定义的工具名称和说明 */
-      overwrite_customized_metadata?: boolean;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ToolListResponseDoc;
-  }
-
-  /**
-   * @description 管理员查看指定 MCP 服务已同步的工具
-   * @tags admin-mcp
-   * @name McpServersToolsList
-   * @summary 获取 MCP 服务工具
-   * @request GET:/admin/mcp/servers/{id}/tools
-   * @secure
-   */
-  export namespace McpServersToolsList {
-    export type RequestParams = {
-      /** MCP 服务 ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ToolListResponseDoc;
-  }
-
-  /**
-   * @description 管理员批量启用或停用指定 MCP 服务的工具
-   * @tags admin-mcp
-   * @name McpServersToolsStatusPartialUpdate
-   * @summary 批量更新 MCP 工具状态
-   * @request PATCH:/admin/mcp/servers/{id}/tools/status
-   * @secure
-   */
-  export namespace McpServersToolsStatusPartialUpdate {
-    export type RequestParams = {
-      /** MCP 服务 ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = UpdateServerToolsStatusRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ToolListResponseDoc;
-  }
-
-  /**
-   * @description 管理员更新 MCP 工具的展示信息、附件处理配置或状态
-   * @tags admin-mcp
-   * @name McpToolsPartialUpdate
-   * @summary 更新 MCP 工具
-   * @request PATCH:/admin/mcp/tools/{id}
-   * @secure
-   */
-  export namespace McpToolsPartialUpdate {
-    export type RequestParams = {
-      /** MCP 工具 ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = UpdateToolRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = ToolResponseDoc;
   }
 
   /**
@@ -8166,27 +7813,6 @@ export namespace ConversationRuns {
     export type RequestHeaders = {};
     export type ResponseBody = string;
   }
-
-  /**
-   * @description 查询当前用户指定会话运行内的持久化工具调用结果；超限字段仅返回原始大小与省略标记
-   * @tags chat
-   * @name ToolCallsDetail
-   * @summary 查询工具调用结果详情
-   * @request GET:/conversation-runs/{run_id}/tool-calls/{tool_call_id}
-   * @secure
-   */
-  export namespace ToolCallsDetail {
-    export type RequestParams = {
-      /** 运行 ID */
-      runId: string;
-      /** 工具调用 ID */
-      toolCallId: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationToolCallDetailResponseDoc;
-  }
 }
 
 export namespace Conversations {
@@ -9189,24 +8815,6 @@ export namespace Llm {
   }
 }
 
-export namespace Mcp {
-  /**
-   * @description 获取当前聊天侧可选择的 MCP 工具
-   * @tags mcp
-   * @name ToolsList
-   * @summary 获取可用 MCP 工具
-   * @request GET:/mcp/tools
-   * @secure
-   */
-  export namespace ToolsList {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ToolListResponseDoc;
-  }
-}
-
 export namespace Me {
   /**
    * @description 查询当前登录用户资料
@@ -9703,22 +9311,6 @@ export namespace Settings {
    * @request GET:/settings/login-page
    */
   export namespace LoginPageList {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = Envelope;
-  }
-
-  /**
-   * No description
-   * @tags settings
-   * @name McpPolicyList
-   * @summary 查询 MCP 工具运行策略
-   * @request GET:/settings/mcp-policy
-   * @secure
-   */
-  export namespace McpPolicyList {
     export type RequestParams = {};
     export type RequestQuery = {};
     export type RequestBody = never;
