@@ -49,7 +49,7 @@
     "knowledgeBases": "Knowledge bases",
     "library": "Library",
     "searchTitle": "Search",
-    "searchDescription": "Search conversation titles, labels, projects, and message content",
+    "searchDescription": "Search conversation titles, labels, and message content",
     "searchPlaceholder": "Search conversations or message content",
     "searchLoading": "Searching...",
     "searchLoadingMore": "Loading more conversations...",

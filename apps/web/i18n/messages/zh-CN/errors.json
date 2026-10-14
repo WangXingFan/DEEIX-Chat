@@ -143,16 +143,11 @@
     "messageForkTargetInvalid": "只能从助手回复处分支到新聊天。",
     "messageParentDeleted": "回复的目标消息已被删除，请重试。",
     "noTitleableContent": "当前对话没有可用于生成标题的内容。",
-    "projectLimitExceeded": "已达到对话项目数量上限。",
     "notFound": "对话不存在。"
   },
   "conversationEvent": {
     "invalidId": "对话事件 ID 无效。",
     "notFound": "对话事件不存在。"
-  },
-  "conversationProject": {
-    "invalidId": "对话项目 ID 无效。",
-    "notFound": "对话项目不存在。"
   },
   "conversationRun": {
     "canceled": "生成已取消。",
@@ -303,7 +298,6 @@
     "required": "缺少必填参数。",
     "invalidAppearancePreferences": "外观偏好设置无效。",
     "invalidConversationLabels": "对话标签无效。",
-    "invalidConversationProject": "对话项目请求无效。",
     "invalidConversationRunIds": "对话运行 ID 无效。",
     "invalidDailyActivityDays": "每日活动天数无效。",
     "invalidFile": "文件无效。",
