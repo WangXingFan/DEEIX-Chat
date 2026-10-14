@@ -62,32 +62,32 @@ type RosterImportInput struct {
 
 // RosterImportRow 是名单中一行的处理结果。
 type RosterImportRow struct {
-	Line        int             `json:"line"`
-	Username    string          `json:"username"`
-	DisplayName string          `json:"displayName"`
-	Email       string          `json:"email"`
-	Status      RosterRowStatus `json:"status"`
-	Message     string          `json:"message"`
+	Line        int
+	Username    string
+	DisplayName string
+	Email       string
+	Status      RosterRowStatus
+	Message     string
 }
 
 // RosterCredential 是一次性交付的初始凭据；仅在正式导入成功时返回。
 type RosterCredential struct {
-	Username        string `json:"username"`
-	DisplayName     string `json:"displayName"`
-	InitialPassword string `json:"initialPassword"`
+	Username        string
+	DisplayName     string
+	InitialPassword string
 }
 
 // RosterImportResult 汇总名单导入结果。
 type RosterImportResult struct {
-	Total       int                `json:"total"`
-	Ready       int                `json:"ready"`
-	Imported    int                `json:"imported"`
-	Skipped     int                `json:"skipped"`
-	Invalid     int                `json:"invalid"`
-	Failed      int                `json:"failed"`
-	Truncated   bool               `json:"truncated"`
-	Rows        []RosterImportRow  `json:"rows"`
-	Credentials []RosterCredential `json:"credentials,omitempty"`
+	Total       int
+	Ready       int
+	Imported    int
+	Skipped     int
+	Invalid     int
+	Failed      int
+	Truncated   bool
+	Rows        []RosterImportRow
+	Credentials []RosterCredential
 }
 
 type rosterCandidate struct {
