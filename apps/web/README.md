@@ -35,8 +35,7 @@ apps/web/
 │   ├── conversation/          # 会话：标签、分享/导出菜单、项目子菜单、搜索、默认模型、侧栏列表
 │   ├── file/                  # 文件：预览、展示、处理状态与轮询、删除选项、文件库事件
 │   ├── identity-provider/     # 身份源图标
-│   ├── mcp/                   # MCP 工具选择规则
-│   ├── model/                 # 模型：身份与图标、选择器、选项展示与参数策略、原生工具
+│   ├── model/                 # 模型：身份与图标、选择器、选项展示与参数策略
 │   ├── skill/                 # 技能表单模型
 │   └── user-settings/         # 用户设置存储与对话内容宽度
 ├── features/                  # 按业务域组织页面组件、hooks 和模型
@@ -91,7 +90,7 @@ apps/web/
 
 业务域内部按职责拆分，子目录按需创建：
 
-- `components/`：页面外壳、section、表格、弹窗、图表和编辑器等业务组件。`components/` 根目录只放 feature 的顶层入口（如 `app-files.tsx`、`admin-shell.tsx`）；其余组件放在 `components/sections/`，被多个 section 复用的放在 `components/shared/`（按职责命名，不加 feature 前缀，如 `sortable-list.tsx`）。多页面 feature（`admin`、`settings`）按 `components/sections/<section>/` 组织：入口为 `<domain>-<section>.tsx`（如 `admin-users.tsx`、`settings-account.tsx`），其余文件以 `<section>-` 为前缀（如 `tools-mcp-order-sheet.tsx`）。
+- `components/`：页面外壳、section、表格、弹窗、图表和编辑器等业务组件。`components/` 根目录只放 feature 的顶层入口（如 `app-files.tsx`、`admin-shell.tsx`）；其余组件放在 `components/sections/`，被多个 section 复用的放在 `components/shared/`（按职责命名，不加 feature 前缀，如 `sortable-list.tsx`）。多页面 feature（`admin`、`settings`）按 `components/sections/<section>/` 组织：入口为 `<domain>-<section>.tsx`（如 `admin-users.tsx`、`settings-account.tsx`），其余文件以 `<section>-` 为前缀（如 `users-import-dialog.tsx`）。
 - `context/`：业务域内部共享的上下文状态。
 - `hooks/`：加载、筛选、提交、乐观更新、轮询和批量操作等状态编排；组件不直接调用 API 函数。文件名为 `use-<domain>-<purpose>.ts`，导出的 hook 以 `use<Domain>` 开头；`<domain>` 取 feature 目录名的单数（`files` → `file`、`knowledge-bases` → `knowledge-base`、`library` 为不可数的区域名、保持原样，`settings` 作为产品术语保留复数），`entities/<entity>` 取实体名。管理侧 hook 还需带上 section：`use-admin-<section>-<purpose>.ts`，导出 `useAdmin<Section>...`。映射表见 `scripts/check-architecture.mjs` 的 `FEATURE_DOMAINS`。
 - `model/`：纯业务模型、常量、映射和排序规则，不放 React 副作用和展示文案。
@@ -122,7 +121,7 @@ Next.js 的 route group（`(app)`、`(auth)`、`(project)`、`(shell)`）只用�
 | `/settings/about` | 产品信息 |
 | `/admin` | 管理后台首页 |
 | `/admin/knowledge-bases` | 平台知识库 |
-| `/admin/models` | 模型、路由、能力和官方原生工具 |
+| `/admin/models` | 模型、路由和能力 |
 | `/admin/upstreams` | 上游渠道 |
 | `/admin/users` | 用户与账户 |
 | `/desktop/tabs` | 桌面端壳 UI：标签栏 |
@@ -156,7 +155,7 @@ pnpm api:check
 
 前端传输类型必须从 `@deeix/api-contract` 导入。表单草稿、未提交状态、视图模型和格式化结果属于前端模型，可以定义在对应 feature 中；不要复制生成字段，也不要用 `Required<>` 修补后端 requiredness。标准响应沿用生成契约中的 `errorMsg + data` envelope，错误解析统一读取 `errorMsg`。
 
-对话消息的 `processTrace` 由后端产生，前端按职责展示为处理链路、思考链路和工具链路。模型能力 JSON 中的 `defaultOptions`、`optionControls` 和 `nativeToolKeys` 负责默认参数、设置控件和管理员允许的官方原生工具；用户输入最终仍由后端参数策略治理。
+对话消息的 `processTrace` 由后端产生，前端按职责展示为处理链路、思考链路和工具链路。模型能力 JSON 中的 `defaultOptions` 和 `optionControls` 负责默认参数与设置控件；用户输入最终仍由后端参数策略治理。
 
 ## 静态导出与配置
 
@@ -240,7 +239,7 @@ pnpm --filter @deeix/web sync:screenshot-worker
 - Refresh token 在 Web 端只由后端写入 HttpOnly Cookie，桌面端存于系统 keychain；access token 只保存在前端内存中。
 - 用户可见文案（含 `aria-label`）走 i18n；代码注释使用英文。
 - 不在前端硬编码上游模型私有规则；模型参数以模型能力 JSON、用户配置和后端策略为准。
-- 文件、MCP 工具、官方原生工具和消息轨迹只消费后端结构化状态，不在前端复制业务状态机。
+- 文件、知识库检索和消息轨迹只消费后端结构化状态，不在前端复制业务状态机。
 - AI 生成 HTML 只能使用项目允许的安全标签、内联样式属性和 `shared/lib/html-visual-theme.ts` 白名单变量；主题变量变更时同步后端 prompt 并运行相关检查。
 - 图标优先使用 `lucide-react`，新增复杂 UI 时复用现有 Dialog、Sheet、Table、Form、Tabs 和 Switch 组件风格。
 

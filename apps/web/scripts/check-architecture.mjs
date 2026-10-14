@@ -114,7 +114,7 @@ const rules = [
   },
   {
     // Files inside a section directory carry the section name as prefix
-    // (`tools/tools-mcp-order-sheet.tsx`), except the section entry
+    // (`users/admin-users.tsx`), except the section entry
     // `<domain>-<section>.tsx` (`admin-users.tsx`, `settings-account.tsx`).
     // Components shared by several sections live in components/shared/.
     name: "section file prefix",

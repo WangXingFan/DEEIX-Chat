@@ -1,6 +1,6 @@
 # DEEIX Chat Backend
 
-DEEIX Chat 后端是 Go API 服务，负责认证、用户、对话、模型渠道、模型能力、文件处理、知识库、MCP 工具、官方原生工具、记忆、计费、支付、系统设置、审计日志与可观测性等核心业务。
+DEEIX Chat 后端是 Go API 服务，负责认证、用户、对话、模型渠道、模型能力、文件处理、知识库、记忆、计费、支付、系统设置、审计日志与可观测性等核心业务。
 
 ## 技术栈
 
@@ -12,7 +12,6 @@ DEEIX Chat 后端是 Go API 服务，负责认证、用户、对话、模型渠�
 - Swagger (`swag`)
 - S3 兼容对象存储（可选）
 - OpenTelemetry Trace（可选）
-- MCP Streamable HTTP JSON-RPC（可选）
 
 ## 运行时与目录结构
 
@@ -68,7 +67,7 @@ backend/
 - 共享基础设施位于 `internal/infra`，通用响应、请求元数据等位于 `internal/shared`。
 - HTTP DTO 和 Swagger annotation 是传输契约唯一事实源；Handler 在 HTTP 边界把 DTO 转换为 Application Input，不向领域层或基础设施层泄漏 Gin DTO。
 - JSON、校验标签和指针类型必须准确表达必填、可选、可空以及显式 `0`/`false`；不要让前端修补错误的 Swagger 语义。
-- 模型能力 JSON 是请求参数、可视化控件、官方原生工具和图像流式能力的后端事实源。
+- 模型能力 JSON 是请求参数、可视化控件和图像流式能力的后端事实源。
 - 只为明确支持的公开契约保留兼容行为，不增加推测性的兼容 helper；破坏性 API 或数据变更必须说明迁移与兼容影响。
 
 ## HTTP 响应
@@ -137,7 +136,6 @@ cp deploy/config.sqlite.example.yaml config.yaml
 - `HTTP_PORT`：HTTP 端口
 - `FRONTEND_DIST_DIR`：静态前端目录；Docker 镜像默认使用 `/app/frontend/out`
 - `JWT_SECRET`：JWT 签名密钥
-- `MCP_USER_CONTEXT_SECRET`：MCP 用户上下文签名密钥；启用 `${DEEIX_SIGNED_USER_CONTEXT}` 时必须配置，并应与外部 MCP 网关共享
 - `POSTGRES_DSN`：PostgreSQL DSN
 - `REDIS_ADDR` / `REDIS_USERNAME` / `REDIS_PASSWORD` / `REDIS_DB` / `REDIS_TLS_ENABLED` / `REDIS_TLS_INSECURE_SKIP_VERIFY`：Redis 连接配置；`REDIS_TLS_INSECURE_SKIP_VERIFY` 会跳过证书校验，除非非标准 TLS 端点要求，否则保持关闭
 - `STORAGE_BACKEND`：`local` 或 `s3`
@@ -348,17 +346,14 @@ OCR 引擎配置由后台文件设置管理，当前支持 RapidOCR、Tesseract 
 
 知识库是独立于文件管理页面的检索集合。后端按 `domain/knowledgebase -> application/knowledgebase -> repository.KnowledgeBaseRepository -> infra/persistence/postgres/knowledgebase -> transport/http/knowledgebase` 分层，用户与管理员接口统一使用 `/api/v1/knowledge-bases` 资源路径。知识库只关联文件对象，不复制文件内容；删除知识库时仅在用户明确选择后清理未被其他资源引用的文件。
 
-## 模型能力与官方原生工具
+## 模型能力
 
 模型能力 JSON 支持：
 
 - `defaultOptions`：写入用户侧默认参数 JSON，并作为请求参数来源。
 - `lockedOptionPaths`：声明不可由用户覆盖的参数路径；对应值仍从 `defaultOptions` 读取，后端发送前会恢复为管理员默认值。
 - `optionControls`：定义用户参数配置对话框的可视化控件，不会单独传给上游。
-- `nativeToolKeys`：定义当前模型允许的厂商官方原生工具，例如 OpenAI、xAI、Google 和 Anthropic 的原生搜索、代码执行或图片生成能力。
 - `image.stream`：仅对图像类模型能力生效；未配置时保持默认流式，显式写 `false` 时关闭图像流式调用。
-
-用户手写 `tools` 时，只有命中 `nativeToolKeys` 的官方原生工具会作为官方工具保留，工具子参数会随该工具透传；普通用户不能通过 JSON 自行启用未被管理员允许的 MCP Tool 或官方原生工具。MCP Tool 仍必须由管理员在工具页配置和启用。
 
 ## 用户自建上游与私有模型
 
@@ -434,29 +429,7 @@ OpenAI 的 `X-Client-Request-Id` 要求每次请求使用唯一值，应配置�
 
 显式缓存当前只接受 `ttl=30m`。隐式缓存使用上游默认保留策略；DEEIX 不配置或透传保留策略。未声明能力的兼容中转站不会收到 `prompt_cache_key`、`prompt_cache_options` 或 `prompt_cache_breakpoint`。DEEIX 不再依赖上游错误文本执行无记忆缓存重试。
 
-## MCP 工具
-
-MCP 能力由后台工具设置管理：
-
-- 后台配置 MCP Server，服务地址必填，可配置鉴权密钥与请求头。
-- Server 创建后默认启用，可同步远端 MCP Tool。
-- 工具可单独启停；用户在聊天输入区选择可用工具。
-- 单次 run 支持最大 LLM 调用轮数、最大工具调用次数、并发数、超时和失败重试配置。
-- 工具调用结果会进入消息处理轨迹，前端与“处理链路 / 思考链路”并列展示工具链路。
-
-管理员可在 MCP Server 的请求头中配置签名用户上下文头：把某个请求头的值填为占位符 `${DEEIX_SIGNED_USER_CONTEXT}`，每次用户工具调用时该头会被替换为 HMAC-SHA256 签名的 token，签名密钥来自独立的 `MCP_USER_CONTEXT_SECRET`，默认有效期 5 分钟。MCP 服务端或外部网关可用同一 MCP 密钥校验，按用户隔离单租户 MCP 工具。工具同步时会忽略该占位符，不会把占位符原文发送给 MCP。启用了占位符但未配置签名密钥时，工具调用会失败并不会发送请求。未配置占位符的服务端不会收到任何额外请求头。
-
-签名密钥对所有 MCP 服务端共用，token payload 因此除了用户身份还带有目标与调用标识，服务端应一并校验：
-
-- `user_id`、`conversation_id`：当前用户与会话。
-- `request_id`：一次用户触发的 run，同一 run 内多次工具调用共用，不能用作单次调用的幂等键。
-- `aud`：管理员在 DEEIX 中注册的该服务端 BaseURL 原文。服务端与自身配置的注册地址做精确字符串比较即可，不要从请求的 Host 或路径推导；不匹配即为被重放到其他服务端的 token。
-- `jti`：每次工具调用签发一次。DEEIX 对同一次调用的自动重试沿用同一 token，服务端在 `exp` 之前收到重复 `jti` 且 payload 相同时应视为幂等重试（返回首次结果或直接去重），而不是拒绝。
-- `exp`：过期时间（Unix 秒）。
-
-计费侧把一次用户触发的多轮 LLM + 工具调用视为一次 run 汇总统计。
-
-官方原生工具按上游返回的调用次数生成独立服务项；是否计费和每次调用价格由管理员在计费设置中统一配置，价格填 `0` 表示不单独计费。工具返回内容产生的模型 token 仍按模型定价计算。OpenRouter 官方模型价格导入会忽略这类工具按次费用（例如 `web_search`），避免与原生工具计费重复；模型输入、输出、缓存和 token 阶梯价格仍按模型定价导入。
+## 模型价格导入
 
 OpenRouter 快速配置只要求基础 `prompt`、`completion` 有效；无法映射的图片、音频、独立 1 小时缓存价格等附加字段会被忽略并提示，不阻断其余价格导入。`min_prompt_tokens` 的覆盖从超过阈值时生效；多个覆盖同时命中时，按原数组顺序逐字段覆盖，后出现的值优先。带时间条件的覆盖不会作为常驻 token 阶梯导入。
 
@@ -478,8 +451,8 @@ OpenTelemetry Trace 为可选能力，当前覆盖：
 - PostgreSQL Gorm callback
 - Redis 命令
 - S3 Put/Open/Delete，其中 Open 覆盖完整 reader 生命周期
-- 出站 HTTP：LLM、MCP、Embedding、OAuth/OIDC、GeoIP、文件提取/OCR
-- 会话关键路径：发送、RAG 检索、LLM 生成、工具执行、持久化
+- 出站 HTTP：LLM、Embedding、OAuth/OIDC、GeoIP、文件提取/OCR
+- 会话关键路径：发送、RAG 检索、LLM 生成、持久化
 
 Trace 不记录 prompt、文件内容、工具参数、API Key 或鉴权密钥。
 
