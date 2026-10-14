@@ -35,14 +35,6 @@ type promptContextArtifactInput struct {
 	RAGFallbacks   []ragFallbackEvidence
 }
 
-type toolContextArtifactInput struct {
-	ConversationID uint
-	UserID         uint
-	MessageID      uint
-	RunID          string
-	Rows           []domainconversation.ToolCall
-}
-
 type snapshotContextArtifactInput struct {
 	ConversationID uint
 	UserID         uint
@@ -118,23 +110,6 @@ func (s *Service) persistPromptContextArtifacts(ctx context.Context, input promp
 	return items
 }
 
-// persistToolContextArtifacts 保存工具执行结果证据，供后续轮次按 evidence 召回。
-func (s *Service) persistToolContextArtifacts(ctx context.Context, input toolContextArtifactInput) {
-	items := buildToolContextArtifacts(input)
-	if len(items) == 0 {
-		return
-	}
-	s.applyContextArtifactRetention(items)
-	if err := s.repo.CreateContextArtifacts(ctx, items); err != nil && s.logger != nil {
-		s.logger.Warn("tool_context_artifact_persist_failed",
-			zap.String("trace_id", traceid.FromContext(ctx)),
-			zap.Uint("conversation_id", input.ConversationID),
-			zap.Uint("message_id", input.MessageID),
-			zap.Error(err),
-		)
-	}
-}
-
 // persistSnapshotContextArtifact 保存压缩摘要证据，供未来 PromptPlan 解释和召回。
 func (s *Service) persistSnapshotContextArtifact(ctx context.Context, input snapshotContextArtifactInput) {
 	item := buildSnapshotContextArtifact(input)
@@ -176,8 +151,6 @@ func (s *Service) recallHistoricalContextArtifacts(ctx context.Context, input hi
 	kinds := []domainconversation.ContextArtifactKind{
 		domainconversation.ContextArtifactFileRAGChunk,
 		domainconversation.ContextArtifactFileRAGFallback,
-		domainconversation.ContextArtifactToolResult,
-		domainconversation.ContextArtifactNativeTool,
 		domainconversation.ContextArtifactImageAnalysis,
 	}
 	if !input.HasCurrentSnapshot {
@@ -269,48 +242,6 @@ func buildPromptContextArtifacts(input promptContextArtifactInput) []domainconve
 				"chunk_count":    file.ChunkCount,
 				"embed_status":   strings.TrimSpace(file.EmbedStatus),
 				"extract_status": strings.TrimSpace(file.ExtractStatus),
-			}),
-		})
-	}
-	return items
-}
-
-// buildToolContextArtifacts 将工具调用结果转换为可召回的上下文证据。
-func buildToolContextArtifacts(input toolContextArtifactInput) []domainconversation.ContextArtifact {
-	items := make([]domainconversation.ContextArtifact, 0, len(input.Rows))
-	for _, row := range input.Rows {
-		rawContent := toolArtifactContent(row)
-		content, truncated := toolArtifactEvidenceContent(rawContent, contextArtifactExcerptChars)
-		if strings.TrimSpace(content) == "" {
-			continue
-		}
-		sourceID := strings.TrimSpace(row.ToolCallID)
-		if sourceID == "" {
-			sourceID = strings.TrimSpace(row.ToolName)
-		}
-		kind := toolContextArtifactKind(row)
-		items = append(items, domainconversation.ContextArtifact{
-			ConversationID: input.ConversationID,
-			MessageID:      input.MessageID,
-			UserID:         input.UserID,
-			RunID:          input.RunID,
-			Kind:           kind,
-			SourceType:     "tool_call",
-			SourceID:       sourceID,
-			SourceTitle:    strings.TrimSpace(row.ToolName),
-			Content:        content,
-			ContentHash:    contextArtifactHash(kind, sourceID, rawContent),
-			TokenEstimate:  tokenestimate.Estimate(content),
-			Score:          1,
-			MetadataJSON: contextArtifactMetadata(map[string]any{
-				"tool_call_id": strings.TrimSpace(row.ToolCallID),
-				"tool_type":    strings.TrimSpace(row.ToolType),
-				"tool_name":    strings.TrimSpace(row.ToolName),
-				"status":       strings.TrimSpace(row.Status),
-				"latency_ms":   row.LatencyMS,
-				"input":        strings.TrimSpace(row.InputJSON),
-				"output_chars": len([]rune(rawContent)),
-				"truncated":    truncated,
 			}),
 		})
 	}
@@ -497,43 +428,6 @@ func ragFallbackEvidenceAttachments(items []ragFallbackEvidence) []AttachmentInp
 		result = append(result, item.Attachment)
 	}
 	return result
-}
-
-func toolArtifactContent(row domainconversation.ToolCall) string {
-	if strings.EqualFold(strings.TrimSpace(row.ToolType), "mcp_attachment") {
-		if content := imageAttachmentAnalysisText(row.OutputJSON); content != "" {
-			return content
-		}
-	}
-	switch strings.TrimSpace(row.Status) {
-	case "error", "failed":
-		return textutil.FirstNonEmpty(row.ErrorJSON, row.OutputJSON)
-	default:
-		return textutil.FirstNonEmpty(row.OutputJSON, row.ErrorJSON)
-	}
-}
-
-func toolArtifactEvidenceContent(raw string, maxChars int) (string, bool) {
-	value := strings.TrimSpace(raw)
-	if value == "" {
-		return "", false
-	}
-	if maxChars <= 0 || len([]rune(value)) <= maxChars {
-		return value, false
-	}
-	return headTailToolOutput(value, maxChars), true
-}
-
-func toolContextArtifactKind(row domainconversation.ToolCall) domainconversation.ContextArtifactKind {
-	toolType := strings.ToLower(strings.TrimSpace(row.ToolType))
-	switch toolType {
-	case "", "function", "mcp":
-		return domainconversation.ContextArtifactToolResult
-	case "mcp_attachment":
-		return domainconversation.ContextArtifactImageAnalysis
-	default:
-		return domainconversation.ContextArtifactNativeTool
-	}
 }
 
 func currentArtifactContentFingerprints(input historicalContextArtifactInput) map[string]struct{} {

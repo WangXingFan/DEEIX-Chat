@@ -11,11 +11,6 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
 )
 
-const (
-	defaultMCPToolTimeoutSeconds = 10
-	maxMCPToolTimeoutSeconds     = 1800
-)
-
 // RuntimeSettings 负责把数据库中的动态配置应用到运行时配置，并维护配置缓存。
 type RuntimeSettings struct {
 	repo              repository.SettingsRepository
@@ -140,18 +135,6 @@ func (r *RuntimeSettings) normalizeConfig(cfg *config.Config) {
 		cfg.ContextCompactTriggerPercent > config.MaxContextCompactTriggerPercent ||
 		(cfg.ContextCompactTriggerPercent > 0 && cfg.ContextCompactTriggerPercent < config.MinContextCompactTriggerPercent) {
 		cfg.ContextCompactTriggerPercent = config.DefaultContextCompactTriggerPercent
-	}
-	if cfg.MCPMaxSelectedToolsPerMessage <= 0 {
-		cfg.MCPMaxSelectedToolsPerMessage = config.DefaultMCPMaxSelectedToolsPerMessage
-	}
-	if cfg.MCPMaxSelectedToolsPerMessage > config.MaxMCPSelectedToolsPerMessage {
-		cfg.MCPMaxSelectedToolsPerMessage = config.MaxMCPSelectedToolsPerMessage
-	}
-	if cfg.MCPToolTimeoutSeconds <= 0 {
-		cfg.MCPToolTimeoutSeconds = defaultMCPToolTimeoutSeconds
-	}
-	if cfg.MCPToolTimeoutSeconds > maxMCPToolTimeoutSeconds {
-		cfg.MCPToolTimeoutSeconds = maxMCPToolTimeoutSeconds
 	}
 	// 下载页地址异常（如绕过校验直接改库）时回退默认地址，保证用户侧拿到的地址始终可安全展示。
 	if !IsValidDesktopDownloadURL(cfg.DesktopDownloadURL) {

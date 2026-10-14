@@ -146,23 +146,23 @@ func isLegacyReasoningReplayPair(
 		!strings.EqualFold(strings.TrimSpace(second.Status), messageTraceStatusCompleted) {
 		return false
 	}
-	return !hasInterveningToolTraceEvent(rows, firstCandidate.rowIndex, secondCandidate.rowIndex)
+	return !hasInterveningNonThinkTraceEvent(rows, firstCandidate.rowIndex, secondCandidate.rowIndex)
+}
+
+// hasInterveningNonThinkTraceEvent 阻止跨过其他阶段行的合并，
+// 避免把被独立执行轮次分开的两段推理误判为重放。
+func hasInterveningNonThinkTraceEvent(rows []model.MessageTraceEventRow, firstIndex int, secondIndex int) bool {
+	for index := firstIndex + 1; index < secondIndex; index++ {
+		if isPersistedThinkTraceEvent(rows[index]) {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func reasoningItemIDsConflict(first persistedReasoningEventMetadata, second persistedReasoningEventMetadata) bool {
 	return first.ItemID != "" && second.ItemID != "" && first.ItemID != second.ItemID
-}
-
-func hasInterveningToolTraceEvent(rows []model.MessageTraceEventRow, firstIndex int, secondIndex int) bool {
-	for index := firstIndex + 1; index < secondIndex; index++ {
-		row := rows[index]
-		if strings.EqualFold(strings.TrimSpace(row.EventType), "tool") ||
-			strings.EqualFold(strings.TrimSpace(row.Phase), messageTraceTypeTools) ||
-			strings.EqualFold(strings.TrimSpace(row.Stage), messageTraceStageTool) {
-			return true
-		}
-	}
-	return false
 }
 
 func isPersistedLiveReasoningEvent(eventType string) bool {

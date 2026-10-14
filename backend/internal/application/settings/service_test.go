@@ -239,12 +239,6 @@ func TestValidateModelOptionPolicySettings(t *testing.T) {
 	if err := validatePatchItem(PatchItem{Namespace: "chat", Key: "model_option_allowed_paths", Value: `{"default":["bad path"]}`}); err == nil {
 		t.Fatal("expected whitespace path to fail")
 	}
-	if err := validatePatchItem(PatchItem{Namespace: "billing", Key: "native_tool_pricing_json", Value: `{"xai.web_search":{"priceNanousd":1000000,"unit":"call","priceLabel":"","billable":true}}`}); err != nil {
-		t.Fatalf("expected native tool pricing JSON to pass, got %v", err)
-	}
-	if err := validatePatchItem(PatchItem{Namespace: "billing", Key: "native_tool_pricing_json", Value: `{"unknownTool":{"priceNanousd":1000000,"unit":"call","priceLabel":"","billable":true}}`}); err == nil {
-		t.Fatal("expected unsupported native tool pricing key to fail")
-	}
 }
 
 func TestValidateBillingDisplayCurrencySetting(t *testing.T) {
@@ -279,21 +273,8 @@ func TestValidateEPayGatewaySetting(t *testing.T) {
 	}
 }
 
-func TestValidateMCPSelectedToolsSetting(t *testing.T) {
-	if err := validatePatchItem(PatchItem{Namespace: "mcp", Key: "mcp_max_selected_tools_per_message", Value: "32"}); err != nil {
-		t.Fatalf("expected selected tool limit to pass, got %v", err)
-	}
-	if err := validatePatchItem(PatchItem{Namespace: "mcp", Key: "mcp_max_selected_tools_per_message", Value: "0"}); err == nil {
-		t.Fatal("expected zero selected tool limit to fail")
-	}
-	if err := validatePatchItem(PatchItem{Namespace: "mcp", Key: "mcp_max_selected_tools_per_message", Value: "129"}); err == nil {
-		t.Fatal("expected selected tool limit above safe maximum to fail")
-	}
-}
-
 func TestValidateCustomPromptSettings(t *testing.T) {
 	for _, item := range []PatchItem{
-		{Namespace: "mcp", Key: "mcp_tool_prompt", Value: "Use MCP tools carefully."},
 		{Namespace: "chat", Key: "skills_prompt", Value: "Use selected skills only when relevant."},
 	} {
 		if err := validatePatchItem(item); err != nil {
@@ -306,12 +287,8 @@ func TestRuntimeSettingsAppliesCustomPromptSettings(t *testing.T) {
 	runtimeSettings := NewRuntimeSettings(nil, nil, "test-data-encryption-key")
 	cfg := config.Config{}
 
-	runtimeSettings.applyItem(&cfg, domainsettings.SystemSetting{Namespace: "mcp", Key: "mcp_tool_prompt", Value: "Use MCP tools carefully."})
 	runtimeSettings.applyItem(&cfg, domainsettings.SystemSetting{Namespace: "chat", Key: "skills_prompt", Value: "Use selected skills only when relevant."})
 
-	if cfg.MCPToolPrompt != "Use MCP tools carefully." {
-		t.Fatalf("expected MCP tool prompt to be applied, got %q", cfg.MCPToolPrompt)
-	}
 	if cfg.SkillsPrompt != "Use selected skills only when relevant." {
 		t.Fatalf("expected skills prompt to be applied, got %q", cfg.SkillsPrompt)
 	}

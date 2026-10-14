@@ -90,7 +90,6 @@ func newMessageSendRunState(
 			CacheReadTokens:    0,
 			CacheWriteTokens:   0,
 			ReasoningTokens:    0,
-			ToolCallsCount:     0,
 			Status:             "running",
 			ErrorCode:          "",
 			ErrorMessage:       "",
@@ -286,7 +285,7 @@ func (r *messageSendRunState) currentResult() *SendMessageResult {
 }
 
 // applyRetainedGenerationRunUsage 将中断回复已保留的 usage 回填到 run，避免 run 日志与消息/账单口径不一致。
-func applyRetainedGenerationRunUsage(run *model.Run, result *SendMessageResult, toolCallsCount int, startedAt time.Time) {
+func applyRetainedGenerationRunUsage(run *model.Run, result *SendMessageResult, startedAt time.Time) {
 	if run == nil || result == nil {
 		return
 	}
@@ -302,7 +301,6 @@ func applyRetainedGenerationRunUsage(run *model.Run, result *SendMessageResult, 
 		run.CacheWriteTokens = result.AssistantMessage.CacheWriteTokens
 	}
 	run.ReasoningTokens = result.AssistantMessage.ReasoningTokens
-	run.ToolCallsCount = toolCallsCount
 	run.FirstTokenLatencyMS = result.AssistantMessage.LatencyMS
 	if run.FirstTokenLatencyMS <= 0 {
 		run.FirstTokenLatencyMS = time.Since(startedAt).Milliseconds()

@@ -9,7 +9,6 @@ import (
 	domainsettings "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/settings"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	extractionport "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/ports/extraction"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/nativetool"
 )
 
 // settingSpec 是一个动态配置项的唯一定义：种子默认值、敏感性、取值校验与运行时写入。
@@ -100,10 +99,6 @@ var settingSpecs = []settingSpec{
 		Validate: oneOf("self", "period", "usage")},
 	{Namespace: "billing", Key: "prepaid_amount_usd", ValueType: "string", Default: "0", Description: "每个付费调用预留的风险预算(美元)，0表示按剩余槽位动态分配可用预算，最多5个并发调用",
 		Validate: floatRange(0, 1000000)},
-	{Namespace: "billing", Key: "native_tool_billing_enabled", ValueType: "bool", Default: "true", Description: "是否按官方默认价格计费模型原生工具调用",
-		Validate: boolValue()},
-	{Namespace: "billing", Key: "native_tool_pricing_json", ValueType: "json", Default: nativetool.DefaultPricingJSON(), Description: "官方原生工具计费覆盖 JSON，按 toolKey 配置 priceNanousd、unit、priceLabel、billable",
-		Validate: validateNativeToolPricingJSON},
 	{Namespace: "billing", Key: "usd_to_cny_rate", ValueType: "string", Default: "7.2", Description: "易支付美元兑人民币汇率",
 		Validate: floatRange(0.000001, 1000)},
 	{Namespace: "billing", Key: "display_currency", ValueType: "string", Default: "USD", Description: "用户端费用展示币种：USD 或 CNY",
@@ -360,24 +355,6 @@ var settingSpecs = []settingSpec{
 		Validate: boolValue(), Apply: applyField(func(c *config.Config) *bool { return &c.ProcessTracePersistInflight }, toBool)},
 	{Namespace: "chat", Key: "context_artifact_retention_days", ValueType: "int", Default: "90", Description: "上下文证据保留天数，<=0 表示不自动过期",
 		Validate: intRange(0, 3650), Apply: applyField(func(c *config.Config) *int { return &c.ContextArtifactRetentionDays }, toInt)},
-
-	// MCP 配置
-	{Namespace: "mcp", Key: "mcp_enable", ValueType: "bool", Default: "false", Description: "启用 MCP 工具",
-		Validate: boolValue(), Apply: applyField(func(c *config.Config) *bool { return &c.MCPEnable }, toBool)},
-	{Namespace: "mcp", Key: "mcp_tool_timeout_seconds", ValueType: "int", Default: "10", Description: "MCP Tool Call 超时(秒)",
-		Validate: intRange(0, maxMCPToolTimeoutSeconds), Apply: applyField(func(c *config.Config) *int { return &c.MCPToolTimeoutSeconds }, toInt)},
-	{Namespace: "mcp", Key: "mcp_tool_retry_count", ValueType: "int", Default: "0", Description: "MCP Tool Call 重试次数",
-		Validate: intRange(0, 5), Apply: applyField(func(c *config.Config) *int { return &c.MCPToolRetryCount }, toInt)},
-	{Namespace: "mcp", Key: "mcp_max_concurrent_calls", ValueType: "int", Default: "8", Description: "MCP Tool Call 并发上限",
-		Validate: intRange(1, 64), Apply: applyField(func(c *config.Config) *int { return &c.MCPMaxConcurrentCalls }, toInt)},
-	{Namespace: "mcp", Key: "mcp_max_selected_tools_per_message", ValueType: "int", Default: "32", Description: "单次消息最多可选择的 MCP 工具数量",
-		Validate: intRange(1, config.MaxMCPSelectedToolsPerMessage), Apply: applyField(func(c *config.Config) *int { return &c.MCPMaxSelectedToolsPerMessage }, toInt)},
-	{Namespace: "mcp", Key: "mcp_max_llm_calls_per_run", ValueType: "int", Default: "5", Description: "单次 MCP 工具运行最大 LLM 请求次数（最小 2，首次请求 + 工具后续请求 + 最终总结）",
-		Validate: intRange(2, 32), Apply: applyField(func(c *config.Config) *int { return &c.MCPMaxLLMCallsPerRun }, toInt)},
-	{Namespace: "mcp", Key: "mcp_max_tool_calls_per_run", ValueType: "int", Default: "8", Description: "单次 MCP 工具运行最大 MCP Tool Call 次数",
-		Validate: intRange(1, 64), Apply: applyField(func(c *config.Config) *int { return &c.MCPMaxToolCallsPerRun }, toInt)},
-	{Namespace: "mcp", Key: "mcp_tool_prompt", ValueType: "string", Default: "", Description: "MCP Tool 调用提示词；空串使用内置默认值",
-		Validate: maxLength(20000), Apply: applyField(func(c *config.Config) *string { return &c.MCPToolPrompt }, rawText)},
 
 	// 熔断配置：由渠道模块在运行时按 namespace 读取，不进入 config.Config。
 	{Namespace: "circuit", Key: "channel_failure_threshold", ValueType: "int", Default: "3", Description: "熔断触发次数",

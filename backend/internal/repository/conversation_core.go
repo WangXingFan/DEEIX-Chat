@@ -151,14 +151,11 @@ type ConversationTraceRepository interface {
 	ListConversationMessageTracesByMessageIDs(ctx context.Context, messageIDs []uint) ([]domainconversation.MessageTrace, error)
 	UpsertConversationMessageTraceEvent(ctx context.Context, item *domainconversation.MessageTraceEventRow) error
 	ListConversationMessageTraceEventsByMessageIDs(ctx context.Context, messageIDs []uint) ([]domainconversation.MessageTraceEventRow, error)
-	CreateConversationToolCall(ctx context.Context, item *domainconversation.ToolCall) error
-	CreateConversationToolCalls(ctx context.Context, items []domainconversation.ToolCall) error
 	ListConversationRuns(ctx context.Context, userID uint, conversationID uint, offset int, limit int) ([]domainconversation.Run, int64, error)
 	ListConversationRunsByRunIDs(ctx context.Context, userID uint, conversationID uint, runIDs []string) ([]domainconversation.Run, error)
 	ListConversationRunStatusesByRunIDs(ctx context.Context, userID uint, runIDs []string) ([]domainconversation.RunStatus, error)
 	ListConversationEventLogs(ctx context.Context, filter ConversationEventLogListFilter, offset int, limit int) ([]domainconversation.EventLog, int64, error)
 	GetConversationEventLog(ctx context.Context, eventID uint) (*domainconversation.EventLog, error)
-	GetConversationToolCallDetail(ctx context.Context, userID uint, runID string, toolCallID string) (*domainconversation.ToolCallDetail, error)
 }
 
 // ConversationEventLogListFilter 描述管理员对话事件列表筛选和排序条件。

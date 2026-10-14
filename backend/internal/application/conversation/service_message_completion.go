@@ -32,8 +32,6 @@ type persistMessageGenerationInput struct {
 	AssistantLatency          int64
 	ResponseID                string
 	StatefulPromptFingerprint string
-	ToolCallRows              []model.ToolCall
-	PersistedToolCallKeys     map[string]struct{}
 	Route                     *channel.ResolvedRoute
 	ReuseUserMessage          bool
 }
@@ -54,17 +52,12 @@ type persistInterruptedMessageGenerationInput struct {
 	UsageRecovered           bool
 	AssistantLatency         int64
 	Error                    error
-	ToolCallRows             []model.ToolCall
-	PersistedToolCallKeys    map[string]struct{}
 	TraceRecorder            *messageTraceRecorder
 	Route                    *channel.ResolvedRoute
 	EffectiveOptions         map[string]any
-	ServerSideToolUsage      map[string]int64
-	// MCPToolUsage 聚合中断前成功的 MCP 调用；错误中断时也需带出已产生的上游费用。
-	MCPToolUsage     []MCPToolUsageItem
-	LLMCallCount     int
-	StartedAt        time.Time
-	ReuseUserMessage bool
+	LLMCallCount             int
+	StartedAt                time.Time
+	ReuseUserMessage         bool
 }
 
 type interruptedMessageGenerationMetrics struct {
@@ -84,14 +77,6 @@ const (
 	interruptedUsageSourceEstimated = "estimated"
 	interruptedUsageSourceMixed     = "mixed"
 )
-
-type persistMessageToolCallsInput struct {
-	SendInput             SendMessageInput
-	AssistantMessageID    uint
-	RunID                 string
-	Rows                  []model.ToolCall
-	PersistedToolCallKeys map[string]struct{}
-}
 
 func (s *Service) persistSuccessfulMessageGeneration(ctx context.Context, input persistMessageGenerationInput) error {
 	if input.ReuseUserMessage {
@@ -291,16 +276,6 @@ func successfulMessageGenerationModelName(input persistMessageGenerationInput) s
 }
 
 func (s *Service) finishSuccessfulMessageGeneration(ctx context.Context, input persistMessageGenerationInput) error {
-	if err := s.persistMessageToolCalls(ctx, persistMessageToolCallsInput{
-		SendInput:             input.SendInput,
-		AssistantMessageID:    input.AssistantMessage.ID,
-		RunID:                 input.AssistantMessage.RunID,
-		Rows:                  input.ToolCallRows,
-		PersistedToolCallKeys: input.PersistedToolCallKeys,
-	}); err != nil {
-		return err
-	}
-
 	// 非默认分支不代表会话主链，不能覆盖后续默认消息使用的 Responses 状态。
 	if normalizeBranchReason(input.SendInput.BranchReason) == "default" {
 		s.updateStatefulResponseAsync(ctx, input.SendInput.ConversationID, input.ResponseID, input.StatefulPromptFingerprint)
@@ -376,19 +351,6 @@ func (s *Service) persistInterruptedMessageGeneration(ctx context.Context, input
 	}
 	applyInterruptedMessageGenerationState(input, metrics)
 
-	if err := s.persistMessageToolCalls(persistCtx, persistMessageToolCallsInput{
-		SendInput:             input.SendInput,
-		AssistantMessageID:    input.AssistantMessage.ID,
-		RunID:                 input.AssistantMessage.RunID,
-		Rows:                  input.ToolCallRows,
-		PersistedToolCallKeys: input.PersistedToolCallKeys,
-	}); err != nil {
-		s.logger.Warn("persist_interrupted_tool_calls_failed",
-			zap.String("trace_id", traceid.FromContext(ctx)),
-			zap.Uint("message_id", input.AssistantMessage.ID),
-			zap.Error(err),
-		)
-	}
 	if input.TraceRecorder != nil {
 		input.TraceRecorder.failWithContext(persistCtx, input.Error)
 		input.TraceRecorder.attachToMessage(input.AssistantMessage)
@@ -402,14 +364,12 @@ func shouldPersistInterruptedMessageGeneration(input persistInterruptedMessageGe
 	if input.Error == nil || input.UserMessage == nil || input.AssistantMessage == nil {
 		return false
 	}
-	hasRetainedToolTrace := len(input.ToolCallRows) > 0 || len(input.ServerSideToolUsage) > 0 || len(input.MCPToolUsage) > 0
 	hasObservedUsage := input.Usage.HasObservedInput() || input.Usage.HasObservedOutput()
 	hasEstimatedCanceledInput := errors.Is(input.Error, ErrMessageGenerationCanceled) &&
 		input.UpstreamCallStarted &&
 		input.EstimatedInputTokens > 0
 	return strings.TrimSpace(input.AssistantText) != "" ||
 		strings.TrimSpace(input.AssistantReasoningText) != "" ||
-		hasRetainedToolTrace ||
 		hasObservedUsage ||
 		hasEstimatedCanceledInput
 }
@@ -526,21 +486,19 @@ func retainedGenerationStatus(err error) string {
 // buildInterruptedSendMessageResult 构造中断回复响应，供 handler 继续走计费和前端展示链路。
 func buildInterruptedSendMessageResult(input persistInterruptedMessageGenerationInput, metrics interruptedMessageGenerationMetrics) *SendMessageResult {
 	result := &SendMessageResult{
-		UserMessage:         *input.UserMessage,
-		AssistantMessage:    *input.AssistantMessage,
-		Billable:            true,
-		EffectiveOptions:    input.EffectiveOptions,
-		UsageSpeed:          input.Usage.Speed,
-		UsageServiceTier:    input.Usage.ServiceTier,
-		UsageSource:         interruptedUsageSource(input, metrics),
-		RawUsageJSON:        input.Usage.RawUsageJSON,
-		CacheWrite5mTokens:  input.Usage.CacheWrite5mTokens,
-		CacheWrite1hTokens:  input.Usage.CacheWrite1hTokens,
-		ServerSideToolUsage: input.ServerSideToolUsage,
-		MCPToolUsage:        input.MCPToolUsage,
-		LLMCallCount:        input.LLMCallCount,
-		LatencyMS:           metrics.LatencyMS,
-		StartedAt:           input.StartedAt,
+		UserMessage:        *input.UserMessage,
+		AssistantMessage:   *input.AssistantMessage,
+		Billable:           true,
+		EffectiveOptions:   input.EffectiveOptions,
+		UsageSpeed:         input.Usage.Speed,
+		UsageServiceTier:   input.Usage.ServiceTier,
+		UsageSource:        interruptedUsageSource(input, metrics),
+		RawUsageJSON:       input.Usage.RawUsageJSON,
+		CacheWrite5mTokens: input.Usage.CacheWrite5mTokens,
+		CacheWrite1hTokens: input.Usage.CacheWrite1hTokens,
+		LLMCallCount:       input.LLMCallCount,
+		LatencyMS:          metrics.LatencyMS,
+		StartedAt:          input.StartedAt,
 	}
 	if input.Route != nil {
 		result.UpstreamID = input.Route.UpstreamID
@@ -551,56 +509,6 @@ func buildInterruptedSendMessageResult(input persistInterruptedMessageGeneration
 		result.UpstreamProtocol = input.Route.Protocol
 	}
 	return result
-}
-
-// persistMessageToolCalls 持久化工具调用并写入上下文 artifact，成功和中断路径共用同一套归属规则。
-func (s *Service) persistMessageToolCalls(ctx context.Context, input persistMessageToolCallsInput) error {
-	rows := normalizeMessageToolCallRows(input)
-	if len(rows) == 0 {
-		return nil
-	}
-	unpersisted := make([]model.ToolCall, 0, len(rows))
-	for _, row := range rows {
-		if _, ok := input.PersistedToolCallKeys[toolCallPersistenceKey(row)]; !ok {
-			unpersisted = append(unpersisted, row)
-		}
-	}
-	if len(unpersisted) > 0 {
-		if err := s.repo.CreateConversationToolCalls(ctx, unpersisted); err != nil {
-			return err
-		}
-	}
-	s.persistToolContextArtifacts(ctx, toolContextArtifactInput{
-		ConversationID: input.SendInput.ConversationID,
-		UserID:         input.SendInput.UserID,
-		MessageID:      input.AssistantMessageID,
-		RunID:          input.RunID,
-		Rows:           rows,
-	})
-	return nil
-}
-
-// normalizeMessageToolCallRows 补齐工具调用归属字段，避免不同路径写入的 trace 缺少 message/run 关联。
-func normalizeMessageToolCallRows(input persistMessageToolCallsInput) []model.ToolCall {
-	if len(input.Rows) == 0 {
-		return nil
-	}
-	rows := append([]model.ToolCall(nil), input.Rows...)
-	for i := range rows {
-		if rows[i].ConversationID == 0 {
-			rows[i].ConversationID = input.SendInput.ConversationID
-		}
-		if rows[i].UserID == 0 {
-			rows[i].UserID = input.SendInput.UserID
-		}
-		if rows[i].MessageID == 0 {
-			rows[i].MessageID = input.AssistantMessageID
-		}
-		if strings.TrimSpace(rows[i].RunID) == "" {
-			rows[i].RunID = input.RunID
-		}
-	}
-	return rows
 }
 
 func (s *Service) updateStatefulResponseAsync(ctx context.Context, conversationID uint, responseID string, promptFingerprint string) {

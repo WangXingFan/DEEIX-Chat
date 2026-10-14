@@ -1,31 +1,12 @@
 package conversation
 
 import (
-	"context"
 	"encoding/json"
-	"strings"
 	"testing"
 
 	model "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/conversation"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
 )
-
-type toolArtifactCaptureRepository struct {
-	repository.ConversationRepository
-	toolCalls []model.ToolCall
-	artifacts []model.ContextArtifact
-}
-
-func (r *toolArtifactCaptureRepository) CreateConversationToolCalls(_ context.Context, items []model.ToolCall) error {
-	r.toolCalls = append(r.toolCalls, items...)
-	return nil
-}
-
-func (r *toolArtifactCaptureRepository) CreateContextArtifacts(_ context.Context, items []model.ContextArtifact) error {
-	r.artifacts = append(r.artifacts, items...)
-	return nil
-}
 
 func TestBuildPromptContextArtifactsRecordsRAGFallback(t *testing.T) {
 	items := buildPromptContextArtifacts(promptContextArtifactInput{
@@ -77,33 +58,6 @@ func TestBuildPromptContextArtifactsRecordsRAGFallback(t *testing.T) {
 	}
 }
 
-func TestPersistMessageToolCallsAnchorsEvidenceToAssistantMessage(t *testing.T) {
-	repo := &toolArtifactCaptureRepository{}
-	service := &Service{repo: repo}
-
-	err := service.persistMessageToolCalls(context.Background(), persistMessageToolCallsInput{
-		SendInput:          SendMessageInput{ConversationID: 7, UserID: 11},
-		AssistantMessageID: 22,
-		RunID:              "run_tool",
-		Rows: []model.ToolCall{{
-			ToolCallID: "call_1",
-			ToolType:   "mcp",
-			ToolName:   "lookup",
-			Status:     "completed",
-			OutputJSON: `{"result":"ok"}`,
-		}},
-	})
-	if err != nil {
-		t.Fatalf("persistMessageToolCalls() error = %v", err)
-	}
-	if len(repo.toolCalls) != 1 || repo.toolCalls[0].MessageID != 22 {
-		t.Fatalf("expected tool call on assistant message, got %#v", repo.toolCalls)
-	}
-	if len(repo.artifacts) != 1 || repo.artifacts[0].MessageID != 22 {
-		t.Fatalf("expected tool evidence on assistant message, got %#v", repo.artifacts)
-	}
-}
-
 func TestBuildPromptContextArtifactsSkipsEmptyEvidence(t *testing.T) {
 	items := buildPromptContextArtifacts(promptContextArtifactInput{
 		RAGChunks: []model.RAGChunk{{
@@ -145,66 +99,6 @@ func TestApplyContextArtifactRetentionCanBeDisabled(t *testing.T) {
 
 	if items[0].ExpiresAt != nil {
 		t.Fatalf("expected no expires_at, got %#v", items[0].ExpiresAt)
-	}
-}
-
-func TestBuildToolContextArtifactsRecordsLocalAndNativeTools(t *testing.T) {
-	items := buildToolContextArtifacts(toolContextArtifactInput{
-		ConversationID: 7,
-		UserID:         11,
-		MessageID:      13,
-		RunID:          "run_1",
-		Rows: []model.ToolCall{
-			{
-				ToolCallID: "call_local",
-				ToolType:   "function",
-				ToolName:   "search_web",
-				Status:     "success",
-				InputJSON:  `{"query":"DEEIX Chat"}`,
-				OutputJSON: `{"answer":"result"}`,
-			},
-			{
-				ToolCallID: "call_native",
-				ToolType:   "web_search_call",
-				ToolName:   "web_search",
-				Status:     "success",
-				OutputJSON: `{"url":"https://example.com"}`,
-			},
-		},
-	})
-	if len(items) != 2 {
-		t.Fatalf("expected two tool artifacts, got %#v", items)
-	}
-	if items[0].Kind != model.ContextArtifactToolResult || items[0].SourceID != "call_local" {
-		t.Fatalf("expected local tool artifact, got %#v", items[0])
-	}
-	if items[1].Kind != model.ContextArtifactNativeTool || items[1].SourceID != "call_native" {
-		t.Fatalf("expected native tool artifact, got %#v", items[1])
-	}
-}
-
-func TestBuildToolContextArtifactsKeepsHeadAndTailForLargeResults(t *testing.T) {
-	items := buildToolContextArtifacts(toolContextArtifactInput{
-		ConversationID: 7,
-		UserID:         11,
-		MessageID:      13,
-		RunID:          "run_1",
-		Rows: []model.ToolCall{{
-			ToolCallID: "call_large",
-			ToolType:   "function",
-			ToolName:   "fetch_large",
-			Status:     "success",
-			OutputJSON: "HEAD-" + strings.Repeat("x", contextArtifactExcerptChars+256) + "-TAIL",
-		}},
-	})
-	if len(items) != 1 {
-		t.Fatalf("expected one tool artifact, got %#v", items)
-	}
-	if !strings.Contains(items[0].Content, "HEAD-") || !strings.Contains(items[0].Content, "-TAIL") {
-		t.Fatalf("expected large artifact content to preserve head and tail, got %q", items[0].Content)
-	}
-	if !strings.Contains(items[0].MetadataJSON, `"truncated":true`) {
-		t.Fatalf("expected truncated metadata, got %q", items[0].MetadataJSON)
 	}
 }
 

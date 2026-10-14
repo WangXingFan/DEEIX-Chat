@@ -138,24 +138,6 @@ func TestMessageGenerationRunnerBeginRouteFailoverResetsRouteLocalState(t *testi
 	}
 }
 
-func TestMergeFollowUpUsagePrefersObservedTotals(t *testing.T) {
-	usage := &messageUsageAccumulator{}
-	total := llm.Usage{InputTokens: 10, OutputTokens: 5}
-
-	observed := mergeFollowUpUsage(total, &llm.GenerateOutput{Usage: llm.Usage{InputTokens: 20, OutputTokens: 7}}, usage)
-	if observed.InputTokens != 30 || observed.OutputTokens != 12 {
-		t.Fatalf("observed usage must accumulate, got %#v", observed)
-	}
-	if usage.usage() != observed {
-		t.Fatalf("accumulator must be synchronised with the observed total, got %#v", usage.usage())
-	}
-
-	unreported := mergeFollowUpUsage(observed, &llm.GenerateOutput{}, usage)
-	if unreported != observed {
-		t.Fatalf("an unreported call must fall back to the accumulator total, got %#v", unreported)
-	}
-}
-
 func TestGenerationCanceledDistinguishesUserStopFromUpstreamFailure(t *testing.T) {
 	if generationCanceled(context.Background(), nil) {
 		t.Fatal("nil error is never a cancellation")

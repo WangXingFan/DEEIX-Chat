@@ -48,8 +48,6 @@ func TestTableNamesUseRestructuredDomains(t *testing.T) {
 		FileObject{},
 		FileChunk{},
 		UserStorageQuota{},
-		MCPServer{},
-		MCPTool{},
 		AuditLog{},
 		SystemSetting{},
 		UserSetting{},

@@ -17,10 +17,10 @@ func TestNormalizeLegacyThinkReplayEventsCollapsesStreamAndRepeatedFinalSnapshot
 		persistedThinkTestRow("upstream_think_1", "round_1", 2, "相同思考", persistedReasoningTestPayload("chat.completion.chunk", ""), startedAt, &firstEndedAt),
 		{
 			RunID:     "run_1",
-			EventID:   "tools_1",
-			EventType: "tool",
-			Phase:     messageTraceTypeTools,
-			Stage:     messageTraceStageTool,
+			EventID:   "process_1",
+			EventType: "process",
+			Phase:     messageTraceTypeProcess,
+			Stage:     messageTraceStageProcess,
 			Status:    messageTraceStatusCompleted,
 			Seq:       3,
 			CreatedAt: startedAt.Add(11 * time.Second),
@@ -33,7 +33,7 @@ func TestNormalizeLegacyThinkReplayEventsCollapsesStreamAndRepeatedFinalSnapshot
 	normalized := normalizeLegacyThinkReplayEvents(rows)
 
 	if len(normalized) != 2 {
-		t.Fatalf("normalized events = %#v, want canonical think plus tool", normalized)
+		t.Fatalf("normalized events = %#v, want canonical think plus process event", normalized)
 	}
 	think := normalized[0]
 	if think.EventID != "upstream_think_1" || think.RoundID != "round_1" || think.Seq != 2 {
@@ -42,8 +42,8 @@ func TestNormalizeLegacyThinkReplayEventsCollapsesStreamAndRepeatedFinalSnapshot
 	if think.PayloadJSON != finalPayload || think.EndedAt == nil || !think.EndedAt.Equal(finalEndedAt) {
 		t.Fatalf("canonical think did not receive final snapshot: %#v", think)
 	}
-	if normalized[1].EventID != "tools_1" {
-		t.Fatalf("tool event order changed: %#v", normalized)
+	if normalized[1].EventID != "process_1" {
+		t.Fatalf("process event order changed: %#v", normalized)
 	}
 	if rows[0].PayloadJSON != originalFirstPayload {
 		t.Fatalf("normalization mutated input rows: got %q want %q", rows[0].PayloadJSON, originalFirstPayload)
@@ -121,17 +121,17 @@ func TestNormalizeLegacyThinkReplayEventsCollapsesCompletedSnapshotsWithoutMetad
 	}
 }
 
-func TestNormalizeLegacyThinkReplayEventsPreservesUnknownRoundsSeparatedByTool(t *testing.T) {
+func TestNormalizeLegacyThinkReplayEventsPreservesUnknownRoundsSeparatedByProcessEvent(t *testing.T) {
 	createdAt := time.Now().UTC()
 	endedAt := createdAt.Add(time.Second)
 	rows := []model.MessageTraceEventRow{
 		persistedThinkTestRow("upstream_think_1", "round_1", 2, "相同文本", "", createdAt, &endedAt),
 		{
 			RunID:     "run_1",
-			EventID:   "tools_1",
-			EventType: "tool",
-			Phase:     messageTraceTypeTools,
-			Stage:     messageTraceStageTool,
+			EventID:   "process_1",
+			EventType: "process",
+			Phase:     messageTraceTypeProcess,
+			Stage:     messageTraceStageProcess,
 			Status:    messageTraceStatusCompleted,
 			Seq:       3,
 			CreatedAt: createdAt.Add(10 * time.Millisecond),

@@ -45,8 +45,6 @@ type BillingRepository interface {
 	ListRedemptions(ctx context.Context, filter RedemptionListFilter, offset int, limit int) ([]RedemptionRecord, int64, error)
 	GetBillingMode(ctx context.Context) (string, error)
 	GetBillingPrepaidAmountNanousd(ctx context.Context) (int64, error)
-	GetNativeToolBillingEnabled(ctx context.Context) (bool, error)
-	GetNativeToolPricingJSON(ctx context.Context) (string, error)
 	GetModelPricing(ctx context.Context, platformModelName string) (*domainbilling.ModelPricing, error)
 	ListModelPricing(ctx context.Context, query string, offset int, limit int) ([]domainbilling.ModelPricing, int64, error)
 	UpsertModelPricing(ctx context.Context, item *domainbilling.ModelPricing) (*domainbilling.ModelPricing, error)

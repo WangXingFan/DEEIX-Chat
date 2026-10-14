@@ -32,7 +32,6 @@ func TestClassifyRunErrorCode(t *testing.T) {
 		{name: "empty response", err: ErrUpstreamEmptyResponse, want: MessageErrorCodeUpstreamEmptyResponse},
 		{name: "wrapped empty response", err: fmt.Errorf("generation: %w", ErrUpstreamEmptyResponse), want: MessageErrorCodeUpstreamEmptyResponse},
 		{name: "joined empty response", err: errors.Join(ErrUpstreamRequestFailed, ErrUpstreamEmptyResponse), want: MessageErrorCodeUpstreamEmptyResponse},
-		{name: "tool final answer missing", err: ErrToolRunFinalAnswerMissing, want: MessageErrorCodeToolRunFinalAnswerMissing},
 		{name: "generation canceled", err: ErrMessageGenerationCanceled, want: "conversation_run.canceled"},
 		{name: "generation interrupted", err: ErrMessageGenerationInterrupted, want: "conversation_run.stream_interrupted"},
 		{name: "image prompt required", err: ErrMediaImagePromptRequired, want: "media.image_prompt_required"},

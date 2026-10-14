@@ -13,17 +13,14 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/pkg/textutil"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/background"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/toolresult"
 	"go.uber.org/zap"
 )
 
 const (
 	messageTraceTypeProcess        = "process"
-	messageTraceTypeTools          = "tools"
 	messageTraceTypeUpstreamThink  = "upstream_think"
 	messageTraceStageProcess       = "process"
 	messageTraceStageThink         = "think"
-	messageTraceStageTool          = "tool"
 	messageTraceStatusStreaming    = "streaming"
 	messageTraceStatusCompleted    = "completed"
 	messageTraceStatusError        = "error"
@@ -51,10 +48,7 @@ const (
 )
 
 const (
-	toolTraceCompactSummaryMaxChars      = 260
-	toolTraceLegacyOutputPreviewMaxChars = 512
-	toolTraceDetailMaxChars              = 4096
-	maxTracePayloadBytes                 = 1024 * 1024
+	maxTracePayloadBytes = 1024 * 1024
 )
 
 const (
@@ -62,8 +56,6 @@ const (
 	upstreamThinkLiveFlushBytes    = 1024
 	upstreamThinkPersistInterval   = 2 * time.Second
 	upstreamThinkLiveReplaceBytes  = 16 * 1024
-	toolTraceLiveFlushInterval     = 80 * time.Millisecond
-	toolTracePersistInterval       = 2 * time.Second
 	tracePersistenceDrainTimeout   = 5 * time.Second
 )
 
@@ -92,21 +84,19 @@ type tracePersistenceJob struct {
 }
 
 type messageTraceRecorder struct {
-	service         *Service
-	ctx             context.Context
-	cfg             config.Config
-	assistant       *model.Message
-	onEvent         func(string, map[string]any) error
-	ephemeral       bool
-	process         *messageTraceDraft
-	tools           *messageTraceDraft
-	upstreamThink   *messageTraceDraft
-	promptTrace     *model.MessagePromptTrace
-	nextEventSeq    int
-	nextRoundSeq    int
-	eventCounters   map[string]int
-	events          []model.MessageTraceEvent
-	toolRoundClosed bool
+	service       *Service
+	ctx           context.Context
+	cfg           config.Config
+	assistant     *model.Message
+	onEvent       func(string, map[string]any) error
+	ephemeral     bool
+	process       *messageTraceDraft
+	upstreamThink *messageTraceDraft
+	promptTrace   *model.MessagePromptTrace
+	nextEventSeq  int
+	nextRoundSeq  int
+	eventCounters map[string]int
+	events        []model.MessageTraceEvent
 
 	upstreamThinkLastLiveFlush  time.Time
 	upstreamThinkLastPersist    time.Time
@@ -117,8 +107,6 @@ type messageTraceRecorder struct {
 	upstreamThinkBufferedByte   int
 	failed                      bool
 	compactionPreviousSummary   string
-	toolLastLiveFlush           time.Time
-	toolLastPersist             time.Time
 
 	persistQueueMu    sync.Mutex
 	persistQueue      []tracePersistenceJob
@@ -138,17 +126,6 @@ func formatTraceStep(label string, detail string) string {
 		return fmt.Sprintf("**%s**", label)
 	}
 	return fmt.Sprintf("**%s**：%s", label, detail)
-}
-
-func joinTraceParts(parts ...string) string {
-	items := make([]string, 0, len(parts))
-	for _, part := range parts {
-		value := strings.TrimSpace(part)
-		if value != "" {
-			items = append(items, value)
-		}
-	}
-	return strings.Join(items, "；")
 }
 
 func traceNameScope(names []string) string {
@@ -239,7 +216,7 @@ func (r *messageTraceRecorder) completeForBackgroundContinuation() {
 	ctx, cancel := background.WithTimeout(r.ctx, 5*time.Second)
 	defer cancel()
 	now := time.Now()
-	for _, draft := range []*messageTraceDraft{r.process, r.tools, r.upstreamThink} {
+	for _, draft := range []*messageTraceDraft{r.process, r.upstreamThink} {
 		if draft == nil || draft.status == messageTraceStatusCompleted || draft.status == messageTraceStatusError {
 			continue
 		}
@@ -249,9 +226,7 @@ func (r *messageTraceRecorder) completeForBackgroundContinuation() {
 		}
 		draft.status = messageTraceStatusCompleted
 		draft.endedAt = &now
-		if draft.traceType != messageTraceTypeTools {
-			r.upsertSnapshotEvent(draft, tracePayloadJSON(draft.payload))
-		}
+		r.upsertSnapshotEvent(draft, tracePayloadJSON(draft.payload))
 		r.persistDraftCtx(ctx, draft, true)
 	}
 	r.ctx = background.Detach(r.ctx)
@@ -337,20 +312,6 @@ func (r *messageTraceRecorder) ensureDraft(traceType string) *messageTraceDraft 
 	}
 }
 
-func (r *messageTraceRecorder) ensureToolDraft(roundID string, parentEventID string) *messageTraceDraft {
-	if !r.enabled() {
-		return nil
-	}
-	roundID = strings.TrimSpace(roundID)
-	if r.tools == nil || r.tools.roundID != roundID {
-		r.tools = r.newTraceDraft(messageTraceTypeTools, "tool", "工具", 2, messageTraceStageTool, roundID, parentEventID)
-		r.toolRoundClosed = false
-	} else if parentEventID = strings.TrimSpace(parentEventID); parentEventID != "" {
-		r.tools.parentEventID = parentEventID
-	}
-	return r.tools
-}
-
 func (r *messageTraceRecorder) newTraceDraft(traceType string, eventType string, title string, blockSeq int, stage string, roundID string, parentEventID string) *messageTraceDraft {
 	eventID, eventSeq := r.nextTraceEventIdentity(traceType)
 	return &messageTraceDraft{
@@ -418,158 +379,11 @@ func (r *messageTraceRecorder) appendProcessSection(summary string, markdown str
 	r.emitProcessUpdate()
 }
 
-func (r *messageTraceRecorder) appendToolSection(summary string, markdown string, payload *tracePayload, status string) {
-	if !r.enabled() {
-		return
-	}
-	value := strings.TrimSpace(markdown)
-	if value == "" {
-		return
-	}
-	r.completeProcess()
-	roundID, parentEventID := r.currentToolTraceBinding()
-	draft := r.ensureToolDraft(roundID, parentEventID)
-	if draft == nil {
-		return
-	}
-	if isToolTracePayload(payload) {
-		mergeToolTracePayload(draft.payload, payload)
-		if rendered := renderToolTraceMarkdownFromPayload(draft.payload); rendered != "" {
-			draft.contentMarkdown = rendered
-		} else {
-			draft.contentMarkdown = value
-		}
-	} else {
-		if draft.contentMarkdown != "" {
-			draft.contentMarkdown += "\n\n"
-		}
-		draft.contentMarkdown += value
-		mergeTracePayload(draft.payload, payload)
-	}
-	if aggregateStatus := toolTracePayloadStatus(draft.payload); aggregateStatus != "" {
-		draft.status = aggregateStatus
-	} else if strings.TrimSpace(status) != "" {
-		nextStatus := strings.TrimSpace(status)
-		draft.status = nextStatus
-	}
-	r.updateToolDraftEndTime(draft)
-	if aggregateSummary := summarizeToolTraceDraft(draft); aggregateSummary != "" {
-		draft.summary = aggregateSummary
-	} else if strings.TrimSpace(summary) != "" {
-		draft.summary = strings.TrimSpace(summary)
-	}
-	r.flushToolDraft(draft)
-}
-
-func (r *messageTraceRecorder) syncToolSection(summary string, markdown string, payload *tracePayload, status string) {
-	if !r.enabled() {
-		return
-	}
-	value := strings.TrimSpace(markdown)
-	if value == "" {
-		return
-	}
-	r.completeProcess()
-	roundID, parentEventID := r.currentToolTraceBinding()
-	draft := r.ensureToolDraft(roundID, parentEventID)
-	if draft == nil {
-		return
-	}
-	if isToolTracePayload(payload) {
-		mergeToolTracePayload(draft.payload, payload)
-		if rendered := renderToolTraceMarkdownFromPayload(draft.payload); rendered != "" {
-			draft.contentMarkdown = rendered
-		} else {
-			draft.contentMarkdown = value
-		}
-		if aggregateSummary := summarizeToolTracePayload(draft.payload); aggregateSummary != "" {
-			draft.summary = aggregateSummary
-		} else if strings.TrimSpace(summary) != "" {
-			draft.summary = strings.TrimSpace(summary)
-		}
-	} else {
-		draft.contentMarkdown = value
-		draft.payload = payload.clone()
-		if strings.TrimSpace(summary) != "" {
-			draft.summary = strings.TrimSpace(summary)
-		} else if aggregateSummary := summarizeToolTracePayload(payload); aggregateSummary != "" {
-			draft.summary = aggregateSummary
-		}
-	}
-	if aggregateStatus := toolTracePayloadStatus(draft.payload); aggregateStatus != "" {
-		draft.status = aggregateStatus
-	} else if strings.TrimSpace(status) != "" {
-		nextStatus := strings.TrimSpace(status)
-		draft.status = nextStatus
-	}
-	r.updateToolDraftEndTime(draft)
-	r.flushToolDraft(draft)
-}
-
-func (r *messageTraceRecorder) updateToolDraftEndTime(draft *messageTraceDraft) {
-	if draft == nil {
-		return
-	}
-	switch draft.status {
-	case messageTraceStatusStreaming:
-		draft.endedAt = nil
-	case messageTraceStatusCompleted, messageTraceStatusError:
-		now := time.Now()
-		draft.endedAt = &now
-	}
-}
-
-func (r *messageTraceRecorder) flushToolDraft(draft *messageTraceDraft) {
-	if !r.enabled() || draft == nil {
-		return
-	}
-	now := time.Now()
-	payloadJSON := tracePayloadJSON(draft.payload)
-	r.upsertSnapshotEvent(draft, payloadJSON)
-	terminal := draft.status == messageTraceStatusCompleted || draft.status == messageTraceStatusError
-	if terminal {
-		if r.service != nil && r.service.repo != nil {
-			r.enqueueDraftPersistence(draft, payloadJSON)
-		}
-	} else if !r.ephemeral && r.cfg.ProcessTracePersistInflight && (r.toolLastPersist.IsZero() || now.Sub(r.toolLastPersist) >= toolTracePersistInterval) {
-		if r.service != nil && r.service.repo != nil {
-			r.persistMessageTraceRow(r.ctx, draft, payloadJSON)
-			r.persistTraceEventRow(r.ctx, draft, payloadJSON)
-		}
-		r.toolLastPersist = now
-	}
-	if terminal || r.toolLastLiveFlush.IsZero() || now.Sub(r.toolLastLiveFlush) >= toolTraceLiveFlushInterval {
-		r.emitToolUpdate()
-		r.toolLastLiveFlush = now
-	}
-}
-
-func (r *messageTraceRecorder) currentToolTraceBinding() (string, string) {
-	if r == nil {
-		return "", ""
-	}
-	if r.upstreamThink != nil {
-		roundID := strings.TrimSpace(r.upstreamThink.roundID)
-		if roundID == "" {
-			roundID = r.nextTraceRoundID()
-			r.upstreamThink.roundID = roundID
-		}
-		if r.tools == nil || r.tools.roundID != roundID || !r.toolRoundClosed {
-			return roundID, strings.TrimSpace(r.upstreamThink.eventID)
-		}
-	}
-	if r.tools != nil && !r.toolRoundClosed && strings.TrimSpace(r.tools.roundID) != "" {
-		return strings.TrimSpace(r.tools.roundID), strings.TrimSpace(r.tools.parentEventID)
-	}
-	return r.nextTraceRoundID(), ""
-}
-
 func (r *messageTraceRecorder) appendUpstreamReasoning(kind string, text string, payload *tracePayload) {
 	if !r.enabled() {
 		return
 	}
 	if reasoningItemChanged(r.upstreamThink, payload) {
-		r.completeTools()
 		r.completeUpstreamThink()
 	}
 	draft := r.ensureDraft(messageTraceTypeUpstreamThink)
@@ -608,7 +422,6 @@ func (r *messageTraceRecorder) syncStructuredThink(content string, summary strin
 	}
 	r.completeProcess()
 	if reasoningItemChanged(r.upstreamThink, payload) {
-		r.completeTools()
 		r.completeUpstreamThink()
 	}
 	draft := r.ensureDraft(messageTraceTypeUpstreamThink)
@@ -629,7 +442,6 @@ func (r *messageTraceRecorder) reconcileStructuredThink(content string, summary 
 	r.completeProcess()
 	draft := r.upstreamThink
 	if reasoningItemChanged(draft, payload) {
-		r.completeTools()
 		r.completeUpstreamThink()
 		draft = nil
 	}
@@ -741,14 +553,6 @@ func (r *messageTraceRecorder) completeProcess() {
 	}
 }
 
-func (r *messageTraceRecorder) completeTools() {
-	changed := r.completeDraft(r.tools)
-	r.toolRoundClosed = true
-	if changed {
-		r.emitToolUpdate()
-	}
-}
-
 func (r *messageTraceRecorder) completeUpstreamThink() {
 	if r.completeDraft(r.upstreamThink) {
 		r.flushUpstreamThinkLiveUpdate(r.upstreamThink, upstreamThinkLiveUpdateOptions{Force: true})
@@ -758,7 +562,6 @@ func (r *messageTraceRecorder) completeUpstreamThink() {
 
 func (r *messageTraceRecorder) complete() {
 	r.completeProcess()
-	r.completeTools()
 	r.completeUpstreamThink()
 	ctx, cancel := background.WithTimeout(r.ctx, tracePersistenceDrainTimeout)
 	defer cancel()
@@ -808,11 +611,6 @@ func (r *messageTraceRecorder) failWithContext(ctx context.Context, err error) {
 		r.flushUpstreamThinkLiveUpdate(r.upstreamThink, upstreamThinkLiveUpdateOptions{Force: true})
 		r.persistDraftCtx(ctx, r.upstreamThink, true)
 	}
-	if r.tools != nil {
-		r.tools.status = messageTraceStatusError
-		r.tools.endedAt = &now
-		r.persistDraftCtx(ctx, r.tools, true)
-	}
 }
 
 func (r *messageTraceRecorder) attachToMessage(message *model.Message) {
@@ -834,16 +632,14 @@ func (r *messageTraceRecorder) snapshot() *model.MessageProcessTrace {
 		return nil
 	}
 	process := traceDraftToBlock(r.process)
-	tools := traceDraftToBlock(r.tools)
 	upstreamThink := traceDraftToBlock(r.upstreamThink)
-	if process == nil && tools == nil && upstreamThink == nil && len(r.events) == 0 {
+	if process == nil && upstreamThink == nil && len(r.events) == 0 {
 		return nil
 	}
 	return &model.MessageProcessTrace{
 		Enabled:       true,
-		Status:        aggregateTraceStatus(r.process, r.tools, r.upstreamThink),
+		Status:        aggregateTraceStatus(r.process, r.upstreamThink),
 		Process:       process,
-		Tools:         tools,
 		UpstreamThink: upstreamThink,
 		PromptTrace:   cloneMessagePromptTrace(r.promptTrace),
 		Events:        append([]model.MessageTraceEvent(nil), r.events...),
@@ -1263,17 +1059,6 @@ func (r *messageTraceRecorder) emitProcessUpdate() {
 	})
 }
 
-func (r *messageTraceRecorder) emitToolUpdate() {
-	if !r.enabled() || r.tools == nil {
-		return
-	}
-	emitEvent(r.onEvent, "process_update", map[string]any{
-		"status": r.tools.status,
-		"block":  traceDraftToBlock(r.tools),
-		"trace":  r.liveSnapshot(),
-	})
-}
-
 // emitUpstreamThinkUpdate 在思考轮次结束时推送结构快照，让客户端的事件列表立即拿到终态与结束时间。
 func (r *messageTraceRecorder) emitUpstreamThinkUpdate() {
 	if !r.enabled() || r.upstreamThink == nil {
@@ -1441,12 +1226,6 @@ func mergeTracePayload(dst *tracePayload, src *tracePayload) {
 	if src.Error != "" {
 		dst.Error = src.Error
 	}
-	if src.ToolID != 0 {
-		dst.ToolID = src.ToolID
-	}
-	if src.ToolName != "" {
-		dst.ToolName = src.ToolName
-	}
 	if src.SkillCount != 0 {
 		dst.SkillCount = src.SkillCount
 	}
@@ -1487,9 +1266,6 @@ func mergeTracePayload(dst *tracePayload, src *tracePayload) {
 		if stage.Kind != "" {
 			dst.Stages = append(dst.Stages, stage)
 		}
-	}
-	for _, call := range src.ToolCalls {
-		mergeTraceToolCall(dst, call)
 	}
 }
 
@@ -1577,221 +1353,6 @@ func processTraceStageHasStatus(payload *tracePayload, kind string, status strin
 		}
 	}
 	return false
-}
-
-func isToolTracePayload(payload *tracePayload) bool {
-	return payload != nil && len(payload.ToolCalls) > 0
-}
-
-func mergeToolTracePayload(dst *tracePayload, src *tracePayload) {
-	if dst == nil || src == nil {
-		return
-	}
-	mergeTracePayload(dst, src)
-}
-
-func shouldMergeTraceToolCall(existing traceToolCall, incoming traceToolCall) bool {
-	if existing.ToolCallID != "" && incoming.ToolCallID != "" {
-		return existing.ToolCallID == incoming.ToolCallID
-	}
-	if existing.Name != "" && incoming.Name != "" && existing.Name != incoming.Name {
-		return false
-	}
-	if existing.Type != "" && incoming.Type != "" && existing.Type != incoming.Type {
-		return false
-	}
-	existingActive := isActiveTraceToolStatus(existing.Status)
-	incomingActive := isActiveTraceToolStatus(incoming.Status)
-	if existing.ToolCallID == "" && incoming.ToolCallID != "" && existingActive && existing.InputPreview == "" {
-		return true
-	}
-	if incoming.ToolCallID == "" && existing.ToolCallID != "" && incomingActive && incoming.InputPreview == "" {
-		return true
-	}
-	if existing.InputPreview == "" || incoming.InputPreview == "" {
-		return existingActive || incomingActive
-	}
-	if existing.InputPreview != incoming.InputPreview {
-		return false
-	}
-	return existingActive || incomingActive
-}
-
-func isActiveTraceToolStatus(status string) bool {
-	switch strings.TrimSpace(status) {
-	case "requested", "streaming", "in_progress", "queued", "searching":
-		return true
-	default:
-		return false
-	}
-}
-
-func mergeTraceToolCall(dst *tracePayload, incoming traceToolCall) {
-	for index := range dst.ToolCalls {
-		if !shouldMergeTraceToolCall(dst.ToolCalls[index], incoming) {
-			continue
-		}
-		current := &dst.ToolCalls[index]
-		if traceToolStatusRank(incoming.Status) >= traceToolStatusRank(current.Status) {
-			current.Status = incoming.Status
-		}
-		if incoming.ToolCallID != "" {
-			current.ToolCallID = incoming.ToolCallID
-		}
-		if incoming.Name != "" {
-			current.Name = incoming.Name
-		}
-		if incoming.Type != "" {
-			current.Type = incoming.Type
-		}
-		if incoming.LatencyMS != 0 {
-			current.LatencyMS = incoming.LatencyMS
-		}
-		if incoming.Error != "" {
-			current.Error = incoming.Error
-		}
-		if incoming.InputPreview != "" {
-			current.InputPreview = incoming.InputPreview
-		}
-		if incoming.InputDetail != "" {
-			current.InputDetail = incoming.InputDetail
-		}
-		if incoming.InputSize != 0 {
-			current.InputSize = incoming.InputSize
-		}
-		if incoming.OutputPreview != "" {
-			current.OutputPreview = incoming.OutputPreview
-		}
-		if incoming.OutputDetail != "" {
-			current.OutputDetail = incoming.OutputDetail
-		}
-		if incoming.DetailRunID != "" {
-			current.DetailRunID = incoming.DetailRunID
-		}
-		if incoming.OutputPresentation != nil {
-			current.OutputPresentation = incoming.OutputPresentation
-		}
-		return
-	}
-	dst.ToolCalls = append(dst.ToolCalls, incoming)
-}
-
-func toolTracePayloadStatus(payload *tracePayload) string {
-	if payload == nil {
-		return ""
-	}
-	calls := payload.ToolCalls
-	if len(calls) == 0 {
-		return ""
-	}
-	hasError := false
-	for _, call := range calls {
-		switch strings.TrimSpace(call.Status) {
-		case "error", "failed":
-			hasError = true
-		case "success", "completed", "reused", "":
-		default:
-			return messageTraceStatusStreaming
-		}
-	}
-	if hasError {
-		return messageTraceStatusError
-	}
-	return messageTraceStatusCompleted
-}
-
-func traceToolStatusRank(status string) int {
-	switch strings.TrimSpace(status) {
-	case "error", "failed":
-		return 4
-	case "success", "completed", "reused":
-		return 3
-	case "streaming", "requested", "in_progress", "queued", "searching":
-		return 2
-	default:
-		return 1
-	}
-}
-
-func renderToolTraceMarkdownFromPayload(payload *tracePayload) string {
-	summary, markdown, _ := buildToolTrace(toolTraceRowsFromPayload(payload))
-	_ = summary
-	return markdown
-}
-
-func toolTraceRowsFromPayload(payload *tracePayload) []model.ToolCall {
-	if payload == nil {
-		return nil
-	}
-	items := payload.ToolCalls
-	rows := make([]model.ToolCall, 0, len(items))
-	for _, item := range items {
-		rows = append(rows, model.ToolCall{
-			ToolCallID: item.ToolCallID, ToolType: item.Type, ToolName: item.Name,
-			Status: item.Status, LatencyMS: item.LatencyMS, InputJSON: item.InputPreview,
-			OutputJSON: item.OutputPreview, ErrorJSON: item.Error,
-		})
-	}
-	return rows
-}
-
-func summarizeToolTracePayload(payload *tracePayload) string {
-	if payload == nil {
-		return ""
-	}
-	items := payload.ToolCalls
-	if len(items) == 0 {
-		return ""
-	}
-	errorCount := 0
-	for _, item := range items {
-		switch strings.TrimSpace(item.Status) {
-		case "error", "failed":
-			errorCount++
-		}
-	}
-	return formatToolTraceSummary(len(items), errorCount)
-}
-
-func summarizeToolTraceDraft(draft *messageTraceDraft) string {
-	if draft == nil {
-		return ""
-	}
-	contentTotal, contentErrors := countToolTraceMarkdownRows(draft.contentMarkdown)
-	payloadTotal := 0
-	if draft.payload != nil {
-		payloadTotal = len(draft.payload.ToolCalls)
-	}
-	if contentTotal > payloadTotal {
-		return formatToolTraceSummary(contentTotal, contentErrors)
-	}
-	return summarizeToolTracePayload(draft.payload)
-}
-
-func formatToolTraceSummary(total int, errorCount int) string {
-	if total <= 0 {
-		return ""
-	}
-	if errorCount > 0 {
-		return fmt.Sprintf("完成 %d 次工具调用，%d 次失败", total, errorCount)
-	}
-	return fmt.Sprintf("%d 次工具调用已完成", total)
-}
-
-func countToolTraceMarkdownRows(markdown string) (int, int) {
-	total := 0
-	errorCount := 0
-	for _, line := range strings.Split(markdown, "\n") {
-		value := strings.TrimSpace(line)
-		if !strings.HasPrefix(value, "**") {
-			continue
-		}
-		total++
-		if strings.Contains(value, "执行失败") {
-			errorCount++
-		}
-	}
-	return total, errorCount
 }
 
 func diffUpstreamThinkContent(previous string, next string) (string, string) {
@@ -2007,228 +1568,6 @@ func buildRAGProcessTrace(
 		Query: textutil.CompactSnippet(query, 240), FileNames: names, HitChunkCount: len(chunks), Citations: citations,
 		TraceStage: &stage,
 	}
-}
-
-func buildToolTrace(rows []model.ToolCall) (string, string, *tracePayload) {
-	if len(rows) == 0 {
-		return "", "", nil
-	}
-	toolCalls := make([]traceToolCall, 0, len(rows))
-	lines := make([]string, 0, len(rows))
-	successCount := 0
-	errorCount := 0
-	requestedCount := 0
-	for _, row := range rows {
-		toolName := strings.TrimSpace(row.ToolName)
-		if toolName == "" {
-			toolName = "unknown"
-		}
-		status := strings.TrimSpace(row.Status)
-		statusLabel := "已完成"
-		switch status {
-		case "success":
-			statusLabel = "已完成"
-			successCount++
-		case "reused":
-			statusLabel = "已复用"
-			successCount++
-		case "requested", "streaming":
-			statusLabel = "进行中"
-			requestedCount++
-		case "error", "failed":
-			statusLabel = "失败"
-			errorCount++
-		case "":
-			status = "completed"
-		}
-		parts := []string{statusLabel}
-		if row.LatencyMS > 0 {
-			parts = append(parts, fmt.Sprintf("%dms", row.LatencyMS))
-		}
-		input := strings.TrimSpace(row.InputJSON)
-		output := strings.TrimSpace(row.OutputJSON)
-		errorText := strings.TrimSpace(row.ErrorJSON)
-		inputDisplay := collapseWhitespace(input)
-		inputPreview := textutil.CompactSnippet(inputDisplay, toolTraceCompactSummaryMaxChars)
-		outputPresentation := toolresult.BuildPresentation(output)
-		outputPreview := toolOutputPreview(output, outputPresentation)
-		inputDetail := toolTraceDetail(input, toolTraceDetailMaxChars)
-		outputDetail := toolTraceDetail(output, toolTraceDetailMaxChars)
-		errorDetail := toolTraceDetail(errorText, toolTraceDetailMaxChars)
-		if errorText != "" {
-			parts = append(parts, textutil.CompactSnippet(collapseWhitespace(errorText), toolTraceCompactSummaryMaxChars))
-		} else if outputPreview != "" {
-			parts = append(parts, "结果："+textutil.CompactSnippet(outputPreview, toolTraceCompactSummaryMaxChars))
-		}
-		lines = append(lines, formatTraceStep(toolName, joinTraceParts(parts...)))
-		toolCallID := strings.TrimSpace(row.ToolCallID)
-		toolCall := traceToolCall{ToolCallID: toolCallID, Name: toolName, Type: strings.TrimSpace(row.ToolType), Status: status, LatencyMS: row.LatencyMS, Error: errorDetail, InputPreview: inputPreview, InputDetail: inputDetail, InputSize: len(input), OutputPreview: outputPreview, OutputDetail: outputDetail}
-		if detailRunID := strings.TrimSpace(row.RunID); detailRunID != "" {
-			toolCall.DetailRunID = detailRunID
-		}
-		if outputPresentation != nil {
-			toolCall.OutputPresentation = outputPresentation
-		}
-		toolCalls = append(toolCalls, toolCall)
-	}
-	summary := fmt.Sprintf("%d 次工具调用已完成", len(rows))
-	if requestedCount > 0 && successCount == 0 && errorCount == 0 {
-		summary = fmt.Sprintf("%d 次工具调用进行中", len(rows))
-	} else if errorCount > 0 {
-		summary = fmt.Sprintf("%d 次工具调用，%d 次失败", len(rows), errorCount)
-	} else if successCount == len(rows) {
-		summary = fmt.Sprintf("%d 次工具调用已完成", len(rows))
-	}
-	return summary, strings.Join(lines, "\n"), &tracePayload{ToolCalls: toolCalls}
-}
-
-func toolOutputPreview(raw string, presentation *toolresult.Presentation) string {
-	if presentation != nil && strings.TrimSpace(presentation.Text) != "" {
-		return toolresult.Snippet(presentation.Text, toolTraceLegacyOutputPreviewMaxChars)
-	}
-	value := strings.TrimSpace(raw)
-	if value == "" {
-		return ""
-	}
-	var payload any
-	if err := json.Unmarshal([]byte(value), &payload); err == nil {
-		if text := readableMCPToolResultPreview(payload); text != "" {
-			return toolresult.Snippet(text, toolTraceLegacyOutputPreviewMaxChars)
-		}
-		if text := toolresult.ReadablePreview(payload); text != "" {
-			return toolresult.Snippet(text, toolTraceLegacyOutputPreviewMaxChars)
-		}
-		if normalized, marshalErr := json.Marshal(payload); marshalErr == nil {
-			value = string(normalized)
-		}
-	}
-	return toolresult.Snippet(value, toolTraceLegacyOutputPreviewMaxChars)
-}
-
-func toolTraceDetail(raw string, maxChars int) string {
-	value := strings.TrimSpace(raw)
-	if value == "" {
-		return ""
-	}
-	runes := []rune(value)
-	if maxChars <= 0 {
-		maxChars = toolTraceDetailMaxChars
-	}
-	if len(runes) <= maxChars {
-		return value
-	}
-	return toolresult.Snippet(value, maxChars)
-}
-
-func readableMCPToolResultPreview(value any) string {
-	payload, ok := value.(map[string]any)
-	if !ok || !looksLikeMCPToolResult(payload) {
-		return ""
-	}
-
-	parts := make([]string, 0, 4)
-	if text := readableMCPContentPreview(payload["content"]); text != "" {
-		parts = append(parts, text)
-	}
-	if text := toolresult.ReadablePreview(payload["structuredContent"]); text != "" {
-		parts = append(parts, text)
-	}
-	if len(parts) == 0 {
-		if summary := summarizeMCPContent(payload["content"]); summary != "" {
-			parts = append(parts, summary)
-		}
-	}
-	return strings.Join(parts, "；")
-}
-
-func looksLikeMCPToolResult(payload map[string]any) bool {
-	if _, ok := payload["content"]; ok {
-		return true
-	}
-	if _, ok := payload["structuredContent"]; ok {
-		return true
-	}
-	if _, ok := payload["isError"]; ok {
-		return true
-	}
-	return false
-}
-
-func readableMCPContentPreview(value any) string {
-	items, ok := value.([]any)
-	if !ok || len(items) == 0 {
-		return ""
-	}
-	parts := make([]string, 0, min(len(items), 3))
-	for _, item := range items {
-		block, ok := item.(map[string]any)
-		if !ok {
-			continue
-		}
-		if text := readableMCPTextBlock(block); text != "" {
-			parts = append(parts, text)
-		}
-		if len(parts) >= 3 {
-			break
-		}
-	}
-	return strings.Join(parts, "；")
-}
-
-func readableMCPTextBlock(block map[string]any) string {
-	text := stringFromJSONValue(block["text"])
-	if text == "" {
-		return ""
-	}
-	var parsed any
-	if err := json.Unmarshal([]byte(text), &parsed); err == nil {
-		if preview := toolresult.ReadablePreview(parsed); preview != "" {
-			return preview
-		}
-	}
-	return text
-}
-
-func summarizeMCPContent(value any) string {
-	items, ok := value.([]any)
-	if !ok || len(items) == 0 {
-		return ""
-	}
-	counts := map[string]int{}
-	for _, item := range items {
-		block, ok := item.(map[string]any)
-		if !ok {
-			continue
-		}
-		blockType := stringFromJSONValue(block["type"])
-		if blockType == "" {
-			blockType = "content"
-		}
-		counts[blockType]++
-	}
-	summaries := make([]string, 0, 4)
-	if counts["image"] > 0 {
-		summaries = append(summaries, fmt.Sprintf("返回 %d 张图片", counts["image"]))
-	}
-	if counts["audio"] > 0 {
-		summaries = append(summaries, fmt.Sprintf("返回 %d 段音频", counts["audio"]))
-	}
-	if counts["resource"] > 0 || counts["resource_link"] > 0 {
-		summaries = append(summaries, fmt.Sprintf("返回 %d 个资源", counts["resource"]+counts["resource_link"]))
-	}
-	return strings.Join(summaries, "；")
-}
-
-func stringFromJSONValue(value any) string {
-	text, ok := value.(string)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(text)
-}
-
-func collapseWhitespace(value string) string {
-	return strings.Join(strings.Fields(value), " ")
 }
 
 func buildCompactionProcessTrace(snapshot *model.ContextSnapshot) (string, string, *tracePayload) {

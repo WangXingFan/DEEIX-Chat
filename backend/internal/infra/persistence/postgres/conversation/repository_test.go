@@ -265,8 +265,6 @@ func TestConversationProjectDefaultsRoundTripAndDelete(t *testing.T) {
 		PublicID:                "project_defaults",
 		Name:                    "Project defaults",
 		DefaultModel:            "model-a",
-		MCPDefaultMode:          domainconversation.ConversationProjectMCPDefaultModeCustom,
-		DefaultMCPToolIDs:       []uint{7, 3},
 		DefaultSkillIDs:         []uint{11, 5},
 		DefaultKnowledgeBaseIDs: []string{"kb_default_two", "kb_default_one"},
 		Status:                  "active",
@@ -274,10 +272,9 @@ func TestConversationProjectDefaultsRoundTripAndDelete(t *testing.T) {
 	if err := repo.CreateConversationProject(ctx, &project); err != nil {
 		t.Fatalf("CreateConversationProject() error = %v", err)
 	}
-	if !reflect.DeepEqual(project.DefaultMCPToolIDs, []uint{7, 3}) ||
-		!reflect.DeepEqual(project.DefaultSkillIDs, []uint{11, 5}) ||
+	if !reflect.DeepEqual(project.DefaultSkillIDs, []uint{11, 5}) ||
 		!reflect.DeepEqual(project.DefaultKnowledgeBaseIDs, []string{"kb_default_two", "kb_default_one"}) {
-		t.Fatalf("created defaults = MCP %v Skills %v KnowledgeBases %v", project.DefaultMCPToolIDs, project.DefaultSkillIDs, project.DefaultKnowledgeBaseIDs)
+		t.Fatalf("created defaults = Skills %v KnowledgeBases %v", project.DefaultSkillIDs, project.DefaultKnowledgeBaseIDs)
 	}
 
 	loaded, err := repo.GetConversationProjectByPublicID(ctx, 1, project.PublicID)
@@ -285,8 +282,6 @@ func TestConversationProjectDefaultsRoundTripAndDelete(t *testing.T) {
 		t.Fatalf("GetConversationProjectByPublicID() error = %v", err)
 	}
 	if loaded.DefaultModel != "model-a" ||
-		loaded.MCPDefaultMode != domainconversation.ConversationProjectMCPDefaultModeCustom ||
-		!reflect.DeepEqual(loaded.DefaultMCPToolIDs, []uint{7, 3}) ||
 		!reflect.DeepEqual(loaded.DefaultSkillIDs, []uint{11, 5}) ||
 		!reflect.DeepEqual(loaded.DefaultKnowledgeBaseIDs, []string{"kb_default_two", "kb_default_one"}) {
 		t.Fatalf("loaded project defaults = %#v", loaded)
@@ -312,22 +307,18 @@ func TestConversationProjectDefaultsRoundTripAndDelete(t *testing.T) {
 		t.Fatalf("rolled back project count = %d, want 0", badProjectCount)
 	}
 
-	nextMCPToolIDs := []uint{}
 	nextSkillIDs := []uint{5}
 	nextKnowledgeBaseIDs := []string{"kb_default_one"}
 	nextDefaultModel := "model-b"
-	inheritMode := domainconversation.ConversationProjectMCPDefaultModeInherit
 	updated, err := repo.UpdateConversationProjectMetadataByPublicID(ctx, 1, project.PublicID, domainconversation.ConversationProjectPatch{
 		DefaultModel:            &nextDefaultModel,
-		MCPDefaultMode:          &inheritMode,
-		DefaultMCPToolIDs:       &nextMCPToolIDs,
 		DefaultSkillIDs:         &nextSkillIDs,
 		DefaultKnowledgeBaseIDs: &nextKnowledgeBaseIDs,
 	})
 	if err != nil {
 		t.Fatalf("UpdateConversationProjectMetadataByPublicID() error = %v", err)
 	}
-	if updated.DefaultModel != nextDefaultModel || updated.MCPDefaultMode != inheritMode || len(updated.DefaultMCPToolIDs) != 0 ||
+	if updated.DefaultModel != nextDefaultModel ||
 		!reflect.DeepEqual(updated.DefaultSkillIDs, nextSkillIDs) ||
 		!reflect.DeepEqual(updated.DefaultKnowledgeBaseIDs, nextKnowledgeBaseIDs) {
 		t.Fatalf("updated project defaults = %#v", updated)
@@ -337,12 +328,6 @@ func TestConversationProjectDefaultsRoundTripAndDelete(t *testing.T) {
 		t.Fatalf("DeleteConversationProjectByPublicID() error = %v", err)
 	}
 	var associationCount int64
-	if err = db.Model(&models.ConversationProjectMCPTool{}).Where("project_id = ?", project.ID).Count(&associationCount).Error; err != nil {
-		t.Fatalf("count project MCP associations: %v", err)
-	}
-	if associationCount != 0 {
-		t.Fatalf("project MCP association count = %d, want 0", associationCount)
-	}
 	if err = db.Model(&models.ConversationProjectSkill{}).Where("project_id = ?", project.ID).Count(&associationCount).Error; err != nil {
 		t.Fatalf("count project Skill associations: %v", err)
 	}
@@ -517,86 +502,6 @@ func TestConversationEventLogListAndDetailBoundPayloads(t *testing.T) {
 	}
 	if largeDetail.PayloadSizeBytes != int64(len(largePayload)) {
 		t.Fatalf("large detail payload size = %d, want %d", largeDetail.PayloadSizeBytes, len(largePayload))
-	}
-}
-
-func TestConversationToolCallDetailReturnsRawResultUpToEightMegabytes(t *testing.T) {
-	db := openConversationRepositoryTestDB(t)
-	repo := NewRepo(db)
-	ctx := context.Background()
-	now := time.Now()
-	visibleOutput := strings.Repeat("x", maxConversationEventDetailJSONBytes+1)
-	omittedOutput := strings.Repeat("y", maxConversationToolCallDetailJSONBytes+1)
-	combinedOutput := strings.Repeat("o", maxConversationToolCallDetailJSONBytes/2)
-	combinedError := strings.Repeat("e", maxConversationToolCallDetailJSONBytes/2+1)
-	events := []models.ChatRunEvent{
-		{
-			UserID:     1,
-			RunID:      "run_visible_tool_result",
-			EventScope: chatRunEventScopeToolCall,
-			EventID:    "call_visible",
-			EventType:  "tool_call",
-			ToolCallID: "call_visible",
-			ToolName:   "visible_tool",
-			Status:     "completed",
-			OutputJSON: visibleOutput,
-			StartedAt:  now,
-		},
-		{
-			UserID:     1,
-			RunID:      "run_combined_tool_result",
-			EventScope: chatRunEventScopeToolCall,
-			EventID:    "call_combined",
-			EventType:  "tool_call",
-			ToolCallID: "call_combined",
-			ToolName:   "combined_tool",
-			Status:     "error",
-			OutputJSON: combinedOutput,
-			ErrorJSON:  combinedError,
-			StartedAt:  now,
-		},
-		{
-			UserID:     1,
-			RunID:      "run_omitted_tool_result",
-			EventScope: chatRunEventScopeToolCall,
-			EventID:    "call_omitted",
-			EventType:  "tool_call",
-			ToolCallID: "call_omitted",
-			ToolName:   "omitted_tool",
-			Status:     "completed",
-			OutputJSON: omittedOutput,
-			StartedAt:  now,
-		},
-	}
-	if err := db.Create(&events).Error; err != nil {
-		t.Fatalf("create tool-call events: %v", err)
-	}
-
-	visible, err := repo.GetConversationToolCallDetail(ctx, 1, events[0].RunID, events[0].ToolCallID)
-	if err != nil {
-		t.Fatalf("GetConversationToolCallDetail(visible) error = %v", err)
-	}
-	if visible.OutputJSON != visibleOutput || visible.OutputOmitted || visible.OutputSizeBytes != int64(len(visibleOutput)) {
-		t.Fatalf("visible tool result = %#v", visible)
-	}
-	if _, err := repo.GetConversationToolCallDetail(ctx, 2, events[0].RunID, events[0].ToolCallID); !errors.Is(err, repository.ErrNotFound) {
-		t.Fatalf("other user tool result error = %v, want not found", err)
-	}
-
-	omitted, err := repo.GetConversationToolCallDetail(ctx, 1, events[2].RunID, events[2].ToolCallID)
-	if err != nil {
-		t.Fatalf("GetConversationToolCallDetail(omitted) error = %v", err)
-	}
-	if omitted.OutputJSON != "" || !omitted.OutputOmitted || omitted.OutputSizeBytes != int64(len(omittedOutput)) {
-		t.Fatalf("omitted tool result = %#v", omitted)
-	}
-
-	combined, err := repo.GetConversationToolCallDetail(ctx, 1, events[1].RunID, events[1].ToolCallID)
-	if err != nil {
-		t.Fatalf("GetConversationToolCallDetail(combined) error = %v", err)
-	}
-	if combined.OutputJSON != "" || combined.ErrorJSON != "" || !combined.OutputOmitted || !combined.ErrorOmitted {
-		t.Fatalf("combined tool result exceeded the aggregate limit: %#v", combined)
 	}
 }
 
@@ -1407,7 +1312,7 @@ func openConversationRepositoryTestDB(t *testing.T) *gorm.DB {
 			_ = sqlDB.Close()
 		}
 	})
-	if err := db.AutoMigrate(&models.Conversation{}, &models.ConversationProject{}, &models.ConversationProjectMCPTool{}, &models.ConversationProjectSkill{}, &models.KnowledgeBase{}, &models.ConversationProjectKnowledgeBase{}, &models.Message{}, &models.Attachment{}, &models.FileObject{}, &models.ConversationRun{}, &models.ChatRunEvent{}); err != nil {
+	if err := db.AutoMigrate(&models.Conversation{}, &models.ConversationProject{}, &models.ConversationProjectSkill{}, &models.KnowledgeBase{}, &models.ConversationProjectKnowledgeBase{}, &models.Message{}, &models.Attachment{}, &models.FileObject{}, &models.ConversationRun{}, &models.ChatRunEvent{}); err != nil {
 		t.Fatalf("migrate models: %v", err)
 	}
 	return db

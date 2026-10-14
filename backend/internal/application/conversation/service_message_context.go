@@ -31,7 +31,6 @@ const (
 	MessageErrorCodeUpstreamRateLimited           = "upstream.rate_limited"
 	MessageErrorCodeUpstreamEmptyResponse         = "llm.empty_response"
 	MessageErrorCodeUpstreamUnavailable           = "upstream.unavailable"
-	MessageErrorCodeToolRunFinalAnswerMissing     = "tool_run.final_answer_missing"
 	MessageErrorCodeQuotaExceeded                 = "quota.exceeded"
 	messageErrorCodeInternal                      = "internal.error"
 )
@@ -460,20 +459,6 @@ func NormalizeAttachmentKind(kind string, mimeType string) string {
 	return normalizeAttachmentKind(kind, mimeType)
 }
 
-func normalizeToolType(raw string) string {
-	value := strings.ToLower(strings.TrimSpace(raw))
-	switch value {
-	case "function", "function_call", "tool_call":
-		return "function"
-	case "mcp", "mcp_call":
-		return "mcp"
-	case "":
-		return "function"
-	default:
-		return value
-	}
-}
-
 func inferAttachmentKind(mimeType string) string {
 	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "image/") {
 		return "image"
@@ -559,7 +544,6 @@ func isStreamUnsupportedError(err *llm.UpstreamError) bool {
 
 type userContextInput struct {
 	Attachments         []AttachmentInput
-	ImageAnalyses       []imageAttachmentAnalysis
 	RAGChunks           []domainconversation.RAGChunk
 	RAGNotice           string
 	HistoricalArtifacts []domainconversation.ContextArtifact
@@ -814,7 +798,6 @@ func injectUserContext(
 	storeProvider appstorage.Provider,
 ) []llm.Message {
 	if len(input.Attachments) == 0 &&
-		len(input.ImageAnalyses) == 0 &&
 		len(input.RAGChunks) == 0 &&
 		strings.TrimSpace(input.RAGNotice) == "" &&
 		len(input.HistoricalArtifacts) == 0 &&
@@ -941,7 +924,6 @@ func formatAttachmentFileContext(fileName string, text string) string {
 type userContextXML struct {
 	summary   string
 	files     []string
-	images    []string
 	evidence  []string
 	rag       []string
 	ragNotice string
@@ -950,7 +932,6 @@ type userContextXML struct {
 func (x userContextXML) empty() bool {
 	return strings.TrimSpace(x.summary) == "" &&
 		len(x.files) == 0 &&
-		len(x.images) == 0 &&
 		len(x.evidence) == 0 &&
 		len(x.rag) == 0 &&
 		strings.TrimSpace(x.ragNotice) == ""
@@ -959,28 +940,10 @@ func (x userContextXML) empty() bool {
 func buildUserContextXML(input userContextInput) userContextXML {
 	return userContextXML{
 		summary:   formatSnapshotContext(input.Snapshot),
-		images:    formatImageAnalysisContext(input.ImageAnalyses),
 		evidence:  formatHistoricalEvidenceContext(input.HistoricalArtifacts),
 		rag:       formatRAGFileContext(input.RAGChunks),
 		ragNotice: strings.TrimSpace(input.RAGNotice),
 	}
-}
-
-func formatImageAnalysisContext(analyses []imageAttachmentAnalysis) []string {
-	if len(analyses) == 0 {
-		return nil
-	}
-	items := make([]string, 0, len(analyses))
-	for _, analysis := range analyses {
-		content := strings.TrimSpace(analysis.Content)
-		if content == "" {
-			continue
-		}
-		name := textutil.FirstNonEmpty(analysis.FileName, analysis.FileID, "unknown")
-		toolName := textutil.FirstNonEmpty(analysis.ToolName, "MCP")
-		items = append(items, `<img name="`+xmlEscapeAttr(name)+`" via="`+xmlEscapeAttr(toolName)+`">`+xmlEscapeText(content)+`</img>`)
-	}
-	return items
 }
 
 func formatSnapshotContext(snapshot *snapshotContext) string {
@@ -1062,11 +1025,6 @@ func buildUserContextPrompt(userRequest string, contextXML userContextXML) strin
 		builder.WriteString("\n<files>\n")
 		builder.WriteString(strings.Join(contextXML.files, "\n"))
 		builder.WriteString("\n</files>")
-	}
-	if len(contextXML.images) > 0 {
-		builder.WriteString("\n<images>\n")
-		builder.WriteString(strings.Join(contextXML.images, "\n"))
-		builder.WriteString("\n</images>")
 	}
 	if len(contextXML.evidence) > 0 {
 		builder.WriteString("\n<evs>\n")

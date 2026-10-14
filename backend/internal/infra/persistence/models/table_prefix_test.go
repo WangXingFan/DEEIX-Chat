@@ -19,7 +19,6 @@ var allowedTableDomains = []string{
 	"identity",
 	"knowledge_base",
 	"llm",
-	"mcp",
 	"permission_group",
 	"prompt",
 	"skill",

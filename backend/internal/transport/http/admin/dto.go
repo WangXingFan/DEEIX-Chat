@@ -393,8 +393,6 @@ type ConversationEventResponse struct {
 	PayloadSizeBytes  int64      `json:"payloadSizeBytes"`
 	PayloadOmitted    bool       `json:"payloadOmitted"`
 	Seq               int        `json:"seq"`
-	ToolCallID        string     `json:"toolCallID"`
-	ToolName          string     `json:"toolName"`
 	LatencyMS         int64      `json:"latencyMS"`
 	InputJSON         string     `json:"inputJSON"`
 	InputSizeBytes    int64      `json:"inputSizeBytes"`
@@ -1014,8 +1012,6 @@ func toConversationEventResponse(item domainconversation.EventLog, label appadmi
 		PayloadSizeBytes:  item.PayloadSizeBytes,
 		PayloadOmitted:    item.PayloadOmitted,
 		Seq:               item.Seq,
-		ToolCallID:        item.ToolCallID,
-		ToolName:          item.ToolName,
 		LatencyMS:         item.LatencyMS,
 		InputJSON:         item.InputJSON,
 		InputSizeBytes:    item.InputSizeBytes,

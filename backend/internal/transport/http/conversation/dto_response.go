@@ -220,8 +220,6 @@ type ConversationProjectResponse struct {
 	Description             string    `json:"description"`
 	SystemPrompt            string    `json:"systemPrompt"`
 	DefaultModel            string    `json:"defaultModel"`
-	MCPDefaultMode          string    `json:"mcpDefaultMode"`
-	DefaultMCPToolIDs       []uint    `json:"defaultMCPToolIDs"`
 	DefaultSkillIDs         []uint    `json:"defaultSkillIDs"`
 	DefaultKnowledgeBaseIDs []string  `json:"defaultKnowledgeBaseIDs"`
 	Color                   string    `json:"color"`
@@ -242,8 +240,6 @@ func toConversationProjectResponse(item *model.ConversationProject) Conversation
 		Description:             item.Description,
 		SystemPrompt:            item.SystemPrompt,
 		DefaultModel:            item.DefaultModel,
-		MCPDefaultMode:          item.MCPDefaultMode,
-		DefaultMCPToolIDs:       append([]uint{}, item.DefaultMCPToolIDs...),
 		DefaultSkillIDs:         append([]uint{}, item.DefaultSkillIDs...),
 		DefaultKnowledgeBaseIDs: append([]string{}, item.DefaultKnowledgeBaseIDs...),
 		Color:                   item.Color,
@@ -576,35 +572,6 @@ func toContextArtifactResponse(item *model.ContextArtifact) ContextArtifactRespo
 		MetadataJSON:  item.MetadataJSON,
 		ExpiresAt:     item.ExpiresAt,
 		CreatedAt:     item.CreatedAt,
-	}
-}
-
-// ConversationToolCallDetailResponse 工具调用结果详情响应 DTO。
-type ConversationToolCallDetailResponse struct {
-	RunID           string `json:"runID"`
-	ToolCallID      string `json:"toolCallID"`
-	ToolName        string `json:"toolName"`
-	Status          string `json:"status"`
-	OutputJSON      string `json:"outputJSON"`
-	OutputSizeBytes int64  `json:"outputSizeBytes"`
-	OutputOmitted   bool   `json:"outputOmitted"`
-	ErrorJSON       string `json:"errorJSON"`
-	ErrorSizeBytes  int64  `json:"errorSizeBytes"`
-	ErrorOmitted    bool   `json:"errorOmitted"`
-}
-
-func toConversationToolCallDetailResponse(item *model.ToolCallDetail) ConversationToolCallDetailResponse {
-	return ConversationToolCallDetailResponse{
-		RunID:           item.RunID,
-		ToolCallID:      item.ToolCallID,
-		ToolName:        item.ToolName,
-		Status:          item.Status,
-		OutputJSON:      item.OutputJSON,
-		OutputSizeBytes: item.OutputSizeBytes,
-		OutputOmitted:   item.OutputOmitted,
-		ErrorJSON:       item.ErrorJSON,
-		ErrorSizeBytes:  item.ErrorSizeBytes,
-		ErrorOmitted:    item.ErrorOmitted,
 	}
 }
 
@@ -1047,7 +1014,6 @@ type RunResponse struct {
 	CacheReadTokens     int64      `json:"cacheReadTokens"`
 	CacheWriteTokens    int64      `json:"cacheWriteTokens"`
 	ReasoningTokens     int64      `json:"reasoningTokens"`
-	ToolCallsCount      int        `json:"toolCallsCount"`
 	FirstTokenLatencyMS int64      `json:"firstTokenLatencyMS"`
 	TotalLatencyMS      int64      `json:"totalLatencyMS"`
 	Status              string     `json:"status"`
@@ -1083,7 +1049,6 @@ func toRunResponse(r model.Run) RunResponse {
 		CacheReadTokens:     r.CacheReadTokens,
 		CacheWriteTokens:    r.CacheWriteTokens,
 		ReasoningTokens:     r.ReasoningTokens,
-		ToolCallsCount:      r.ToolCallsCount,
 		FirstTokenLatencyMS: r.FirstTokenLatencyMS,
 		TotalLatencyMS:      r.TotalLatencyMS,
 		Status:              r.Status,
@@ -1387,12 +1352,6 @@ type ConversationRunListResponseDoc struct {
 type ContextArtifactResponseDoc struct {
 	ErrorMsg string                  `json:"errorMsg"`
 	Data     ContextArtifactResponse `json:"data"`
-}
-
-// ConversationToolCallDetailResponseDoc 工具调用结果详情响应文档。
-type ConversationToolCallDetailResponseDoc struct {
-	ErrorMsg string                             `json:"errorMsg"`
-	Data     ConversationToolCallDetailResponse `json:"data"`
 }
 
 // ConversationUpdateResponseDoc 会话更新响应文档。

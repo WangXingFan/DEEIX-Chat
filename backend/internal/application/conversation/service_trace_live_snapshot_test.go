@@ -16,9 +16,6 @@ func TestLiveSnapshotKeepsThinkStructureWithoutContent(t *testing.T) {
 	longThink := strings.Repeat("深度推理", 4096)
 
 	recorder.appendUpstreamReasoning(messageTraceThinkKindContent, longThink, nil)
-	recorder.appendToolSection("工具", "调用 search", &tracePayload{ToolCalls: []traceToolCall{{
-		ToolCallID: "call_1", Name: "search", Status: "running",
-	}}}, messageTraceStatusStreaming)
 
 	persisted := recorder.snapshot()
 	live := recorder.liveSnapshot()
@@ -50,16 +47,6 @@ func TestLiveSnapshotKeepsThinkStructureWithoutContent(t *testing.T) {
 	}
 	if live.UpstreamThink == nil || live.UpstreamThink.ContentMarkdown != "" || live.UpstreamThink.Summary == "" {
 		t.Fatalf("live upstream think block must keep summary only, got %#v", live.UpstreamThink)
-	}
-
-	var liveTool *model.MessageTraceEvent
-	for idx := range live.Events {
-		if live.Events[idx].Phase == messageTraceTypeTools {
-			liveTool = &live.Events[idx]
-		}
-	}
-	if liveTool == nil || liveTool.ContentMarkdown == "" || liveTool.PayloadJSON == "" {
-		t.Fatalf("tool events must keep their bounded content in the live snapshot, got %#v", liveTool)
 	}
 }
 
@@ -116,10 +103,6 @@ func TestLiveSnapshotStaysBelowStreamPayloadLimitAcrossRounds(t *testing.T) {
 	for round := 0; round < 3; round++ {
 		recorder.appendUpstreamReasoning(messageTraceThinkKindContent, thinkChunk, nil)
 		recorder.completeUpstreamThink()
-		recorder.appendToolSection("工具", "调用 search", &tracePayload{ToolCalls: []traceToolCall{{
-			ToolCallID: "call_" + string(rune('1'+round)), Name: "search", Status: "success", OutputPreview: "ok",
-		}}}, messageTraceStatusCompleted)
-		recorder.completeTools()
 	}
 
 	rawPersisted, err := json.Marshal(recorder.snapshot())
@@ -147,8 +130,8 @@ func TestLiveSnapshotStaysBelowStreamPayloadLimitAcrossRounds(t *testing.T) {
 	if _, ok := published["trace"]; !ok {
 		t.Fatalf("live process_update must keep its trace, got %#v", published)
 	}
-	if len(recorder.liveSnapshot().Events) != 6 {
-		t.Fatalf("expected 3 think + 3 tool events, got %d", len(recorder.liveSnapshot().Events))
+	if len(recorder.liveSnapshot().Events) != 3 {
+		t.Fatalf("expected 3 think events, got %d", len(recorder.liveSnapshot().Events))
 	}
 }
 

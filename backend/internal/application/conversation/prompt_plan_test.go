@@ -9,7 +9,7 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/ports/llm"
 )
 
-func TestBuildPromptPlanLayersStableDynamicAndToolGuidance(t *testing.T) {
+func TestBuildPromptPlanLayersStableDynamicAndTranscript(t *testing.T) {
 	base := []llm.Message{
 		{Role: "system", Content: "用户偏好：回答简洁"},
 		{Role: "user", Content: "第一轮问题"},
@@ -54,18 +54,11 @@ func TestBuildPromptPlanLayersStableDynamicAndToolGuidance(t *testing.T) {
 				},
 			},
 		},
-		ToolRuntime: selectedToolRuntime{
-			definitions: []llm.ToolDefinition{{
-				Name:        "search_web",
-				Description: "搜索网页",
-				InputSchema: []byte(`{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}`),
-			}},
-		},
 		Config: config.Config{},
 	})
 
-	if len(plan.Messages) != 6 {
-		t.Fatalf("expected 6 messages, got %#v", plan.Messages)
+	if len(plan.Messages) != 5 {
+		t.Fatalf("expected 5 messages, got %#v", plan.Messages)
 	}
 	if plan.Messages[0].Role != "system" || !strings.Contains(plan.Messages[0].Content, "<files>") {
 		t.Fatalf("expected stable file context first, got %#v", plan.Messages[0])
@@ -73,19 +66,16 @@ func TestBuildPromptPlanLayersStableDynamicAndToolGuidance(t *testing.T) {
 	if plan.Messages[1].Content != "用户偏好：回答简洁" {
 		t.Fatalf("expected existing system policy second, got %#v", plan.Messages[1])
 	}
-	if !strings.HasPrefix(strings.TrimSpace(plan.Messages[2].Content), "# tool_use") {
-		t.Fatalf("expected tool guidance after leading system messages, got %#v", plan.Messages[2])
+	if plan.Messages[2].Content != "第一轮问题" {
+		t.Fatalf("expected historical user content to stay raw, got %q", plan.Messages[2].Content)
 	}
-	if strings.Contains(plan.Messages[3].Content, "第一轮之前的摘要") {
-		t.Fatalf("expected snapshot summary to stay out of retained transcript, got %q", plan.Messages[3].Content)
+	if strings.Contains(plan.Messages[2].Content, "第一轮之前的摘要") {
+		t.Fatalf("expected snapshot summary to stay out of retained transcript, got %q", plan.Messages[2].Content)
 	}
-	for index := 0; index <= 2; index++ {
+	for index := 0; index <= 1; index++ {
 		if plan.Messages[index].CacheControl == nil || plan.Messages[index].CacheControl.Type != "ephemeral" {
 			t.Fatalf("expected leading system message %d to be cacheable, got %#v", index, plan.Messages[index].CacheControl)
 		}
-	}
-	if plan.Messages[3].Content != "第一轮问题" {
-		t.Fatalf("expected historical user content to stay raw, got %q", plan.Messages[3].Content)
 	}
 	last := plan.Messages[len(plan.Messages)-1]
 	for _, want := range []string{"<sum", "第一轮之前的摘要", "<evs>", "旧轮命中的证据", "<rag>", "本轮 RAG 片段", "<q>第二轮问题</q>"} {
@@ -93,7 +83,7 @@ func TestBuildPromptPlanLayersStableDynamicAndToolGuidance(t *testing.T) {
 			t.Fatalf("expected latest user to contain %q, got %q", want, last.Content)
 		}
 	}
-	for _, blockKind := range []PromptBlockKind{PromptBlockTranscript, PromptBlockStableContext, PromptBlockHistoricalEvidence, PromptBlockDynamicContext, PromptBlockToolGuidance} {
+	for _, blockKind := range []PromptBlockKind{PromptBlockTranscript, PromptBlockStableContext, PromptBlockHistoricalEvidence, PromptBlockDynamicContext} {
 		if !promptTraceHasBlock(plan.Trace, blockKind) {
 			t.Fatalf("expected trace to contain %s, got %#v", blockKind, plan.Trace.Blocks)
 		}

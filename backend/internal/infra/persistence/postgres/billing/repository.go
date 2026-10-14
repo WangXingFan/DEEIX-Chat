@@ -1339,38 +1339,6 @@ func (r *Repo) GetBillingPrepaidAmountNanousd(ctx context.Context) (int64, error
 	return int64(math.Round(amount * 1000000000)), nil
 }
 
-// GetNativeToolBillingEnabled 查询模型原生工具是否按官方默认价计费。
-func (r *Repo) GetNativeToolBillingEnabled(ctx context.Context) (bool, error) {
-	var item models.SystemSetting
-	if err := r.db.WithContext(ctx).
-		Where("namespace = ? AND key = ?", "billing", "native_tool_billing_enabled").
-		First(&item).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return true, nil
-		}
-		return false, dberror.Translate(err)
-	}
-	enabled, err := strconv.ParseBool(strings.TrimSpace(item.Value))
-	if err != nil {
-		return false, repository.ErrInvalidInput
-	}
-	return enabled, nil
-}
-
-// GetNativeToolPricingJSON 查询模型原生工具计费覆盖配置。
-func (r *Repo) GetNativeToolPricingJSON(ctx context.Context) (string, error) {
-	var item models.SystemSetting
-	if err := r.db.WithContext(ctx).
-		Where("namespace = ? AND key = ?", "billing", "native_tool_pricing_json").
-		First(&item).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil
-		}
-		return "", dberror.Translate(err)
-	}
-	return strings.TrimSpace(item.Value), nil
-}
-
 // GetModelPricing 查询模型计费配置。
 func (r *Repo) GetModelPricing(ctx context.Context, platformModelName string) (*domainbilling.ModelPricing, error) {
 	var item models.ModelPricing

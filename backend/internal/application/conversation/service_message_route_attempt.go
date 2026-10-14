@@ -18,8 +18,6 @@ type messageRoutePromptInput struct {
 	StableAttachments        []AttachmentInput
 	DynamicContext           userContextInput
 	SkillPrompts             *skillPrompts
-	ToolRuntime              selectedToolRuntime
-	SkipImageAttachments     bool
 	Config                   config.Config
 }
 
@@ -66,12 +64,10 @@ func (s *Service) buildMessageRoutePrompt(ctx context.Context, route *channel.Re
 	historyMessages := historyMessagesFromDomain(routeMessages, historyMessageOptions{
 		ReasoningContentPassback: input.ReasoningContentPassback,
 	})
-	if !input.SkipImageAttachments {
-		var err error
-		historyMessages, err = s.injectConversationImageContext(ctx, historyMessages, routeMessages, input.StableAttachments, input.Config)
-		if err != nil {
-			return PromptPlan{}, err
-		}
+	var err error
+	historyMessages, err = s.injectConversationImageContext(ctx, historyMessages, routeMessages, input.StableAttachments, input.Config)
+	if err != nil {
+		return PromptPlan{}, err
 	}
 	// 图片注入按「过滤后的历史下标」对齐，必须在注入之后合并，避免下标错位。
 	historyMessages = mergeConsecutiveSameRoleMessages(historyMessages)
@@ -96,7 +92,6 @@ func (s *Service) buildMessageRoutePrompt(ctx context.Context, route *channel.Re
 		StableAttachments: input.StableAttachments,
 		DynamicContext:    input.DynamicContext,
 		SkillPrompts:      input.SkillPrompts,
-		ToolRuntime:       input.ToolRuntime,
 		Config:            input.Config,
 		StoreProvider:     s.storeProvider,
 	}), nil

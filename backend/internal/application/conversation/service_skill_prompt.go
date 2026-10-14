@@ -51,8 +51,11 @@ func (s *Service) resolveSkillPrompts(ctx context.Context, input SendMessageInpu
 	return prompt, nil
 }
 
+// maxSelectedSkillsPerMessage 限制单条消息可绑定的技能数量，避免注入过多技能提示。
+const maxSelectedSkillsPerMessage = 32
+
 func (s *Service) resolveMaxSelectedSkillsPerMessage() int {
-	return s.resolveMaxSelectedToolsPerMessage()
+	return maxSelectedSkillsPerMessage
 }
 
 func normalizeSelectedSkillIDs(ids []uint) []uint {

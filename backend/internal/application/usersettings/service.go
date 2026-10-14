@@ -2,7 +2,6 @@ package usersettings
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -35,7 +34,6 @@ var allowedKeys = map[string]string{
 	"chat.reasoning_content_passback":           "true",
 	"chat.input_height":                         "standard",
 	"chat.content_width":                        "compact",
-	"chat.default_mcp_tool_ids":                 "[]",
 }
 
 // boolKeys 取值只能是 "true" / "false"。
@@ -71,9 +69,6 @@ func validateValue(key, value string) error {
 	if key == "chat.title_model" && (strings.TrimSpace(value) != value || value == "" || len(value) > 128) {
 		return settingValidationError(ErrInvalidSettingValue, "title model must be 'follow' or a model identifier of at most 128 bytes")
 	}
-	if key == "chat.default_mcp_tool_ids" {
-		return validateDefaultMCPToolIDs(value, key)
-	}
 	if boolKeys[key] {
 		if value != "true" && value != "false" {
 			return settingValidationError(ErrInvalidSettingValue, fmt.Sprintf("invalid value for %s: must be 'true' or 'false'", key))
@@ -86,22 +81,6 @@ func validateValue(key, value string) error {
 				valid = append(valid, "'"+v+"'")
 			}
 			return settingValidationError(ErrInvalidSettingValue, fmt.Sprintf("invalid value for %s: must be one of %s", key, strings.Join(valid, ", ")))
-		}
-	}
-	return nil
-}
-
-func validateDefaultMCPToolIDs(value string, key string) error {
-	var toolIDs []uint64
-	if err := json.Unmarshal([]byte(strings.TrimSpace(value)), &toolIDs); err != nil {
-		return settingValidationError(ErrInvalidSettingValue, fmt.Sprintf("invalid value for %s: must be a JSON array of positive tool IDs", key))
-	}
-	if len(toolIDs) > 128 {
-		return settingValidationError(ErrInvalidSettingValue, fmt.Sprintf("invalid value for %s: must contain at most 128 tool IDs", key))
-	}
-	for _, id := range toolIDs {
-		if id == 0 {
-			return settingValidationError(ErrInvalidSettingValue, fmt.Sprintf("invalid value for %s: tool IDs must be positive integers", key))
 		}
 	}
 	return nil

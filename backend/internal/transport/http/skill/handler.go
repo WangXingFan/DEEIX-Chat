@@ -6,13 +6,15 @@ import (
 	"strconv"
 
 	appskill "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/skill"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/pagination"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/response"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/transport/http/middleware"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/transport/http/queryparam"
 	"github.com/gin-gonic/gin"
 )
+
+// maxSkillFilterIDs 限制技能列表按 ID 筛选时一次可传入的 ID 数量，避免构造超长 IN 查询。
+const maxSkillFilterIDs = 128
 
 // Handler 封装技能 HTTP 处理。
 type Handler struct {
@@ -42,7 +44,7 @@ func NewHandler(service *appskill.Service) *Handler {
 func (h *Handler) ListVisibleSkills(c *gin.Context) {
 	page, pageSize := pagination.Parse(c.Query("page"), c.Query("page_size"))
 	rawIDs := c.QueryArray("id")
-	if len(rawIDs) > config.MaxMCPSelectedToolsPerMessage {
+	if len(rawIDs) > maxSkillFilterIDs {
 		response.ErrorWithCode(c, http.StatusBadRequest, "skill.too_many_ids")
 		return
 	}

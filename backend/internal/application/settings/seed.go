@@ -13,8 +13,6 @@ const (
 // obsoleteSettings 列出已从注册表移除、启动时需要从数据库清理的历史配置项。
 func obsoleteSettings() []domainsettings.SystemSetting {
 	return []domainsettings.SystemSetting{
-		{Namespace: "mcp", Key: "mcp_connect_timeout_ms"},
-		{Namespace: "mcp", Key: "mcp_tool_timeout_ms"},
 		{Namespace: "chat", Key: "context_max_input_tokens"},
 		{Namespace: "chat", Key: "context_compact_trigger_tokens"},
 		{Namespace: "chat", Key: "process_trace_visible_to_user"},

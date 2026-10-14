@@ -539,7 +539,7 @@ func anthropicUnsupportedNativeToolMessage(toolName string) string {
 	if name == "" {
 		name = "native_tool"
 	}
-	return fmt.Sprintf("Anthropic native tool %q must be executed server-side, but the selected upstream returned it as a client-side tool call. Disable this Claude native tool for the channel or use an MCP tool instead.", name)
+	return fmt.Sprintf("Anthropic native tool %q must be executed server-side, but the selected upstream returned it as a client-side tool call. Disable this Claude native tool for the channel.", name)
 }
 
 // normalizeAnthropicRole 将内部 role 映射到 Anthropic 的 user/assistant。

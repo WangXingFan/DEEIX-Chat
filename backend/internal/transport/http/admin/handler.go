@@ -761,7 +761,7 @@ func (h *Handler) ListRedemptions(c *gin.Context) {
 
 // ListConversationEvents godoc
 // @Summary 管理员查询对话事件
-// @Description 管理员分页查看对话运行轨迹、工具、MCP 与处理事件
+// @Description 管理员分页查看对话运行轨迹与处理事件
 // @Tags admin
 // @Accept json
 // @Produce json

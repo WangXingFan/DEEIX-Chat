@@ -2,11 +2,6 @@ package conversation
 
 import "time"
 
-const (
-	ConversationProjectMCPDefaultModeInherit = "inherit"
-	ConversationProjectMCPDefaultModeCustom  = "custom"
-)
-
 // Conversation 表示会话元信息。
 type Conversation struct {
 	ID                    uint
@@ -43,8 +38,6 @@ type ConversationProject struct {
 	Description             string
 	SystemPrompt            string
 	DefaultModel            string
-	MCPDefaultMode          string
-	DefaultMCPToolIDs       []uint
 	DefaultSkillIDs         []uint
 	DefaultKnowledgeBaseIDs []string
 	Color                   string
@@ -61,8 +54,6 @@ type ConversationProjectPatch struct {
 	Description             *string
 	SystemPrompt            *string
 	DefaultModel            *string
-	MCPDefaultMode          *string
-	DefaultMCPToolIDs       *[]uint
 	DefaultSkillIDs         *[]uint
 	DefaultKnowledgeBaseIDs *[]string
 	Color                   *string
@@ -398,7 +389,6 @@ type Run struct {
 	CacheReadTokens          int64
 	CacheWriteTokens         int64
 	ReasoningTokens          int64
-	ToolCallsCount           int
 	FirstTokenLatencyMS      int64
 	TotalLatencyMS           int64
 	Status                   string
@@ -494,8 +484,6 @@ type EventLog struct {
 	PayloadSizeBytes  int64
 	PayloadOmitted    bool
 	Seq               int
-	ToolCallID        string
-	ToolName          string
 	LatencyMS         int64
 	InputJSON         string
 	InputSizeBytes    int64
@@ -510,43 +498,6 @@ type EventLog struct {
 	EndedAt           *time.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
-}
-
-// ToolCallDetail 表示当前用户可读取的工具调用结果详情。
-type ToolCallDetail struct {
-	RunID           string
-	ToolCallID      string
-	ToolName        string
-	Status          string
-	OutputJSON      string
-	OutputSizeBytes int64
-	OutputOmitted   bool
-	ErrorJSON       string
-	ErrorSizeBytes  int64
-	ErrorOmitted    bool
-}
-
-// ToolCall 表示工具调用记录。
-type ToolCall struct {
-	ID             uint
-	MessageID      uint
-	ConversationID uint
-	UserID         uint
-	RunID          string
-	ToolCallID     string
-	ToolType       string
-	ToolName       string
-	// MCPServerID / MCPServerName 记录 MCP 调用的服务器归属快照；
-	// 不同服务器可能暴露同名工具，缺少归属时用量统计无法区分。
-	MCPServerID   uint
-	MCPServerName string
-	Status        string
-	LatencyMS     int64
-	InputJSON     string
-	OutputJSON    string
-	ErrorJSON     string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
 }
 
 // ContextSnapshot 表示上下文压缩快照。

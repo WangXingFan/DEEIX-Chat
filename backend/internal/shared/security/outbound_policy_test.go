@@ -44,7 +44,6 @@ func TestOutboundHTTPCallSitesAreExplicit(t *testing.T) {
 				"internal/infra/extraction/mineru/client.go",
 				"internal/infra/geoip/client.go",
 				"internal/infra/llm/client.go",
-				"internal/infra/mcp/client.go",
 				"internal/infra/mediaartifact/client.go",
 				"internal/infra/observability/tracing/http.go",
 				"internal/shared/security/outbound.go",

@@ -23,7 +23,6 @@ const (
 	PromptBlockHistoricalEvidence PromptBlockKind = "historical_evidence"
 	PromptBlockDynamicContext     PromptBlockKind = "dynamic_context"
 	PromptBlockSkillContext       PromptBlockKind = "skill_context"
-	PromptBlockToolGuidance       PromptBlockKind = "tool_guidance"
 	PromptBlockTranscript         PromptBlockKind = "transcript"
 )
 
@@ -77,7 +76,6 @@ type promptPlanInput struct {
 	StableAttachments []AttachmentInput
 	DynamicContext    userContextInput
 	SkillPrompts      *skillPrompts
-	ToolRuntime       selectedToolRuntime
 	Config            config.Config
 	StoreProvider     appstorage.Provider
 }
@@ -165,23 +163,6 @@ func buildPromptPlan(ctx context.Context, input promptPlanInput) PromptPlan {
 		})
 	}
 
-	before = len(messages)
-	messages = injectMCPToolGuidance(messages, input.ToolRuntime, input.Config.MCPToolPrompt)
-	if len(messages) > before {
-		inserted := findToolGuidanceMessage(messages)
-		tokenEstimate := int64(0)
-		if inserted >= 0 {
-			tokenEstimate = estimateMessageTokens(messages[inserted])
-		}
-		trace.addBlock(PromptBlockTrace{
-			Kind:          PromptBlockToolGuidance,
-			Title:         "工具使用规则",
-			TokenEstimate: tokenEstimate,
-			Cacheable:     true,
-			SourceCount:   len(input.ToolRuntime.definitions),
-			SourceRefs:    toolDefinitionSourceRefs(input.ToolRuntime.definitions),
-		})
-	}
 	messages = markLeadingSystemMessagesCacheable(messages)
 
 	trace.TotalTokenEstimate = estimatePromptTokens(messages)
@@ -334,16 +315,6 @@ func skillPromptSourceRefs(skills []domainskill.Skill) []PromptSourceRef {
 	return refs
 }
 
-// toolDefinitionSourceRefs 提取本轮可用工具定义的来源引用。
-func toolDefinitionSourceRefs(tools []llm.ToolDefinition) []PromptSourceRef {
-	refs := make([]PromptSourceRef, 0, len(tools))
-	for _, tool := range tools {
-		refs = appendPromptSourceRef(refs, "tool", tool.Name, tool.Name)
-	}
-	return refs
-}
-
-// appendPromptSourceRef 追加非空来源引用，保持 trace payload 干净。
 func appendPromptSourceRef(refs []PromptSourceRef, sourceType string, sourceID string, title string) []PromptSourceRef {
 	return appendPromptSourceRefWithArtifactID(refs, sourceType, sourceID, title, 0)
 }
@@ -402,16 +373,6 @@ func promptMessagesChanged(left []llm.Message, right []llm.Message) bool {
 		}
 	}
 	return false
-}
-
-// findToolGuidanceMessage 定位工具使用规则消息，供 trace 估算 token。
-func findToolGuidanceMessage(messages []llm.Message) int {
-	for i, item := range messages {
-		if item.Role == "system" && strings.HasPrefix(strings.TrimSpace(item.Content), "# tool_use") {
-			return i
-		}
-	}
-	return -1
 }
 
 // markLeadingSystemMessagesCacheable 给稳定 system 前缀加块级缓存提示。

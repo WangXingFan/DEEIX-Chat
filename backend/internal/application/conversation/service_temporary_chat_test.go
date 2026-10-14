@@ -82,7 +82,6 @@ type temporaryPersistenceRepositoryStub struct {
 	repository.ConversationRepository
 	traceWrites      int
 	traceEventWrites int
-	toolCallWrites   int
 }
 
 func (s *temporaryPersistenceRepositoryStub) UpsertConversationMessageTrace(context.Context, *model.MessageTrace) error {
@@ -92,11 +91,6 @@ func (s *temporaryPersistenceRepositoryStub) UpsertConversationMessageTrace(cont
 
 func (s *temporaryPersistenceRepositoryStub) UpsertConversationMessageTraceEvent(context.Context, *model.MessageTraceEventRow) error {
 	s.traceEventWrites++
-	return nil
-}
-
-func (s *temporaryPersistenceRepositoryStub) CreateConversationToolCall(context.Context, *model.ToolCall) error {
-	s.toolCallWrites++
 	return nil
 }
 
@@ -316,92 +310,6 @@ func TestEnforceTemporaryGenerateInput(t *testing.T) {
 	}
 	if result.PreviousResponseID != "" || result.PromptCacheKey != "" || result.ResponsesBackground {
 		t.Fatalf("temporary generation retained provider state: %#v", result)
-	}
-}
-
-func TestStreamTemporaryChatPreservesProviderNativeToolsWithoutMCPTools(t *testing.T) {
-	tests := []struct {
-		name             string
-		capabilitiesJSON string
-		options          map[string]any
-		expectedType     string
-	}{
-		{
-			name: "model default",
-			capabilitiesJSON: `{
-				"defaultOptions": {
-					"tools": [{"type": "web_search", "enable_image_understanding": true}]
-				}
-			}`,
-			expectedType: "web_search",
-		},
-		{
-			name:             "user option",
-			capabilitiesJSON: `{"nativeToolKeys":["xai.x_search"]}`,
-			options: map[string]any{
-				"tools": []any{
-					map[string]any{
-						"type":                       "x_search",
-						"enable_image_understanding": true,
-						"allowed_domains":            []any{"x.com"},
-					},
-				},
-			},
-			expectedType: "x_search",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			gateway := &temporaryLLMGatewayStub{}
-			service := &Service{
-				cfg: config.NewRuntime(config.Config{
-					ModelOptionPolicyMode:   modelOptionPolicyAllowlist,
-					ModelOptionAllowedPaths: config.DefaultModelOptionAllowedPathsJSON(),
-					ModelOptionDeniedPaths:  config.DefaultModelOptionDeniedPathsJSON(),
-				}),
-				routeResolver: &textTaskRouteResolverStub{routes: map[string]*channel.ResolvedRoute{
-					"grok": {
-						PlatformModelName:     "grok",
-						UpstreamModel:         "grok-4.20-multi-agent-0309",
-						Protocol:              llm.AdapterXAIResponses,
-						ModelCapabilitiesJSON: test.capabilitiesJSON,
-					},
-				}},
-				llmClient: gateway,
-			}
-
-			if _, err := service.StreamTemporaryChat(t.Context(), TemporaryChatInput{
-				UserID:      1,
-				SessionID:   "temporary-session",
-				ClientRunID: "temporary-run",
-				Model:       "grok",
-				Options:     test.options,
-				Messages: []TemporaryChatMessage{
-					{Role: "user", Content: "search the web"},
-				},
-			}, nil); err != nil {
-				t.Fatalf("stream temporary chat: %v", err)
-			}
-
-			if len(gateway.inputs) != 1 {
-				t.Fatalf("expected one upstream call, got %d", len(gateway.inputs))
-			}
-			generateInput := gateway.inputs[0]
-			if generateInput.DisableTools {
-				t.Fatal("temporary chat disabled provider-native tools when no MCP tool was selected")
-			}
-			if len(generateInput.Tools) != 0 {
-				t.Fatalf("expected no MCP tool declarations, got %#v", generateInput.Tools)
-			}
-			tools, ok := generateInput.Options["tools"].([]map[string]any)
-			if !ok || len(tools) != 1 || tools[0]["type"] != test.expectedType {
-				t.Fatalf("expected %s provider-native tool, got %#v", test.expectedType, generateInput.Options["tools"])
-			}
-			if tools[0]["enable_image_understanding"] != true {
-				t.Fatalf("expected provider-native tool parameters to remain, got %#v", tools[0])
-			}
-		})
 	}
 }
 

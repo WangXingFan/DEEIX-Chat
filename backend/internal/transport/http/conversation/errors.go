@@ -24,7 +24,6 @@ var (
 	errInvalidRunID                            = apperr.New("run.invalid_id", "invalid run id")
 	errInvalidRunIDs                           = apperr.New("request.invalid_run_ids", "invalid run ids")
 	errInvalidTemporaryChatMessages            = apperr.New("request.invalid_temporary_chat_messages", "invalid temporary chat messages")
-	errInvalidToolCallID                       = apperr.New("tool_call.invalid_id", "invalid tool call id")
 	errLabelsRequired                          = apperr.New("request.required", "labels are required")
 	errStorageQuotaExceeded                    = apperr.New("quota.exceeded", "storage quota exceeded")
 	errTemporaryChatContextTooLarge            = apperr.New("temporary_chat.context_too_large", "temporary chat context is too large")

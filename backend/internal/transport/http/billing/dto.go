@@ -8,7 +8,6 @@ import (
 
 	appbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/billing"
 	domainbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/billing"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/nativetool"
 )
 
 // ── 请求 DTO ─────────────────────────────────────────────────────────────────
@@ -51,12 +50,10 @@ type UpsertModelPricingRequest struct {
 
 // BillingConfigRequest 保存计费全局配置。
 type BillingConfigRequest struct {
-	Mode                     string                     `json:"mode" binding:"required,oneof=self period usage"`
-	PrepaidAmountUSD         *float64                   `json:"prepaidAmountUSD,omitempty" binding:"omitempty,min=0"`
-	USDToCNYRate             *float64                   `json:"usdToCNYRate,omitempty" binding:"omitempty,gt=0"`
-	DisplayCurrency          *string                    `json:"displayCurrency,omitempty" binding:"omitempty,oneof=USD CNY"`
-	NativeToolBillingEnabled *bool                      `json:"nativeToolBillingEnabled,omitempty"`
-	NativeToolPricing        []NativeToolPricingRequest `json:"nativeToolPricing,omitempty"`
+	Mode             string   `json:"mode" binding:"required,oneof=self period usage"`
+	PrepaidAmountUSD *float64 `json:"prepaidAmountUSD,omitempty" binding:"omitempty,min=0"`
+	USDToCNYRate     *float64 `json:"usdToCNYRate,omitempty" binding:"omitempty,gt=0"`
+	DisplayCurrency  *string  `json:"displayCurrency,omitempty" binding:"omitempty,oneof=USD CNY"`
 }
 
 // UpdateBillingAccountBalanceRequest 管理员设置用户按量余额。
@@ -533,37 +530,13 @@ type OpenRouterOfficialPricingDataResponse struct {
 
 // BillingConfigResponse 计费全局配置响应。
 type BillingConfigResponse struct {
-	Mode                     string                      `json:"mode"`
-	PrepaidAmountUSD         float64                     `json:"prepaidAmountUSD"`
-	PrepaidAmountNanousd     int64                       `json:"prepaidAmountNanousd"`
-	NativeToolBillingEnabled bool                        `json:"nativeToolBillingEnabled"`
-	NativeToolPricing        []NativeToolPricingResponse `json:"nativeToolPricing"`
-	PaymentProviders         []string                    `json:"paymentProviders"`
-	USDToCNYRate             float64                     `json:"usdToCNYRate"`
-	DisplayCurrency          string                      `json:"displayCurrency"`
-	EPayTypes                []PaymentTypeResponse       `json:"epayTypes"`
-}
-
-// NativeToolPricingResponse 原生工具默认价格响应。
-type NativeToolPricingResponse struct {
-	Provider     string `json:"provider"`
-	ToolKey      string `json:"toolKey"`
-	Label        string `json:"label"`
-	Description  string `json:"description"`
-	Type         string `json:"type"`
-	PriceNanousd int64  `json:"priceNanousd"`
-	Unit         string `json:"unit"`
-	PriceLabel   string `json:"priceLabel"`
-	Billable     bool   `json:"billable"`
-}
-
-// NativeToolPricingRequest 原生工具价格保存请求。
-type NativeToolPricingRequest struct {
-	ToolKey      string `json:"toolKey,omitempty"`
-	PriceNanousd int64  `json:"priceNanousd,omitempty"`
-	Unit         string `json:"unit,omitempty"`
-	PriceLabel   string `json:"priceLabel,omitempty"`
-	Billable     bool   `json:"billable,omitempty"`
+	Mode                 string                `json:"mode"`
+	PrepaidAmountUSD     float64               `json:"prepaidAmountUSD"`
+	PrepaidAmountNanousd int64                 `json:"prepaidAmountNanousd"`
+	PaymentProviders     []string              `json:"paymentProviders"`
+	USDToCNYRate         float64               `json:"usdToCNYRate"`
+	DisplayCurrency      string                `json:"displayCurrency"`
+	EPayTypes            []PaymentTypeResponse `json:"epayTypes"`
 }
 
 // PaymentTypeResponse 支付类型响应。
@@ -739,41 +712,6 @@ func toPlanListResponse(views []appbilling.BillingPlanView) []BillingPlanRespons
 		})
 	}
 	return result
-}
-
-func toNativeToolPricingResponses(items []appbilling.NativeToolPricingView) []NativeToolPricingResponse {
-	results := make([]NativeToolPricingResponse, 0, len(items))
-	for _, item := range items {
-		results = append(results, NativeToolPricingResponse{
-			Provider:     strings.TrimSpace(item.Provider),
-			ToolKey:      strings.TrimSpace(item.ToolKey),
-			Label:        strings.TrimSpace(item.Label),
-			Description:  strings.TrimSpace(item.Description),
-			Type:         strings.TrimSpace(item.Type),
-			PriceNanousd: item.PriceNanousd,
-			Unit:         strings.TrimSpace(item.Unit),
-			PriceLabel:   strings.TrimSpace(item.PriceLabel),
-			Billable:     item.Billable,
-		})
-	}
-	return results
-}
-
-func nativeToolPricingOverridesFromRequests(items []NativeToolPricingRequest) map[string]nativetool.PricingOverride {
-	overrides := make(map[string]nativetool.PricingOverride, len(items))
-	for _, item := range items {
-		key := strings.TrimSpace(item.ToolKey)
-		if key == "" {
-			continue
-		}
-		overrides[key] = nativetool.PricingOverride{
-			PriceNanousd: item.PriceNanousd,
-			Unit:         strings.TrimSpace(item.Unit),
-			PriceLabel:   strings.TrimSpace(item.PriceLabel),
-			Billable:     item.Billable,
-		}
-	}
-	return overrides
 }
 
 func optionalIntValue(value *int) int {

@@ -116,8 +116,6 @@ func migrate(db *gorm.DB, cfg config.Config) error {
 		"llm_model_display_groups":       "平台模型自定义展示分组表",
 		"llm_platform_models":            "平台模型表",
 		"llm_model_routes":               "平台模型路由绑定表",
-		"mcp_servers":                    "MCP服务配置表",
-		"mcp_tools":                      "MCP工具发现表",
 		"chat_conversations":             "聊天会话表",
 		"chat_conversation_projects":     "会话项目分组表",
 		"chat_messages":                  "会话消息表",
@@ -126,7 +124,7 @@ func migrate(db *gorm.DB, cfg config.Config) error {
 		"file_objects":                   "文件对象与处理结果表",
 		"file_storage_quotas":            "用户文件配额表",
 		"chat_runs":                      "会话运行日志表",
-		"chat_run_events":                "会话运行轨迹与工具事件表",
+		"chat_run_events":                "会话运行轨迹表",
 		"chat_context_records":           "会话上下文快照与证据表",
 		"billing_plans":                  "订阅套餐定义表",
 		"billing_prices":                 "订阅价格版本表",
@@ -145,7 +143,6 @@ func migrate(db *gorm.DB, cfg config.Config) error {
 		"user_settings":                  "用户个人偏好配置表",
 		"file_chunks":                    "RAG文件分片表",
 	}
-	tableComments["chat_conversation_project_mcp_tools"] = "项目默认 MCP 工具关联表"
 	tableComments["chat_conversation_project_skills"] = "项目默认 Skill 关联表"
 
 	for table, comment := range tableComments {
@@ -378,12 +375,10 @@ func applyConversationBaselineIndexes(db *gorm.DB) error {
 		`ALTER TABLE "chat_run_events"
 		ALTER COLUMN "event_id" TYPE varchar(255),
 		ALTER COLUMN "parent_event_id" TYPE varchar(255),
-		ALTER COLUMN "title" TYPE varchar(255),
-		ALTER COLUMN "tool_call_id" TYPE varchar(255)`,
+		ALTER COLUMN "title" TYPE varchar(255)`,
 		`COMMENT ON COLUMN "chat_run_events"."event_id" IS '事件ID'`,
 		`COMMENT ON COLUMN "chat_run_events"."parent_event_id" IS '父事件ID'`,
 		`COMMENT ON COLUMN "chat_run_events"."title" IS '轨迹标题'`,
-		`COMMENT ON COLUMN "chat_run_events"."tool_call_id" IS '工具调用ID'`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS uk_file_objects_active_user_content
 		ON "file_objects" ("user_id", "sha256", "size_bytes")
 		WHERE status = 'active' AND deleted_at IS NULL AND sha256 <> ''`,

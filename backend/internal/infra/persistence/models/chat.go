@@ -32,34 +32,21 @@ func (Conversation) TableName() string {
 // ConversationProject 存储用户会话项目分组。
 type ConversationProject struct {
 	BaseModel
-	UserID         uint   `gorm:"not null;index:idx_chat_conversation_projects_user_id;comment:用户ID"`
-	PublicID       string `gorm:"size:32;not null;default:'';uniqueIndex:idx_chat_conversation_projects_public_id;comment:公开项目ID"`
-	Name           string `gorm:"size:80;not null;default:'';comment:项目名称"`
-	Description    string `gorm:"size:255;not null;default:'';comment:项目描述"`
-	SystemPrompt   string `gorm:"type:text;not null;default:'';comment:项目级系统提示词"`
-	DefaultModel   string `gorm:"size:128;not null;default:'';comment:项目新会话默认平台模型；空值表示继承全局默认"`
-	MCPDefaultMode string `gorm:"size:16;not null;default:'inherit';comment:MCP默认模式(inherit/custom)"`
-	Color          string `gorm:"size:32;not null;default:'';comment:项目颜色"`
-	Icon           string `gorm:"size:32;not null;default:'';comment:项目图标"`
-	SortOrder      int    `gorm:"not null;default:0;index:idx_chat_conversation_projects_sort_order;comment:展示顺序"`
-	Status         string `gorm:"size:32;not null;default:'active';index:idx_chat_conversation_projects_status;comment:项目状态(active/archived)"`
+	UserID       uint   `gorm:"not null;index:idx_chat_conversation_projects_user_id;comment:用户ID"`
+	PublicID     string `gorm:"size:32;not null;default:'';uniqueIndex:idx_chat_conversation_projects_public_id;comment:公开项目ID"`
+	Name         string `gorm:"size:80;not null;default:'';comment:项目名称"`
+	Description  string `gorm:"size:255;not null;default:'';comment:项目描述"`
+	SystemPrompt string `gorm:"type:text;not null;default:'';comment:项目级系统提示词"`
+	DefaultModel string `gorm:"size:128;not null;default:'';comment:项目新会话默认平台模型；空值表示继承全局默认"`
+	Color        string `gorm:"size:32;not null;default:'';comment:项目颜色"`
+	Icon         string `gorm:"size:32;not null;default:'';comment:项目图标"`
+	SortOrder    int    `gorm:"not null;default:0;index:idx_chat_conversation_projects_sort_order;comment:展示顺序"`
+	Status       string `gorm:"size:32;not null;default:'active';index:idx_chat_conversation_projects_status;comment:项目状态(active/archived)"`
 }
 
 // TableName 指定表名。
 func (ConversationProject) TableName() string {
 	return "chat_conversation_projects"
-}
-
-// ConversationProjectMCPTool 记录项目默认启用的 MCP 工具。
-type ConversationProjectMCPTool struct {
-	ProjectID uint `gorm:"primaryKey;comment:项目ID"`
-	ToolID    uint `gorm:"primaryKey;index:idx_project_mcp_tools_tool;comment:MCP工具ID"`
-	SortOrder int  `gorm:"not null;default:0;comment:项目内排序"`
-}
-
-// TableName 指定项目 MCP 工具关联表名。
-func (ConversationProjectMCPTool) TableName() string {
-	return "chat_conversation_project_mcp_tools"
 }
 
 // ConversationProjectSkill 记录项目默认加载的 Skill。
@@ -277,7 +264,6 @@ type ConversationRun struct {
 	CacheReadTokens          int64      `gorm:"not null;default:0;comment:缓存读取Token"`
 	CacheWriteTokens         int64      `gorm:"not null;default:0;comment:缓存写入Token"`
 	ReasoningTokens          int64      `gorm:"not null;default:0;comment:推理Token"`
-	ToolCallsCount           int        `gorm:"not null;default:0;comment:工具调用次数"`
 	FirstTokenLatencyMS      int64      `gorm:"not null;default:0;comment:首Token时延毫秒"`
 	TotalLatencyMS           int64      `gorm:"not null;default:0;comment:总时长毫秒"`
 	Status                   string     `gorm:"size:32;not null;default:'';index:idx_chat_runs_status;comment:运行状态"`
@@ -317,10 +303,6 @@ type ChatRunEvent struct {
 	PayloadSizeBytes int64      `gorm:"->;-:migration;column:payload_size_bytes"`
 	PayloadOmitted   bool       `gorm:"->;-:migration;column:payload_omitted"`
 	Seq              int        `gorm:"not null;default:0;index:idx_chat_run_events_seq;comment:事件顺序"`
-	ToolCallID       string     `gorm:"size:255;not null;default:'';index:idx_chat_run_events_tool_call_id;comment:工具调用ID"`
-	ToolName         string     `gorm:"size:128;not null;default:'';index:idx_chat_run_events_tool_name;comment:工具名称"`
-	MCPServerID      uint       `gorm:"not null;default:0;comment:MCP服务器ID快照(非MCP调用为0)"`
-	MCPServerName    string     `gorm:"size:128;not null;default:'';comment:MCP服务器名称快照"`
 	LatencyMS        int64      `gorm:"not null;default:0;comment:调用时长毫秒"`
 	InputJSON        string     `gorm:"type:text;not null;default:'';comment:输入JSON"`
 	InputSizeBytes   int64      `gorm:"->;-:migration;column:input_size_bytes"`

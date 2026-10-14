@@ -2,7 +2,6 @@ package conversation
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -62,8 +61,6 @@ func TestCreateForkedConversationCommitsCompleteFork(t *testing.T) {
 	}
 	traceStartedAt := time.Date(2026, time.August, 20, 9, 30, 0, 0, time.UTC)
 	traceEndedAt := traceStartedAt.Add(1250 * time.Millisecond)
-	sourceToolOutput := `{"content":[{"type":"text","text":"## 文件内容\n\n- 第一项\n- 第二项"}]}`
-	sourceToolPayload := `{"tool_calls":[{"tool_call_id":"call_1","name":"read_file","status":"completed","output_preview":"## 文件内容 - 第一项 - 第二项"}]}`
 	sourceTraceEvents := []models.ChatRunEvent{
 		{
 			BaseModel: models.BaseModel{CreatedAt: traceStartedAt, UpdatedAt: traceEndedAt},
@@ -79,24 +76,6 @@ func TestCreateForkedConversationCommitsCompleteFork(t *testing.T) {
 			EventScope: chatRunEventScopeTraceEvent, EventID: "reasoning_1", EventType: "reasoning",
 			Phase: "upstream_think", Stage: "think", RoundID: "round_1", Status: "completed",
 			ContentMarkdown: "先检查上下文", PayloadJSON: `{"type":"response.reasoning_summary_text.done"}`, Seq: 2,
-			StartedAt: traceStartedAt, EndedAt: &traceEndedAt,
-		},
-		{
-			BaseModel: models.BaseModel{CreatedAt: traceStartedAt, UpdatedAt: traceEndedAt},
-			MessageID: leaf.ID, ConversationID: source.ID, UserID: 1, RunID: "run_source_leaf",
-			EventScope: chatRunEventScopeTraceEvent, EventID: "tool_1", EventType: "tool",
-			Phase: "tools", Stage: "tool", RoundID: "round_1", ParentEventID: "reasoning_1", Status: "completed",
-			Title: "读取文件", PayloadJSON: sourceToolPayload, Seq: 3,
-			ToolCallID: "call_1", ToolName: "read_file", LatencyMS: 25,
-			InputJSON: `{"path":"README.md"}`, OutputJSON: sourceToolOutput,
-			StartedAt: traceStartedAt, EndedAt: &traceEndedAt,
-		},
-		{
-			BaseModel: models.BaseModel{CreatedAt: traceStartedAt, UpdatedAt: traceEndedAt},
-			MessageID: leaf.ID, ConversationID: source.ID, UserID: 1, RunID: "run_source_leaf",
-			EventScope: chatRunEventScopeToolCall, EventID: "call_1", EventType: "tool_call",
-			Phase: "tools", Stage: "tool", Status: "completed", Seq: 4,
-			ToolCallID: "call_1", ToolName: "read_file", InputJSON: `{"path":"README.md"}`, OutputJSON: sourceToolOutput,
 			StartedAt: traceStartedAt, EndedAt: &traceEndedAt,
 		},
 	}
@@ -151,10 +130,10 @@ func TestCreateForkedConversationCommitsCompleteFork(t *testing.T) {
 	if err := db.Where("conversation_id = ?", target.ID).Order("seq ASC, id ASC").Find(&targetTraceEvents).Error; err != nil {
 		t.Fatalf("load target trace events: %v", err)
 	}
-	if len(targetTraceEvents) != 4 {
-		t.Fatalf("len(targetTraceEvents) = %d, want 4 self-contained trace rows", len(targetTraceEvents))
+	if len(targetTraceEvents) != 2 {
+		t.Fatalf("len(targetTraceEvents) = %d, want 2 self-contained trace rows", len(targetTraceEvents))
 	}
-	wantEventIDs := []string{"trace_context", "reasoning_1", "tool_1", "call_1"}
+	wantEventIDs := []string{"trace_context", "reasoning_1"}
 	targetTraceRunID := forkedEventRunID(targetMessages[1].ID, "run_source_leaf")
 	for index, event := range targetTraceEvents {
 		if event.MessageID != targetMessages[1].ID || event.ConversationID != target.ID || event.UserID != 1 {
@@ -173,9 +152,6 @@ func TestCreateForkedConversationCommitsCompleteFork(t *testing.T) {
 			t.Fatalf("target trace ended_at = %v, want %v", event.EndedAt, traceEndedAt)
 		}
 	}
-	if toolEvent := targetTraceEvents[2]; toolEvent.RoundID != "round_1" || toolEvent.ParentEventID != "reasoning_1" || toolEvent.ToolCallID != "call_1" || toolEvent.ToolName != "read_file" {
-		t.Fatalf("target tool display linkage was not preserved: %+v", toolEvent)
-	}
 	if targetTraceEvents[0].ContentMarkdown != sourceTraceEvents[0].ContentMarkdown || targetTraceEvents[0].PayloadJSON != sourceTraceEvents[0].PayloadJSON {
 		t.Fatalf("target context trace content was not preserved: %+v", targetTraceEvents[0])
 	}
@@ -190,32 +166,8 @@ func TestCreateForkedConversationCommitsCompleteFork(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListConversationMessageTraceEventsByMessageIDs() error = %v", err)
 	}
-	if len(displayEvents) != 2 || displayEvents[0].ContentMarkdown != "先检查上下文" || displayEvents[1].EventType != "tool" {
-		t.Fatalf("fork display events = %+v, want copied reasoning and tool details", displayEvents)
-	}
-	var forkedToolPayload struct {
-		ToolCalls []struct {
-			DetailRunID        string `json:"detail_run_id"`
-			OutputPresentation struct {
-				Text string `json:"text"`
-			} `json:"output_presentation"`
-		} `json:"tool_calls"`
-	}
-	if err := json.Unmarshal([]byte(displayEvents[1].PayloadJSON), &forkedToolPayload); err != nil {
-		t.Fatalf("decode forked tool payload: %v", err)
-	}
-	if len(forkedToolPayload.ToolCalls) != 1 || forkedToolPayload.ToolCalls[0].OutputPresentation.Text != "## 文件内容\n\n- 第一项\n- 第二项" {
-		t.Fatalf("forked tool presentation = %+v, want newline-preserving source projection", forkedToolPayload.ToolCalls)
-	}
-	if forkedToolPayload.ToolCalls[0].DetailRunID != targetTraceRunID {
-		t.Fatalf("forked tool detail run ID = %q, want target run %q", forkedToolPayload.ToolCalls[0].DetailRunID, targetTraceRunID)
-	}
-	forkedToolDetail, err := repo.GetConversationToolCallDetail(ctx, 1, targetTraceRunID, "call_1")
-	if err != nil {
-		t.Fatalf("GetConversationToolCallDetail(forked) error = %v", err)
-	}
-	if forkedToolDetail.OutputJSON != sourceToolOutput || forkedToolDetail.ToolName != "read_file" {
-		t.Fatalf("forked tool detail = %+v, want copied raw result", forkedToolDetail)
+	if len(displayEvents) != 1 || displayEvents[0].ContentMarkdown != "先检查上下文" {
+		t.Fatalf("fork display events = %+v, want copied reasoning detail", displayEvents)
 	}
 
 	var targetAttachments []models.Attachment

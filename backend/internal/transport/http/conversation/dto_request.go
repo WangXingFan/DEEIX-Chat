@@ -13,8 +13,6 @@ type CreateConversationProjectRequest struct {
 	Description             string   `json:"description,omitempty" binding:"max=255"`
 	SystemPrompt            string   `json:"systemPrompt,omitempty" binding:"max=12000"`
 	DefaultModel            string   `json:"defaultModel,omitempty" binding:"max=128"`
-	MCPDefaultMode          string   `json:"mcpDefaultMode,omitempty" binding:"omitempty,oneof=inherit custom"`
-	DefaultMCPToolIDs       []uint   `json:"defaultMCPToolIDs,omitempty" binding:"max=128"`
 	DefaultSkillIDs         []uint   `json:"defaultSkillIDs,omitempty" binding:"max=128"`
 	DefaultKnowledgeBaseIDs []string `json:"defaultKnowledgeBaseIDs,omitempty" binding:"max=8,dive,required,max=32"`
 	Color                   string   `json:"color,omitempty" binding:"max=32"`
@@ -27,8 +25,6 @@ type UpdateConversationProjectRequest struct {
 	Description             *string   `json:"description,omitempty" binding:"omitempty,max=255"`
 	SystemPrompt            *string   `json:"systemPrompt,omitempty" binding:"omitempty,max=12000"`
 	DefaultModel            *string   `json:"defaultModel,omitempty" binding:"omitempty,max=128"`
-	MCPDefaultMode          *string   `json:"mcpDefaultMode,omitempty" binding:"omitempty,oneof=inherit custom"`
-	DefaultMCPToolIDs       *[]uint   `json:"defaultMCPToolIDs,omitempty" binding:"omitempty,max=128"`
 	DefaultSkillIDs         *[]uint   `json:"defaultSkillIDs,omitempty" binding:"omitempty,max=128"`
 	DefaultKnowledgeBaseIDs *[]string `json:"defaultKnowledgeBaseIDs,omitempty" binding:"omitempty,max=8,dive,required,max=32"`
 	Color                   *string   `json:"color,omitempty" binding:"omitempty,max=32"`
@@ -106,7 +102,6 @@ type SendMessageRequest struct {
 	Options                 map[string]any `json:"options,omitempty"`
 	ClientRunID             string         `json:"clientRunID,omitempty" binding:"omitempty,max=64"`
 	FileIDs                 []string       `json:"fileIDs,omitempty" binding:"max=20"`
-	SelectedToolIDs         []uint         `json:"selectedToolIDs,omitempty" binding:"max=128"`
 	SkillIDs                []uint         `json:"skillIDs,omitempty" binding:"max=128"`
 	KnowledgeBaseIDs        []string       `json:"knowledgeBaseIDs,omitempty" binding:"max=8,dive,required,max=32"`
 	HTMLVisualPromptEnabled bool           `json:"htmlVisualPrompt,omitempty"`
@@ -122,7 +117,6 @@ type TemporaryChatMessageRequest struct {
 	ClientRunID      string                        `json:"clientRunID" binding:"required,max=64"`
 	Model            string                        `json:"model" binding:"required,max=128"`
 	Options          map[string]any                `json:"options,omitempty"`
-	SelectedToolIDs  []uint                        `json:"selectedToolIDs,omitempty" binding:"max=128"`
 	SkillIDs         []uint                        `json:"skillIDs,omitempty" binding:"max=128"`
 	KnowledgeBaseIDs []string                      `json:"knowledgeBaseIDs,omitempty" binding:"omitempty,max=8,dive,max=32"`
 	HTMLVisualPrompt bool                          `json:"htmlVisualPrompt,omitempty"`

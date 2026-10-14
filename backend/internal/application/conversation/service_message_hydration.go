@@ -110,8 +110,6 @@ func buildMessageProcessTraceDTO(rows []model.MessageTrace, eventRows []model.Me
 		case messageTraceTypeProcess:
 			result.Process = block
 			result.PromptTrace = messagePromptTraceFromPayload(row.PayloadJSON)
-		case messageTraceTypeTools:
-			result.Tools = block
 		case messageTraceTypeUpstreamThink:
 			result.UpstreamThink = block
 		}

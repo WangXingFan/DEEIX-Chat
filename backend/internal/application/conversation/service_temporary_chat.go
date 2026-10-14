@@ -31,7 +31,6 @@ type TemporaryChatInput struct {
 	ClientRunID              string
 	Model                    string
 	Options                  map[string]any
-	SelectedToolIDs          []uint
 	SkillIDs                 []uint
 	KnowledgeBaseIDs         []string
 	HTMLVisualPromptEnabled  bool
@@ -105,16 +104,6 @@ func (s *Service) StreamTemporaryChat(
 			messages = append([]llm.Message{{Role: "system", Content: systemPrompt.Content}}, messages...)
 		}
 	}
-	if err := s.ValidateSelectedToolIDs(input.SelectedToolIDs); err != nil {
-		return nil, err
-	}
-	toolRuntime, err := s.resolveSelectedToolRuntime(ctx, input.SelectedToolIDs)
-	if err != nil {
-		return nil, err
-	}
-	// 附件处理器依赖持久化的文件 ID。请求作用域的临时
-	// 附件改为直接注入模型上下文。
-	toolRuntime = toolRuntime.withoutAttachmentProcessor()
 	skillPrompts, err := s.resolveSkillPrompts(ctx, SendMessageInput{
 		UserID:   input.UserID,
 		SkillIDs: input.SkillIDs,
@@ -134,7 +123,6 @@ func (s *Service) StreamTemporaryChat(
 		StableAttachments: attachmentContext.stableAttachments,
 		DynamicContext:    knowledgeContext,
 		SkillPrompts:      skillPrompts,
-		ToolRuntime:       toolRuntime,
 		Config:            cfg,
 	})
 	messages = stripTemporaryMessageCacheControls(promptPlan.Messages)
@@ -165,7 +153,6 @@ func (s *Service) StreamTemporaryChat(
 	generateInput := llm.GenerateInput{
 		RequestID: strings.TrimSpace(input.RequestID),
 		Messages:  messages,
-		Tools:     toolRuntime.definitions,
 		Options:   filteredOptions,
 		Ephemeral: true,
 	}
@@ -203,7 +190,6 @@ func (s *Service) StreamTemporaryChat(
 		Route:         route,
 		RouteConfig:   routeConfig,
 		InitialInput:  generateInput,
-		ToolRuntime:   toolRuntime,
 		TraceRecorder: traceRecorder,
 		StartedAt:     startedAt,
 		OnDelta:       onDelta,
@@ -284,26 +270,24 @@ func (s *Service) StreamTemporaryChat(
 			CreatedAt:        startedAt,
 			UpdatedAt:        now,
 		},
-		AssistantMessage:    temporaryAssistant,
-		Billable:            true,
-		UpstreamID:          route.UpstreamID,
-		UpstreamName:        route.UpstreamName,
-		PlatformModelName:   route.PlatformModelName,
-		RoutedBindingCode:   route.BindingCode,
-		UpstreamModelName:   route.UpstreamModel,
-		UpstreamProtocol:    route.Protocol,
-		EffectiveOptions:    filteredOptions,
-		UsageSpeed:          usage.Speed,
-		UsageServiceTier:    usage.ServiceTier,
-		UsageSource:         usageSource,
-		RawUsageJSON:        usage.RawUsageJSON,
-		CacheWrite5mTokens:  usage.CacheWrite5mTokens,
-		CacheWrite1hTokens:  usage.CacheWrite1hTokens,
-		ServerSideToolUsage: output.ServerSideToolUsage,
-		MCPToolUsage:        generation.MCPToolUsage,
-		LLMCallCount:        generation.LLMCallCount,
-		LatencyMS:           time.Since(startedAt).Milliseconds(),
-		StartedAt:           startedAt,
+		AssistantMessage:   temporaryAssistant,
+		Billable:           true,
+		UpstreamID:         route.UpstreamID,
+		UpstreamName:       route.UpstreamName,
+		PlatformModelName:  route.PlatformModelName,
+		RoutedBindingCode:  route.BindingCode,
+		UpstreamModelName:  route.UpstreamModel,
+		UpstreamProtocol:   route.Protocol,
+		EffectiveOptions:   filteredOptions,
+		UsageSpeed:         usage.Speed,
+		UsageServiceTier:   usage.ServiceTier,
+		UsageSource:        usageSource,
+		RawUsageJSON:       usage.RawUsageJSON,
+		CacheWrite5mTokens: usage.CacheWrite5mTokens,
+		CacheWrite1hTokens: usage.CacheWrite1hTokens,
+		LLMCallCount:       generation.LLMCallCount,
+		LatencyMS:          time.Since(startedAt).Milliseconds(),
+		StartedAt:          startedAt,
 	}
 	if moderationCoord != nil {
 		applyBarrierOutcome(result, moderationCoord.AfterGeneration(ctx, assistantText, nil))

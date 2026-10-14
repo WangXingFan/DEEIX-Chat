@@ -76,9 +76,9 @@ func (r *assistantEditTraceRepository) ListConversationMessageTraceEventsByMessa
 ) ([]model.MessageTraceEventRow, error) {
 	return []model.MessageTraceEventRow{{
 		MessageID: r.message.ID,
-		EventID:   "event_tool_1",
-		EventType: "tool",
-		Title:     "Tool complete",
+		EventID:   "event_step_1",
+		EventType: "process",
+		Title:     "Step complete",
 		Status:    messageTraceStatusCompleted,
 		Seq:       1,
 	}}, nil
@@ -118,7 +118,7 @@ func TestAssistantEditResponseRetainsProcessTrace(t *testing.T) {
 	if updated.ProcessTrace == nil || updated.ProcessTrace.Process == nil {
 		t.Fatalf("edited response lost process trace: %#v", updated.ProcessTrace)
 	}
-	if len(updated.ProcessTrace.Events) != 1 || updated.ProcessTrace.Events[0].EventID != "event_tool_1" {
+	if len(updated.ProcessTrace.Events) != 1 || updated.ProcessTrace.Events[0].EventID != "event_step_1" {
 		t.Fatalf("edited response lost execution events: %#v", updated.ProcessTrace)
 	}
 }
@@ -170,66 +170,6 @@ func TestCanceledTraceSettlementPersistsCompleteReasoningForReload(t *testing.T)
 	}
 	if trace.UpstreamThink.Status != messageTraceStatusError {
 		t.Fatalf("reloaded reasoning status = %q, want %q", trace.UpstreamThink.Status, messageTraceStatusError)
-	}
-}
-
-func TestToolTraceRoundsSurviveReload(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:trace_tool_rounds?mode=memory&cache=shared"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	if err := db.AutoMigrate(&models.ChatRunEvent{}); err != nil {
-		t.Fatalf("migrate trace table: %v", err)
-	}
-
-	repo := persistenceconversation.NewRepo(db)
-	cfg := config.Config{
-		ProcessTraceEnabled: true,
-	}
-	service := &Service{cfg: config.NewRuntime(cfg), repo: repo}
-	assistant := &model.Message{
-		ID:             42,
-		ConversationID: 17,
-		UserID:         9,
-		RunID:          "run_tool_round_reload",
-		Role:           "assistant",
-	}
-	recorder := newMessageTraceRecorder(service, context.Background(), assistant, nil)
-
-	appendRound := func(callID string) {
-		summary, markdown, payload := buildToolTrace([]model.ToolCall{{
-			ToolCallID: callID,
-			ToolName:   "web_search",
-			Status:     "success",
-			InputJSON:  `{"query":"test"}`,
-			OutputJSON: `{"ok":true}`,
-		}})
-		recorder.appendToolSection(summary, markdown, payload, messageTraceStatusCompleted)
-		recorder.completeTools()
-	}
-	appendRound("call_1")
-	appendRound("call_2")
-	recorder.complete()
-
-	reloaded := []model.Message{{ID: assistant.ID, Role: "assistant"}}
-	if err := service.hydrateMessageProcessTraces(context.Background(), reloaded); err != nil {
-		t.Fatalf("hydrate persisted trace: %v", err)
-	}
-	trace := reloaded[0].ProcessTrace
-	if trace == nil {
-		t.Fatal("expected persisted trace")
-	}
-	toolEvents := make([]model.MessageTraceEvent, 0, 2)
-	for _, event := range trace.Events {
-		if event.EventType == "tool" {
-			toolEvents = append(toolEvents, event)
-		}
-	}
-	if len(toolEvents) != 2 {
-		t.Fatalf("expected two persisted tool rounds, got %#v", trace.Events)
-	}
-	if toolEvents[0].RoundID == toolEvents[1].RoundID {
-		t.Fatalf("expected distinct persisted round identities, got %#v", toolEvents)
 	}
 }
 

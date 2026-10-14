@@ -17,7 +17,6 @@ import (
 
 	domainbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/billing"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/nativetool"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/pagination"
 )
 
@@ -27,7 +26,6 @@ const (
 	defaultDailyUsageDays      = 30
 	maxDailyUsageDays          = 90
 	publicModelPricingCacheTTL = 30 * time.Second
-	nativeToolPricingSource    = "provider_official_defaults"
 )
 
 // UserSubscriptionSnapshot 描述用户当前订阅的派生结果。
@@ -59,7 +57,6 @@ type Service struct {
 	modelPricingInvalidator       func()
 	platformModelIdentityResolver platformModelIdentityResolver
 	modelPricingCatalog           modelPricingCatalogProvider
-	nativeToolCatalog             nativeToolCatalogProvider
 	auditWriter                   auditWriter
 	groupRateResolver             groupRateMultiplierResolver
 	permissionGroupLookup         permissionGroupLookup
@@ -124,10 +121,6 @@ type modelPricingCatalogProvider interface {
 	SupportsVideoGeneration(ctx context.Context, platformModelName string) (bool, error)
 }
 
-type nativeToolCatalogProvider interface {
-	ListNativeToolDefinitions(ctx context.Context) ([]nativetool.Definition, error)
-}
-
 // BilledReasonModerationBlockedUpstreamUsage 标注被内容审核拦截却仍要结算的账本：
 // 拦截只撤回内容，不撤回上游已产生的用量。
 const BilledReasonModerationBlockedUpstreamUsage = "moderation_blocked_upstream_usage"
@@ -149,27 +142,24 @@ type UsagePricingInput struct {
 	UsageServiceTier   string
 	UsageSource        string
 	// BilledReason 说明正常结算之外为何仍计费（如审核拦截后的上游用量），写入账单快照供用户与审计查看。
-	BilledReason        string
-	ServiceOnly         bool
-	InputTokens         int64
-	CacheReadTokens     int64
-	CacheWriteTokens    int64
-	CacheWrite5mTokens  int64
-	CacheWrite1hTokens  int64
-	OutputTokens        int64
-	ReasoningTokens     int64
-	CallCount           int64
-	DurationBillable    bool
-	DurationSeconds     int64
-	MediaType           string
-	InputImageCount     int64
-	LatencyMS           int64
-	ServerSideToolUsage map[string]int64
-	// MCPToolUsage 聚合应用侧工具循环内成功的 MCP 调用（价格为调用时的工具配置快照）。
-	MCPToolUsage []MCPToolUsageInput
-	ServiceItems []ServiceUsageInput
-	RawUsageJSON string
-	BillingAt    time.Time
+	BilledReason       string
+	ServiceOnly        bool
+	InputTokens        int64
+	CacheReadTokens    int64
+	CacheWriteTokens   int64
+	CacheWrite5mTokens int64
+	CacheWrite1hTokens int64
+	OutputTokens       int64
+	ReasoningTokens    int64
+	CallCount          int64
+	DurationBillable   bool
+	DurationSeconds    int64
+	MediaType          string
+	InputImageCount    int64
+	LatencyMS          int64
+	ServiceItems       []ServiceUsageInput
+	RawUsageJSON       string
+	BillingAt          time.Time
 }
 
 func upstreamUsageSnapshot(input UsagePricingInput) any {
@@ -200,16 +190,6 @@ type PlatformModelIdentity struct {
 	ModelIcon         string
 }
 
-// MCPToolUsageInput 定义一次运行内某个 MCP 工具的成功调用计量。
-// PriceNanousd 为调用时的工具配置快照，0 表示该工具不单独计费。
-type MCPToolUsageInput struct {
-	ServerID     uint
-	ServerName   string
-	ToolName     string
-	CallCount    int64
-	PriceNanousd int64
-}
-
 // ServiceUsageInput 定义基础服务计费入参。
 type ServiceUsageInput struct {
 	ServiceCode        string
@@ -230,19 +210,6 @@ type ServiceUsageInput struct {
 	OutputTokens       int64
 	ReasoningTokens    int64
 	CallCount          int64
-}
-
-// NativeToolPricingView 描述内置原生工具默认计费价格。
-type NativeToolPricingView struct {
-	Provider     string
-	ToolKey      string
-	Label        string
-	Description  string
-	Type         string
-	PriceNanousd int64
-	Unit         string
-	PriceLabel   string
-	Billable     bool
 }
 
 // ModelPricingInput 定义模型单价保存入参。金额字段均为 nano USD。
@@ -407,14 +374,6 @@ func (s *Service) SetModelPricingCatalogProvider(provider modelPricingCatalogPro
 	s.modelPricingCatalog = provider
 }
 
-// SetNativeToolCatalogProvider 注入平台级官方原生工具目录提供者。
-func (s *Service) SetNativeToolCatalogProvider(provider nativeToolCatalogProvider) {
-	if s == nil {
-		return
-	}
-	s.nativeToolCatalog = provider
-}
-
 // SetRedemptionCodeSecret 注入兑换码 HMAC 与密文存储密钥。
 func (s *Service) SetRedemptionCodeSecret(secret string) {
 	if s == nil {
@@ -439,53 +398,6 @@ func (s *Service) invalidatePublicModelPricingCache() {
 // GetBillingMode 查询当前计费模式。
 func (s *Service) GetBillingMode(ctx context.Context) (string, error) {
 	return s.repo.GetBillingMode(ctx)
-}
-
-// ListNativeToolPricing 返回应用管理员覆盖后的平台级原生工具计费价格目录。
-func (s *Service) ListNativeToolPricing(ctx context.Context, rawPricingJSON string) ([]NativeToolPricingView, error) {
-	definitions, err := s.nativeToolDefinitions(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return nativeToolPricingViews(nativetool.PricingDefinitionsWithOverridesFromDefinitions(rawPricingJSON, definitions)), nil
-}
-
-// NormalizeNativeToolPricingJSON 基于当前平台级原生工具目录校验并格式化价格配置。
-func (s *Service) NormalizeNativeToolPricingJSON(ctx context.Context, overrides map[string]nativetool.PricingOverride) (string, error) {
-	definitions, err := s.nativeToolDefinitions(ctx)
-	if err != nil {
-		return "", err
-	}
-	value, err := nativetool.PricingOverridesJSONForDefinitions(overrides, definitions)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrInvalidNativeToolPricing, err)
-	}
-	return value, nil
-}
-
-func (s *Service) nativeToolDefinitions(ctx context.Context) ([]nativetool.Definition, error) {
-	if s == nil || s.nativeToolCatalog == nil {
-		return nativetool.Definitions(), nil
-	}
-	return s.nativeToolCatalog.ListNativeToolDefinitions(ctx)
-}
-
-func nativeToolPricingViews(items []nativetool.PricingDefinition) []NativeToolPricingView {
-	results := make([]NativeToolPricingView, 0, len(items))
-	for _, item := range items {
-		results = append(results, NativeToolPricingView{
-			Provider:     item.Provider,
-			ToolKey:      item.ToolKey,
-			Label:        item.Label,
-			Description:  item.Description,
-			Type:         item.Type,
-			PriceNanousd: item.PriceNanousd,
-			Unit:         item.Unit,
-			PriceLabel:   item.PriceLabel,
-			Billable:     item.Billable,
-		})
-	}
-	return results
 }
 
 // ListBillingAccountSnapshots 批量查询用户按量余额。
@@ -1964,42 +1876,9 @@ func (s *Service) BuildUsageLedger(ctx context.Context, input UsagePricingInput)
 	if err != nil {
 		return nil, err
 	}
-	nativeToolBillingEnabled, err := s.repo.GetNativeToolBillingEnabled(ctx)
-	if err != nil {
-		return nil, err
-	}
-	nativeToolPricingJSON, err := s.repo.GetNativeToolPricingJSON(ctx)
-	if err != nil {
-		return nil, err
-	}
-	nativeToolDefinitions, err := s.nativeToolDefinitions(ctx)
-	if err != nil {
-		return nil, err
-	}
-	nativeToolPricingOverrides, err := nativetool.ParsePricingOverridesJSONForDefinitions(nativeToolPricingJSON, nativeToolDefinitions)
-	if err != nil {
-		nativeToolPricingOverrides = map[string]nativetool.PricingOverride{}
-	}
-	nativeToolItems, nativeToolBilledNanousd := buildNativeToolServiceItems(nativeToolServiceItemsInput{
-		Usage:            input,
-		BillingMode:      mode,
-		FreeModel:        isFreeModel,
-		BillingEnabled:   nativeToolBillingEnabled,
-		PricingOverrides: nativeToolPricingOverrides,
-		Definitions:      nativeToolDefinitions,
-	})
-	if len(nativeToolItems) > 0 {
-		serviceItems = append(serviceItems, nativeToolItems...)
-		serviceBilledNanousd += nativeToolBilledNanousd
-	}
-	mcpToolItems, mcpToolBilledNanousd := buildMCPToolServiceItems(input, mode)
-	if len(mcpToolItems) > 0 {
-		serviceItems = append(serviceItems, mcpToolItems...)
-		serviceBilledNanousd += mcpToolBilledNanousd
-	}
 	billedNanousd := inputBilledNanousd + cacheReadBilledNanousd + cacheWriteBilledNanousd + outputBilledNanousd + callBilledNanousd + durationBilledNanousd + serviceBilledNanousd
 	cacheWriteNanousdPerMTokens = resolveSnapshotRateFromBilled(cacheWriteTokens, cacheWriteBilledNanousd, cacheWriteNanousdPerMTokens)
-	// 免费模型仅豁免模型本身费用；MCP 等服务项费用仍需结算。
+	// 免费模型仅豁免模型本身费用；服务项费用仍需结算。
 	// 结算层会对免费标记整单清零，因此只有整单为 0 才落免费标记。
 	ledgerIsFreeModel := isFreeModel && billedNanousd <= 0
 
@@ -2061,12 +1940,6 @@ func (s *Service) BuildUsageLedger(ctx context.Context, input UsagePricingInput)
 		"call_billed_nanousd":                      callBilledNanousd,
 		"duration_billed_nanousd":                  durationBilledNanousd,
 		"upstream_usage":                           upstreamUsageSnapshot(input),
-		"server_side_tool_usage":                   normalizeUsageCountMap(input.ServerSideToolUsage),
-		"native_tool_billing_enabled":              nativeToolBillingEnabled,
-		"native_tool_pricing_source":               nativeToolPricingSourceForSnapshot(nativeToolPricingJSON, nativeToolDefinitions),
-		"native_tool_billed_nanousd":               nativeToolBilledNanousd,
-		"mcp_tool_usage":                           mcpToolUsageSnapshots(input.MCPToolUsage),
-		"mcp_tool_billed_nanousd":                  mcpToolBilledNanousd,
 		"base_service_billed_nanousd":              serviceBilledNanousd,
 		"service_items":                            usageServiceItemSnapshots(serviceItems),
 	}
@@ -3475,150 +3348,6 @@ func paginateModelPricing(items []domainbilling.ModelPricing, offset int, limit 
 	return items[offset:end]
 }
 
-// buildNativeToolServiceItems 将原生 server-side tool 调用转换为账单服务项。
-type nativeToolServiceItemsInput struct {
-	Usage            UsagePricingInput
-	BillingMode      string
-	FreeModel        bool
-	BillingEnabled   bool
-	PricingOverrides map[string]nativetool.PricingOverride
-	Definitions      []nativetool.Definition
-}
-
-func buildNativeToolServiceItems(request nativeToolServiceItemsInput) ([]domainbilling.UsageServiceItem, int64) {
-	input := request.Usage
-	if request.BillingMode == "self" || request.FreeModel || !request.BillingEnabled || len(input.ServerSideToolUsage) == 0 {
-		return []domainbilling.UsageServiceItem{}, 0
-	}
-	counts := normalizeUsageCountMap(input.ServerSideToolUsage)
-	if len(counts) == 0 {
-		return []domainbilling.UsageServiceItem{}, 0
-	}
-	results := make([]domainbilling.UsageServiceItem, 0, len(counts))
-	var total int64
-	for toolName, count := range counts {
-		price, ok := nativeToolDefaultCallPrice(input, toolName, request.PricingOverrides, request.Definitions)
-		if !ok || price.NanousdPerCall <= 0 || count <= 0 {
-			continue
-		}
-		billed := count * price.NanousdPerCall
-		results = append(results, domainbilling.UsageServiceItem{
-			ServiceCode:        nativeToolServiceCode(price.Provider, toolName),
-			ServiceName:        price.ServiceName,
-			PlatformModelName:  strings.TrimSpace(input.PlatformModelName),
-			ProviderProtocol:   strings.TrimSpace(input.ProviderProtocol),
-			RateMultiplier:     1,
-			PricingMode:        domainbilling.PricingModeCall,
-			CallCount:          count,
-			CallNanousdPerCall: price.NanousdPerCall,
-			CallBilledNanousd:  billed,
-			BilledNanousd:      billed,
-		})
-		total += billed
-	}
-	return results, total
-}
-
-// nativeToolDefaultCallPrice 返回当前已适配厂商原生工具的官方默认按次价格。
-func nativeToolDefaultCallPrice(input UsagePricingInput, toolName string, pricingOverrides map[string]nativetool.PricingOverride, definitions []nativetool.Definition) (nativetool.UsagePrice, bool) {
-	return nativetool.UsagePriceForToolWithOverrides(input.ProviderProtocol, toolName, definitions, pricingOverrides)
-}
-
-func nativeToolPricingSourceForSnapshot(raw string, definitions []nativetool.Definition) string {
-	if nativetool.PricingOverridesUseDefaultsForDefinitions(raw, definitions) {
-		return nativeToolPricingSource
-	}
-	return "admin_configured"
-}
-
-// nativeToolServiceCode 生成原生工具服务项编码，供账单明细和快照稳定引用。
-func nativeToolServiceCode(provider string, toolName string) string {
-	provider = strings.TrimSpace(provider)
-	tool := strings.TrimSpace(toolName)
-	if provider == "" {
-		provider = "unknown"
-	}
-	if tool == "" {
-		tool = "unknown"
-	}
-	return "native_tool." + provider + "." + tool
-}
-
-// buildMCPToolServiceItems 将应用侧 MCP 工具调用转换为账单服务项。
-// 仅 self 模式与价格为 0 时不计费；MCP 调用是独立于模型的外部上游成本，
-// 因此免费模型不豁免（与原生工具计费不同）。价格取调用时的工具配置快照。
-func buildMCPToolServiceItems(input UsagePricingInput, billingMode string) ([]domainbilling.UsageServiceItem, int64) {
-	if billingMode == "self" || len(input.MCPToolUsage) == 0 {
-		return []domainbilling.UsageServiceItem{}, 0
-	}
-	results := make([]domainbilling.UsageServiceItem, 0, len(input.MCPToolUsage))
-	var total int64
-	for _, usage := range input.MCPToolUsage {
-		if usage.CallCount <= 0 || usage.PriceNanousd <= 0 {
-			continue
-		}
-		billed := usage.CallCount * usage.PriceNanousd
-		results = append(results, domainbilling.UsageServiceItem{
-			ServiceCode:        mcpToolServiceCode(usage.ServerName, usage.ToolName),
-			ServiceName:        mcpToolServiceName(usage.ServerName, usage.ToolName),
-			PlatformModelName:  strings.TrimSpace(input.PlatformModelName),
-			ProviderProtocol:   strings.TrimSpace(input.ProviderProtocol),
-			RateMultiplier:     1,
-			PricingMode:        domainbilling.PricingModeCall,
-			CallCount:          usage.CallCount,
-			CallNanousdPerCall: usage.PriceNanousd,
-			CallBilledNanousd:  billed,
-			BilledNanousd:      billed,
-		})
-		total += billed
-	}
-	return results, total
-}
-
-// mcpToolServiceCode 生成 MCP 工具服务项编码，供账单明细和快照稳定引用。
-func mcpToolServiceCode(serverName string, toolName string) string {
-	server := strings.TrimSpace(serverName)
-	tool := strings.TrimSpace(toolName)
-	if server == "" {
-		server = "unknown"
-	}
-	if tool == "" {
-		tool = "unknown"
-	}
-	return "mcp_tool." + server + "." + tool
-}
-
-func mcpToolServiceName(serverName string, toolName string) string {
-	server := strings.TrimSpace(serverName)
-	tool := strings.TrimSpace(toolName)
-	switch {
-	case server == "":
-		return tool
-	case tool == "":
-		return server
-	default:
-		return server + " / " + tool
-	}
-}
-
-// mcpToolUsageSnapshots 无论是否计费都完整落快照，保证 self 模式下也有成本可见性。
-func mcpToolUsageSnapshots(items []MCPToolUsageInput) []map[string]any {
-	results := make([]map[string]any, 0, len(items))
-	for _, item := range items {
-		if item.CallCount <= 0 {
-			continue
-		}
-		results = append(results, map[string]any{
-			"server_id":     item.ServerID,
-			"server_name":   strings.TrimSpace(item.ServerName),
-			"tool_name":     strings.TrimSpace(item.ToolName),
-			"call_count":    item.CallCount,
-			"price_nanousd": item.PriceNanousd,
-		})
-	}
-	return results
-}
-
 func normalizeCurrency(value string) string {
 	normalized := strings.ToUpper(strings.TrimSpace(value))
 	if normalized == "" {
@@ -3680,24 +3409,6 @@ func clampNonNegative(value int64) int64 {
 		return 0
 	}
 	return value
-}
-
-func normalizeUsageCountMap(items map[string]int64) map[string]int64 {
-	if len(items) == 0 {
-		return map[string]int64{}
-	}
-	result := make(map[string]int64, len(items))
-	for key, value := range items {
-		normalizedKey := strings.TrimSpace(key)
-		if normalizedKey == "" || value <= 0 {
-			continue
-		}
-		result[normalizedKey] += value
-	}
-	if len(result) == 0 {
-		return map[string]int64{}
-	}
-	return result
 }
 
 func generateOrderNo() (string, error) {

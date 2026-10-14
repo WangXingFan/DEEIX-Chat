@@ -21,11 +21,9 @@ import (
 	domainbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/billing"
 	model "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/conversation"
 	domainknowledgebase "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/knowledgebase"
-	domainmcp "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/mcp"
 	domainskill "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/skill"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/ports/llm"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/ports/mcp"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
 	"go.uber.org/zap"
 )
@@ -55,17 +53,6 @@ type skillResolver interface {
 
 type knowledgeBaseResolver interface {
 	ResolveFiles(ctx context.Context, userID uint, publicIDs []string) ([]domainknowledgebase.KnowledgeBase, []model.FileObject, error)
-}
-
-type mcpToolResolver interface {
-	ListToolsByIDs(ctx context.Context, toolIDs []uint) ([]domainmcp.Tool, error)
-	ListServers(ctx context.Context) ([]domainmcp.Server, error)
-	GetServer(ctx context.Context, serverID uint) (*domainmcp.Server, error)
-}
-
-// mcpToolCaller 执行远端 MCP 工具调用。
-type mcpToolCaller interface {
-	CallTool(ctx context.Context, cfg mcp.CallConfig, input mcp.CallInput) (string, error)
 }
 
 type auditWriter interface {
@@ -110,10 +97,8 @@ type Service struct {
 	repo                  repository.ConversationRepository
 	cache                 repository.UserSettingCacheRepository
 	routeResolver         routeResolver
-	mcpRepo               mcpToolResolver
 	llmClient             llmGateway
 	mediaDownloader       generatedMediaDownloader
-	mcpClient             mcpToolCaller
 	uploadSvc             *appupload.Service
 	compactSvc            *appcompact.Service
 	embeddingSvc          *appembedding.Service
@@ -127,7 +112,6 @@ type Service struct {
 	storeProvider         appstorage.Provider
 	logger                *zap.Logger
 	moderationSvc         *appcm.Service
-	toolLimiters          sync.Map
 	generationStreams     *generationStreamRegistry
 	snapshotCache         sync.Map // conversationID (uint) → *cachedSnapshot
 	imageContextCache     *preparedConversationImageCache
@@ -182,7 +166,6 @@ type SendMessageInput struct {
 	Options                 map[string]any
 	ClientRunID             string
 	FileIDs                 []string
-	SelectedToolIDs         []uint
 	SkillIDs                []uint
 	KnowledgeBaseIDs        []string
 	HTMLVisualPromptEnabled bool
@@ -225,11 +208,8 @@ type SendMessageResult struct {
 	RawUsageJSON        string
 	CacheWrite5mTokens  int64
 	CacheWrite1hTokens  int64
-	ServerSideToolUsage map[string]int64
-	// MCPToolUsage 聚合本次运行成功的 MCP 调用计量，供计费台账消费。
-	MCPToolUsage []MCPToolUsageItem
-	// LLMCallCount 是本次运行成功返回的上游 LLM 调用数，工具循环的每次回灌都是一次独立调用；
-	// 按次计费按该计数结算，中断运行由计费层保底至少计 1 次。
+	// LLMCallCount 是本次运行成功返回的上游 LLM 调用数；按次计费按该计数结算，
+	// 中断运行由计费层保底至少计 1 次。
 	LLMCallCount    int
 	LatencyMS       int64
 	DurationSeconds int64
@@ -256,7 +236,6 @@ type Dependencies struct {
 	RouteResolver     routeResolver
 	LLMClient         llmGateway
 	MediaDownloader   generatedMediaDownloader
-	MCPClient         mcpToolCaller
 	CompactService    *appcompact.Service
 	EmbeddingService  *appembedding.Service
 	ProcessingService *appprocessing.Service
@@ -276,7 +255,6 @@ func NewServiceWithRuntime(deps Dependencies) *Service {
 		routeResolver:     deps.RouteResolver,
 		llmClient:         deps.LLMClient,
 		mediaDownloader:   deps.MediaDownloader,
-		mcpClient:         deps.MCPClient,
 		compactSvc:        deps.CompactService,
 		embeddingSvc:      deps.EmbeddingService,
 		processingSvc:     deps.ProcessingService,
@@ -329,9 +307,4 @@ func (s *Service) SetObjectStoreProvider(provider appstorage.Provider) {
 	if provider != nil {
 		s.storeProvider = provider
 	}
-}
-
-// SetMCPRepository 注入会话运行所需的 MCP 工具查询能力。
-func (s *Service) SetMCPRepository(repo mcpToolResolver) {
-	s.mcpRepo = repo
 }

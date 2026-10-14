@@ -70,6 +70,4 @@ var (
 	ErrPaymentOrderStateInvalid = apperr.New("payment.order_state_invalid", "payment order state is invalid")
 	// ErrInvalidBillingAccountBalance 表示管理员提交的余额无效。
 	ErrInvalidBillingAccountBalance = apperr.New("billing.invalid_account_balance", "invalid billing account balance")
-	// ErrInvalidNativeToolPricing 表示原生工具计费覆盖配置无效。
-	ErrInvalidNativeToolPricing = apperr.New("billing.invalid_native_tool_pricing", "invalid native tool pricing")
 )

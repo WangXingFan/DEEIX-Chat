@@ -99,8 +99,6 @@ func (h *Handler) GetBillingConfig(c *gin.Context) {
 func (h *Handler) loadBillingConfig(ctx context.Context) (BillingConfigResponse, error) {
 	mode := "self"
 	prepaidAmountUSD := 0.0
-	nativeToolBillingEnabled := true
-	nativeToolPricingJSON := ""
 	paymentProviders := []string{}
 	usdToCNYRate := 7.2
 	displayCurrency := "USD"
@@ -121,12 +119,6 @@ func (h *Handler) loadBillingConfig(ctx context.Context) (BillingConfigResponse,
 				if parsed, parseErr := strconv.ParseFloat(value, 64); parseErr == nil && parsed >= 0 {
 					prepaidAmountUSD = parsed
 				}
-			case "native_tool_billing_enabled":
-				if parsed, parseErr := strconv.ParseBool(value); parseErr == nil {
-					nativeToolBillingEnabled = parsed
-				}
-			case "native_tool_pricing_json":
-				nativeToolPricingJSON = value
 			case "payment_providers":
 				paymentProviders = normalizePaymentProviders(value)
 			case "usd_to_cny_rate":
@@ -142,20 +134,14 @@ func (h *Handler) loadBillingConfig(ctx context.Context) (BillingConfigResponse,
 			}
 		}
 	}
-	nativeToolPricing, err := h.service.ListNativeToolPricing(ctx, nativeToolPricingJSON)
-	if err != nil {
-		return BillingConfigResponse{}, err
-	}
 	return BillingConfigResponse{
-		Mode:                     mode,
-		PrepaidAmountUSD:         prepaidAmountUSD,
-		PrepaidAmountNanousd:     usdToNanousd(prepaidAmountUSD),
-		NativeToolBillingEnabled: nativeToolBillingEnabled,
-		NativeToolPricing:        toNativeToolPricingResponses(nativeToolPricing),
-		PaymentProviders:         paymentProviders,
-		USDToCNYRate:             usdToCNYRate,
-		DisplayCurrency:          displayCurrency,
-		EPayTypes:                epayTypes,
+		Mode:                 mode,
+		PrepaidAmountUSD:     prepaidAmountUSD,
+		PrepaidAmountNanousd: usdToNanousd(prepaidAmountUSD),
+		PaymentProviders:     paymentProviders,
+		USDToCNYRate:         usdToCNYRate,
+		DisplayCurrency:      displayCurrency,
+		EPayTypes:            epayTypes,
 	}, nil
 }
 
@@ -206,29 +192,6 @@ func (h *Handler) PatchBillingConfig(c *gin.Context) {
 			Value:     strings.TrimSpace(*req.DisplayCurrency),
 		})
 	}
-	if req.NativeToolBillingEnabled != nil {
-		patches = append(patches, appsettings.PatchItem{
-			Namespace: "billing",
-			Key:       "native_tool_billing_enabled",
-			Value:     strconv.FormatBool(*req.NativeToolBillingEnabled),
-		})
-	}
-	if req.NativeToolPricing != nil {
-		value, err := h.service.NormalizeNativeToolPricingJSON(c.Request.Context(), nativeToolPricingOverridesFromRequests(req.NativeToolPricing))
-		if err != nil {
-			if errors.Is(err, appbilling.ErrInvalidNativeToolPricing) {
-				response.ErrorFrom(c, http.StatusBadRequest, err)
-			} else {
-				response.InternalError(c)
-			}
-			return
-		}
-		patches = append(patches, appsettings.PatchItem{
-			Namespace: "billing",
-			Key:       "native_tool_pricing_json",
-			Value:     value,
-		})
-	}
 	if _, err := h.settings.BatchUpdate(c.Request.Context(), patches); err != nil {
 		var disabled *appsettings.FeatureDisabledError
 		if errors.As(err, &disabled) {
@@ -249,12 +212,10 @@ func (h *Handler) PatchBillingConfig(c *gin.Context) {
 		"billing_config",
 		"mode",
 		map[string]any{
-			"mode":                        mode,
-			"prepaid_amount_usd":          req.PrepaidAmountUSD,
-			"usd_to_cny_rate":             req.USDToCNYRate,
-			"display_currency":            req.DisplayCurrency,
-			"native_tool_billing_enabled": req.NativeToolBillingEnabled,
-			"native_tool_pricing_updated": req.NativeToolPricing != nil,
+			"mode":               mode,
+			"prepaid_amount_usd": req.PrepaidAmountUSD,
+			"usd_to_cny_rate":    req.USDToCNYRate,
+			"display_currency":   req.DisplayCurrency,
 		},
 	)
 

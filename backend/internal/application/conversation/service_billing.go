@@ -131,18 +131,6 @@ type usageBudgetEstimate struct {
 	DurationSeconds  int64
 }
 
-// followUpUsageBudgetEstimate 构造再次调用上游前的累计成本形状：本条消息已产生的计费用量加上
-// 下一次调用的预估输入与请求限定的最大输出。billed 是按计费口径汇总的已产生用量：输入与输出侧
-// 含未上报调用的预估补齐，缓存读写为观测值。
-func followUpUsageBudgetEstimate(billed llm.Usage, nextInputTokens int64, options map[string]any) usageBudgetEstimate {
-	return usageBudgetEstimate{
-		InputTokens:      billed.InputTokens + nextInputTokens,
-		CacheReadTokens:  billed.CacheReadTokens,
-		CacheWriteTokens: billed.CacheWriteTokens,
-		OutputTokens:     billed.OutputTokens + billed.ReasoningTokens + messageRequestMaxOutputTokens(options),
-	}
-}
-
 // ensureUsageBudgetCoversEstimate 在上游调用前按请求形状预估成本并抬高预算预留，
 // 让余额不足的请求在产生任何上游费用之前被拒绝。没有预留（self 模式、免费模型）直接放行。
 func (s *Service) ensureUsageBudgetCoversEstimate(
@@ -401,57 +389,37 @@ func (s *Service) buildSendMessageUsageLedger(ctx context.Context, input SendMes
 		latencyMS = result.AssistantMessage.LatencyMS
 	}
 	return s.billingSvc.BuildUsageLedger(ctx, appbilling.UsagePricingInput{
-		Authorization:       authorization,
-		UserID:              input.UserID,
-		ConversationID:      input.ConversationID,
-		PlatformModelName:   sendMessageBillingPlatformModelName(input),
-		RoutedBindingCode:   strings.TrimSpace(result.RoutedBindingCode),
-		ProviderProtocol:    strings.TrimSpace(result.UpstreamProtocol),
-		UpstreamName:        strings.TrimSpace(result.UpstreamName),
-		UpstreamModelName:   strings.TrimSpace(result.UpstreamModelName),
-		CacheTimeout:        messageCacheTimeout(result.EffectiveOptions),
-		RequestSpeed:        messageRequestSpeed(result.EffectiveOptions),
-		UsageSpeed:          strings.TrimSpace(result.UsageSpeed),
-		RequestServiceTier:  messageRequestServiceTier(result.EffectiveOptions),
-		UsageServiceTier:    strings.TrimSpace(result.UsageServiceTier),
-		UsageSource:         strings.TrimSpace(result.UsageSource),
-		BilledReason:        ModerationBlockedBilledReason(result, authorization),
-		InputTokens:         sendMessageBillingInputTokens(result),
-		CacheReadTokens:     sendMessageBillingCacheReadTokens(result),
-		CacheWriteTokens:    sendMessageBillingCacheWriteTokens(result),
-		CacheWrite5mTokens:  result.CacheWrite5mTokens,
-		CacheWrite1hTokens:  result.CacheWrite1hTokens,
-		OutputTokens:        result.AssistantMessage.OutputTokens,
-		ReasoningTokens:     result.AssistantMessage.ReasoningTokens,
-		CallCount:           sendMessageBillingCallCount(result),
-		DurationBillable:    isVideoGeneration,
-		DurationSeconds:     sendMessageBillingDurationSeconds(result),
-		MediaType:           mediaType,
-		InputImageCount:     inputImageCount,
-		LatencyMS:           latencyMS,
-		ServerSideToolUsage: result.ServerSideToolUsage,
-		MCPToolUsage:        sendMessageMCPToolUsageInputs(result),
-		RawUsageJSON:        result.RawUsageJSON,
-		BillingAt:           result.StartedAt,
+		Authorization:      authorization,
+		UserID:             input.UserID,
+		ConversationID:     input.ConversationID,
+		PlatformModelName:  sendMessageBillingPlatformModelName(input),
+		RoutedBindingCode:  strings.TrimSpace(result.RoutedBindingCode),
+		ProviderProtocol:   strings.TrimSpace(result.UpstreamProtocol),
+		UpstreamName:       strings.TrimSpace(result.UpstreamName),
+		UpstreamModelName:  strings.TrimSpace(result.UpstreamModelName),
+		CacheTimeout:       messageCacheTimeout(result.EffectiveOptions),
+		RequestSpeed:       messageRequestSpeed(result.EffectiveOptions),
+		UsageSpeed:         strings.TrimSpace(result.UsageSpeed),
+		RequestServiceTier: messageRequestServiceTier(result.EffectiveOptions),
+		UsageServiceTier:   strings.TrimSpace(result.UsageServiceTier),
+		UsageSource:        strings.TrimSpace(result.UsageSource),
+		BilledReason:       ModerationBlockedBilledReason(result, authorization),
+		InputTokens:        sendMessageBillingInputTokens(result),
+		CacheReadTokens:    sendMessageBillingCacheReadTokens(result),
+		CacheWriteTokens:   sendMessageBillingCacheWriteTokens(result),
+		CacheWrite5mTokens: result.CacheWrite5mTokens,
+		CacheWrite1hTokens: result.CacheWrite1hTokens,
+		OutputTokens:       result.AssistantMessage.OutputTokens,
+		ReasoningTokens:    result.AssistantMessage.ReasoningTokens,
+		CallCount:          sendMessageBillingCallCount(result),
+		DurationBillable:   isVideoGeneration,
+		DurationSeconds:    sendMessageBillingDurationSeconds(result),
+		MediaType:          mediaType,
+		InputImageCount:    inputImageCount,
+		LatencyMS:          latencyMS,
+		RawUsageJSON:       result.RawUsageJSON,
+		BillingAt:          result.StartedAt,
 	})
-}
-
-// sendMessageMCPToolUsageInputs 把运行时聚合的 MCP 调用计量映射为计费入参。
-func sendMessageMCPToolUsageInputs(result *SendMessageResult) []appbilling.MCPToolUsageInput {
-	if result == nil || len(result.MCPToolUsage) == 0 {
-		return nil
-	}
-	items := make([]appbilling.MCPToolUsageInput, 0, len(result.MCPToolUsage))
-	for _, usage := range result.MCPToolUsage {
-		items = append(items, appbilling.MCPToolUsageInput{
-			ServerID:     usage.ServerID,
-			ServerName:   usage.ServerName,
-			ToolName:     usage.ToolName,
-			CallCount:    usage.CallCount,
-			PriceNanousd: usage.PriceNanousd,
-		})
-	}
-	return items
 }
 
 func sendMessageBillingInputTokens(result *SendMessageResult) int64 {

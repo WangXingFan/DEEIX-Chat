@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	model "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/conversation"
-	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/shared/toolresult"
 )
 
 // tracePayload 是应用层自有的 trace 模型。提供方特定的 JSON
@@ -24,7 +23,6 @@ type tracePayload struct {
 	MaxScore       float32                    `json:"max_score,omitempty"`
 	Fallback       string                     `json:"fallback,omitempty"`
 	Citations      []traceCitation            `json:"citations,omitempty"`
-	ToolCalls      []traceToolCall            `json:"tool_calls,omitempty"`
 	TraceStage     *traceStage                `json:"trace_stage,omitempty"`
 	Stages         []traceStage               `json:"trace_stages,omitempty"`
 	Strategy       string                     `json:"strategy,omitempty"`
@@ -37,8 +35,6 @@ type tracePayload struct {
 	Error          string                     `json:"error,omitempty"`
 	Reason         string                     `json:"reason,omitempty"`
 	Status         string                     `json:"status,omitempty"`
-	ToolID         uint                       `json:"tool_id,omitempty"`
-	ToolName       string                     `json:"tool_name,omitempty"`
 	SkillCount     int                        `json:"skill_count,omitempty"`
 	SkillIDs       []uint                     `json:"skill_ids,omitempty"`
 	SkillTitles    []string                   `json:"skill_titles,omitempty"`
@@ -71,22 +67,6 @@ type traceCitation struct {
 	Score      float32 `json:"score,omitempty"`
 	Preview    string  `json:"preview,omitempty"`
 	Modality   string  `json:"modality,omitempty"`
-}
-
-type traceToolCall struct {
-	ToolCallID         string                   `json:"tool_call_id,omitempty"`
-	Name               string                   `json:"name,omitempty"`
-	Type               string                   `json:"type,omitempty"`
-	Status             string                   `json:"status,omitempty"`
-	LatencyMS          int64                    `json:"latency_ms,omitempty"`
-	Error              string                   `json:"error,omitempty"`
-	InputPreview       string                   `json:"input_preview,omitempty"`
-	InputDetail        string                   `json:"input_detail,omitempty"`
-	InputSize          int                      `json:"input_size,omitempty"`
-	OutputPreview      string                   `json:"output_preview,omitempty"`
-	OutputDetail       string                   `json:"output_detail,omitempty"`
-	DetailRunID        string                   `json:"detail_run_id,omitempty"`
-	OutputPresentation *toolresult.Presentation `json:"output_presentation,omitempty"`
 }
 
 type traceReasoning struct {
@@ -156,14 +136,6 @@ func (p *tracePayload) clone() *tracePayload {
 		cloned.FileGroupRefs = &groups
 	}
 	cloned.Citations = append([]traceCitation(nil), p.Citations...)
-	cloned.ToolCalls = make([]traceToolCall, len(p.ToolCalls))
-	for index, call := range p.ToolCalls {
-		cloned.ToolCalls[index] = call
-		if call.OutputPresentation != nil {
-			presentation := *call.OutputPresentation
-			cloned.ToolCalls[index].OutputPresentation = &presentation
-		}
-	}
 	cloned.Stages = append([]traceStage(nil), p.Stages...)
 	if p.TraceStage != nil {
 		stage := *p.TraceStage

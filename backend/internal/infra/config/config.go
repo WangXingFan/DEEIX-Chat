@@ -59,11 +59,6 @@ const (
 	// DefaultTurnstileSiteverifyURL 是 Cloudflare Turnstile 默认校验端点。
 	DefaultTurnstileSiteverifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
-	// DefaultMCPMaxSelectedToolsPerMessage 是单次消息可选择 MCP 工具数量的默认值。
-	DefaultMCPMaxSelectedToolsPerMessage = 32
-	// MaxMCPSelectedToolsPerMessage 是运行时配置允许的安全上限，防止一次请求暴露过多工具 schema。
-	MaxMCPSelectedToolsPerMessage = 128
-
 	// EmbeddingDimensionsPolicySend 在 Embedding 请求中携带 dimensions 参数。
 	EmbeddingDimensionsPolicySend = "send"
 	// EmbeddingDimensionsPolicyOmit 省略 dimensions 参数，返回向量仍按 EmbeddingOutputDimensions 校验。
@@ -280,7 +275,6 @@ type yamlConfig struct {
 	} `yaml:"server"`
 	Security struct {
 		JWTSecret              string `yaml:"jwt_secret"`
-		MCPUserContextSecret   string `yaml:"mcp_user_context_secret"`
 		DataEncryptionKey      string `yaml:"data_encryption_key"`
 		SSRFProtectionEnabled  *bool  `yaml:"ssrf_protection_enabled"`
 		SSRFAllowedHosts       string `yaml:"ssrf_allowed_hosts"`
@@ -387,7 +381,6 @@ type Config struct {
 	HTTPMaxHeaderBytes           int
 	HTTPShutdownTimeoutSeconds   int
 	JWTSecret                    string
-	MCPUserContextSecret         string
 	DataEncryptionKey            string
 	SSRFProtectionEnabled        bool
 	SSRFAllowedHosts             string
@@ -585,15 +578,6 @@ type Config struct {
 	ProcessTraceEnabled          bool // 是否启用消息处理轨迹
 	ProcessTracePersistInflight  bool // 是否在流式阶段持久化轨迹
 	ContextArtifactRetentionDays int  // 上下文证据保留天数，<=0 表示不自动过期
-	// MCP 配置
-	MCPEnable                     bool
-	MCPToolTimeoutSeconds         int
-	MCPToolRetryCount             int
-	MCPMaxConcurrentCalls         int
-	MCPMaxSelectedToolsPerMessage int
-	MCPMaxLLMCallsPerRun          int
-	MCPMaxToolCallsPerRun         int
-	MCPToolPrompt                 string
 }
 
 // defaultYAMLPaths 固定读取仓库根目录的 config.yaml。
@@ -632,7 +616,6 @@ func Load() Config {
 		HTTPMaxHeaderBytes:           envOrInt("HTTP_MAX_HEADER_BYTES", yc.Server.MaxHeaderBytes, defaultHTTPMaxHeaderBytes),
 		HTTPShutdownTimeoutSeconds:   envOrInt("HTTP_SHUTDOWN_TIMEOUT_SECONDS", yc.Server.ShutdownTimeoutSeconds, defaultHTTPShutdownTimeoutSeconds),
 		JWTSecret:                    envOr("JWT_SECRET", yc.Security.JWTSecret, defaultJWTSecret),
-		MCPUserContextSecret:         envOr("MCP_USER_CONTEXT_SECRET", yc.Security.MCPUserContextSecret, ""),
 		DataEncryptionKey:            envOr("DATA_ENCRYPTION_KEY", yc.Security.DataEncryptionKey, defaultDataEncryptionKey),
 		SSRFProtectionEnabled:        envOrBoolPtr("SSRF_PROTECTION_ENABLED", yc.Security.SSRFProtectionEnabled, false),
 		SSRFAllowedHosts:             envOr("SSRF_ALLOWED_HOSTS", yc.Security.SSRFAllowedHosts, ""),
@@ -816,14 +799,6 @@ func Load() Config {
 		ProcessTraceEnabled:               true,
 		ProcessTracePersistInflight:       true,
 		ContextArtifactRetentionDays:      90,
-		MCPEnable:                         false,
-		MCPToolTimeoutSeconds:             10,
-		MCPToolRetryCount:                 0,
-		MCPMaxConcurrentCalls:             8,
-		MCPMaxSelectedToolsPerMessage:     DefaultMCPMaxSelectedToolsPerMessage,
-		MCPMaxLLMCallsPerRun:              5,
-		MCPMaxToolCallsPerRun:             8,
-		MCPToolPrompt:                     "",
 	}
 }
 
@@ -1238,7 +1213,7 @@ func (c Config) DefaultKnowledgeBaseIDs() []string {
 }
 
 // TrustedOutboundPolicy 返回部署级集成和可信私网重定向使用的全局 SSRF 白名单策略。
-// 管理员保存的模型、MCP、Embedding 和身份源 endpoint 由对应适配器按精确 origin 局部授权；
+// 管理员保存的模型、Embedding 和身份源 endpoint 由对应适配器按精确 origin 局部授权；
 // 只有跨 origin 的私网重定向目标需要显式进入全局白名单。
 // 非法白名单在 Config.Validate 阶段阻止启动；此处保守回退为无白名单严格策略。
 func (c Config) TrustedOutboundPolicy() sharedsecurity.OutboundPolicy {

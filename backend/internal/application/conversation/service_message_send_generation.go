@@ -29,7 +29,6 @@ type routeGenerationContext struct {
 	input                  SendMessageInput
 	conversation           *model.Conversation
 	cfg                    config.Config
-	tools                  []llm.ToolDefinition
 	promptCacheSessionKey  string
 	statefulContextConfig  string
 	statefulContextState   string
@@ -116,7 +115,6 @@ func (s *Service) prepareRouteGeneration(ctx context.Context, input routeGenerat
 		ConversationSessionKey: strings.TrimSpace(conversation.SessionKey),
 		PromptCacheKey:         promptCacheKey,
 		Messages:               cloneLLMMessages(llmMessages),
-		Tools:                  gen.tools,
 		Options:                filteredOptions,
 	}
 	generateInput, budgetFit := fitGenerateInputToModelBudget(
@@ -149,7 +147,6 @@ func (s *Service) prepareRouteGeneration(ctx context.Context, input routeGenerat
 		ContextConfig:     gen.statefulContextConfig,
 		ContextState:      gen.statefulContextState,
 		Messages:          promptStatePrefixMessages(fullLLMMessages),
-		Tools:             gen.tools,
 		Options:           filteredOptions,
 	})
 
@@ -265,12 +262,11 @@ func (r *messageGenerationRunner) warn(ctx context.Context, event string, route 
 
 // generationCall 是一次上游调用的局部观测：本次可见文本、流式用量与可重试性判断。
 type generationCall struct {
-	runner              *messageGenerationRunner
-	observation         *generationAttemptObservation
-	visibleText         strings.Builder
-	thinkingRouter      *thinkingDeltaRouter
-	streamUsage         llm.Usage
-	observedServerTools map[string]string
+	runner         *messageGenerationRunner
+	observation    *generationAttemptObservation
+	visibleText    strings.Builder
+	thinkingRouter *thinkingDeltaRouter
+	streamUsage    llm.Usage
 }
 
 func (c *generationCall) emitVisibleDelta(delta string) error {
@@ -292,11 +288,11 @@ func (c *generationCall) finalizeNonStreamingOutput(output *llm.GenerateOutput, 
 	}
 	r := c.runner
 	if r.traceRecorder != nil && r.traceRecorder.enabled() && r.traceRecorder.onEvent != nil &&
-		(output.Reasoning != nil || len(output.ServerToolCalls) > 0) {
+		output.Reasoning != nil {
 		c.observation.markObservable()
 	}
 	r.usage.recordCallReasoningText(outputReasoningContent(output))
-	cleanText, _ := syncUpstreamOutputTrace(r.traceRecorder, output, r.runID)
+	cleanText := syncUpstreamOutputThinking(r.traceRecorder, output)
 	output.Text = cleanText
 	if emitVisible {
 		return c.emitVisibleDelta(cleanText)
@@ -361,24 +357,6 @@ func (c *generationCall) handleStreamEvent(generationCtx context.Context, curren
 	if event.ServerToolCall != nil {
 		r.attemptHadSideEffect = true
 	}
-	if r.traceRecorder != nil && event.ServerToolCall != nil {
-		if r.traceRecorder.enabled() && r.traceRecorder.onEvent != nil {
-			c.observation.markObservable()
-		}
-		toolStatus := normalizeStreamServerToolStatus(event.ServerToolCall.Status)
-		observeServerTool(c.observedServerTools, *event.ServerToolCall, toolStatus)
-		summary, markdown, payload := buildToolTrace([]model.ToolCall{{
-			RunID:      r.runID,
-			ToolCallID: strings.TrimSpace(event.ServerToolCall.ToolCallID),
-			ToolType:   strings.TrimSpace(event.ServerToolCall.ToolType),
-			ToolName:   strings.TrimSpace(event.ServerToolCall.ToolName),
-			Status:     toolStatus,
-			InputJSON:  strings.TrimSpace(event.ServerToolCall.ArgumentsJSON),
-			OutputJSON: strings.TrimSpace(event.ServerToolCall.OutputJSON),
-			ErrorJSON:  strings.TrimSpace(event.ServerToolCall.ErrorJSON),
-		}})
-		r.traceRecorder.syncToolSection(summary, markdown, payload, traceStatusFromToolStatus(toolStatus))
-	}
 	if r.onDelta == nil || event.Delta == "" {
 		return nil
 	}
@@ -403,10 +381,9 @@ func (c *generationCall) handleStreamEvent(generationCtx context.Context, curren
 // fullMessages 是本次调用对应的完整上下文，有状态续传时用于估算上游实际计费的输入规模。
 func (r *messageGenerationRunner) generate(ctx context.Context, currentInput llm.GenerateInput, fullMessages []llm.Message) (*llm.GenerateOutput, error) {
 	call := &generationCall{
-		runner:              r,
-		observation:         &generationAttemptObservation{},
-		thinkingRouter:      &thinkingDeltaRouter{},
-		observedServerTools: make(map[string]string),
+		runner:         r,
+		observation:    &generationAttemptObservation{},
+		thinkingRouter: &thinkingDeltaRouter{},
 	}
 	r.lastAttemptObservation = call.observation
 	callPromptMode := "full"
@@ -429,10 +406,8 @@ func (r *messageGenerationRunner) generate(ctx context.Context, currentInput llm
 			attribute.String("llm.protocol", r.routeConfig.Protocol),
 			attribute.String("llm.endpoint", r.routeConfig.Endpoint),
 			attribute.Bool("llm.stream", streamRequested && streamSupported),
-			attribute.Bool("llm.tools_disabled", currentInput.DisableTools),
 			attribute.Bool("llm.responses_background", currentInput.ResponsesBackground),
 			attribute.Int("llm.message_count", len(currentInput.Messages)),
-			attribute.Int("llm.tool_count", len(currentInput.Tools)),
 		}, promptShapeTraceAttributes("llm.prompt", callPromptShape)...)...),
 	)
 	var generateErr error
@@ -474,7 +449,7 @@ func (r *messageGenerationRunner) generate(ctx context.Context, currentInput llm
 		if r.traceRecorder != nil && thinkTail != "" {
 			r.traceRecorder.appendUpstreamReasoning(messageTraceThinkKindContent, thinkTail, nil)
 		}
-		finalizeStreamingOutputTrace(r.traceRecorder, output, r.runID, call.observedServerTools)
+		finalizeStreamingOutputThinking(r.traceRecorder, output)
 		if visibleTail != "" {
 			if tailErr := call.emitVisibleDelta(visibleTail); tailErr != nil {
 				generateErr = tailErr
@@ -539,18 +514,6 @@ func (r *messageGenerationRunner) runRouteAttempt(ctx context.Context, plan *rou
 		output, attemptErr = r.generate(ctx, plan.generateInput, plan.fullLLMMessages)
 	}
 	return output, attemptErr
-}
-
-// mergeFollowUpUsage 把工具回灌后一次调用的用量并入本条消息累计：上游有观测值时以累计观测为准，
-// 上游未上报时回退到运行期估算的累计口径。
-func mergeFollowUpUsage(total llm.Usage, next *llm.GenerateOutput, usage *messageUsageAccumulator) llm.Usage {
-	total = addLLMUsage(total, next.Usage)
-	if next.Usage != (llm.Usage{}) {
-		usage.setObservedUsage(total)
-	} else if usage.usage() != (llm.Usage{}) {
-		total = usage.usage()
-	}
-	return total
 }
 
 // generationCanceled 判断上游调用是否因请求取消或用户显式停止而终止。

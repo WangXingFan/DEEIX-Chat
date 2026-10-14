@@ -16,8 +16,6 @@ var (
 	ErrConversationNotFound = apperr.New("conversation.not_found", "conversation not found")
 	// ErrConversationEventNotFound 对话事件日志不存在。
 	ErrConversationEventNotFound = apperr.New("conversation_event.not_found", "conversation event not found")
-	// ErrToolCallNotFound 工具调用不存在或当前用户无权访问。
-	ErrToolCallNotFound = apperr.New("tool_call.not_found", "tool call not found")
 	// ErrInvalidConversationTitle 会话标题不合法。
 	ErrInvalidConversationTitle = apperr.New("conversation.invalid_title", "invalid conversation title")
 	// ErrInvalidConversationLabels 会话标签不合法。
@@ -61,12 +59,6 @@ var (
 	ErrKnowledgeBaseScopeEmpty = apperr.New(MessageErrorCodeKnowledgeBaseScopeEmpty, "no knowledge base scope is configured")
 	// ErrTooManyMessageFiles 单条消息文件数超限。
 	ErrTooManyMessageFiles = apperr.NewMasked("message.too_many_files", "too many files in one message", "too many message files")
-	// ErrTooManySelectedTools 单条消息选择的 MCP 工具数超限。
-	ErrTooManySelectedTools = apperr.New("message.too_many_selected_tools", "too many selected tools")
-	// ErrMultipleImageAttachmentProcessors 单条消息不能同时选择多个图片附件处理器。
-	ErrMultipleImageAttachmentProcessors = apperr.NewMasked("message.multiple_image_processors", "select only one image attachment processor", "multiple image attachment processors selected")
-	// ErrImageAttachmentProcessingFailed 图片附件处理器调用失败。
-	ErrImageAttachmentProcessingFailed = apperr.NewMasked("mcp.image_processing_failed", "image processing tool failed", "image attachment processing failed")
 	// ErrTooManySelectedSkills 单条消息选择的 Skill 数超限。
 	ErrTooManySelectedSkills = apperr.New("message.too_many_selected_skills", "too many selected skills")
 	// ErrSkillNotFound 技能不存在或当前用户不可用。
@@ -113,8 +105,6 @@ var (
 	ErrGeneratedMediaArtifactUnavailable = apperr.New(MessageErrorCodeMediaArtifactUnavailable, "generated media artifact is temporarily unavailable")
 	// ErrUpstreamEmptyResponse 上游返回空响应。
 	ErrUpstreamEmptyResponse = apperr.NewMasked(MessageErrorCodeUpstreamEmptyResponse, "model returned empty response", "upstream returned empty response")
-	// ErrToolRunFinalAnswerMissing 工具循环结束后上游仍未产出最终回答。
-	ErrToolRunFinalAnswerMissing = apperr.New(MessageErrorCodeToolRunFinalAnswerMissing, "tool run ended without a final answer")
 	// ErrMessageGenerationCanceled 用户主动停止生成。
 	ErrMessageGenerationCanceled = apperr.New("conversation_run.canceled", "message generation canceled")
 	// ErrMessageGenerationInterrupted 活跃生成租约消失，当前生成流无法继续恢复。

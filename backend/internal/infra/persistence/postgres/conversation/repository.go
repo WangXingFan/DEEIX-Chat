@@ -1435,16 +1435,12 @@ func (r *Repo) CreateAttachments(ctx context.Context, items []domainconversation
 const (
 	chatRunEventScopeTraceBlock = "trace_block"
 	chatRunEventScopeTraceEvent = "trace_event"
-	chatRunEventScopeToolCall   = "tool_call"
 	chatContextRecordSnapshot   = "snapshot"
 	chatContextRecordArtifact   = "artifact"
 )
 
 // maxConversationEventDetailJSONBytes 限制单个详情字段进入应用内存与 HTTP 响应的大小。
 const maxConversationEventDetailJSONBytes = 1024 * 1024
-
-// maxConversationToolCallDetailJSONBytes 限制用户按需查看单个工具调用原始结果的大小。
-const maxConversationToolCallDetailJSONBytes = 8 * 1024 * 1024
 
 func conversationEventJSONSizeExpression(db *gorm.DB, column string) string {
 	switch column {
@@ -1482,8 +1478,6 @@ func conversationEventSummarySelectColumns(db *gorm.DB) []string {
 		"title",
 		"summary",
 		"seq",
-		"tool_call_id",
-		"tool_name",
 		"latency_ms",
 		"started_at",
 		"ended_at",
@@ -1513,24 +1507,6 @@ func conversationEventDetailSelectColumns(db *gorm.DB) []string {
 		fmt.Sprintf("CASE WHEN %s > %d THEN TRUE ELSE FALSE END AS error_omitted", errorSize, maxConversationEventDetailJSONBytes),
 		fmt.Sprintf("CASE WHEN %s <= %d THEN error_json ELSE '' END AS error_json", errorSize, maxConversationEventDetailJSONBytes),
 	)
-}
-
-func conversationToolCallDetailSelectColumns(db *gorm.DB) []string {
-	outputSize := conversationEventJSONSizeExpression(db, "output_json")
-	errorSize := conversationEventJSONSizeExpression(db, "error_json")
-	totalSize := "(" + outputSize + " + " + errorSize + ")"
-	return []string{
-		"run_id",
-		"tool_call_id",
-		"tool_name",
-		"status",
-		outputSize + " AS output_size_bytes",
-		fmt.Sprintf("CASE WHEN %s > 0 AND %s > %d THEN TRUE ELSE FALSE END AS output_omitted", outputSize, totalSize, maxConversationToolCallDetailJSONBytes),
-		fmt.Sprintf("CASE WHEN %s <= %d THEN output_json ELSE '' END AS output_json", totalSize, maxConversationToolCallDetailJSONBytes),
-		errorSize + " AS error_size_bytes",
-		fmt.Sprintf("CASE WHEN %s > 0 AND %s > %d THEN TRUE ELSE FALSE END AS error_omitted", errorSize, totalSize, maxConversationToolCallDetailJSONBytes),
-		fmt.Sprintf("CASE WHEN %s <= %d THEN error_json ELSE '' END AS error_json", totalSize, maxConversationToolCallDetailJSONBytes),
-	}
 }
 
 // CreateConversationRun 原子占用全局唯一的运行 ID。
@@ -1711,43 +1687,6 @@ func (r *Repo) ListConversationMessageTraceEventsByMessageIDs(ctx context.Contex
 	return toConversationMessageTraceEventDomains(items), nil
 }
 
-// CreateConversationToolCall 写入单条工具调用日志，并回填 ID 与时间戳。
-func (r *Repo) CreateConversationToolCall(ctx context.Context, item *domainconversation.ToolCall) error {
-	if item == nil {
-		return nil
-	}
-	entity := toConversationToolCallModel(item)
-	if err := r.db.WithContext(ctx).Create(&entity).Error; err != nil {
-		return dberror.Translate(err)
-	}
-	item.ID = entity.ID
-	item.CreatedAt = entity.CreatedAt
-	item.UpdatedAt = entity.UpdatedAt
-	return nil
-}
-
-// CreateConversationToolCalls 批量写入工具调用日志。
-func (r *Repo) CreateConversationToolCalls(ctx context.Context, items []domainconversation.ToolCall) error {
-	if len(items) == 0 {
-		return nil
-	}
-	entities := make([]models.ChatRunEvent, 0, len(items))
-	for i := range items {
-		entities = append(entities, toConversationToolCallModel(&items[i]))
-	}
-	if err := r.db.WithContext(ctx).Create(&entities).Error; err != nil {
-		return dberror.Translate(err)
-	}
-	for index := range items {
-		if index < len(entities) {
-			items[index].ID = entities[index].ID
-			items[index].CreatedAt = entities[index].CreatedAt
-			items[index].UpdatedAt = entities[index].UpdatedAt
-		}
-	}
-	return nil
-}
-
 // ListConversationRuns 分页查询会话运行日志。
 func (r *Repo) ListConversationRuns(
 	ctx context.Context,
@@ -1794,8 +1733,7 @@ func (r *Repo) ListConversationEventLogs(
 	if search := strings.TrimSpace(filter.Query); search != "" {
 		like := "%" + strings.ToLower(search) + "%"
 		query = query.Where(
-			"LOWER(run_id) LIKE ? OR LOWER(event_id) LIKE ? OR LOWER(event_type) LIKE ? OR LOWER(phase) LIKE ? OR LOWER(stage) LIKE ? OR LOWER(title) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(tool_name) LIKE ?",
-			like,
+			"LOWER(run_id) LIKE ? OR LOWER(event_id) LIKE ? OR LOWER(event_type) LIKE ? OR LOWER(phase) LIKE ? OR LOWER(stage) LIKE ? OR LOWER(title) LIKE ? OR LOWER(summary) LIKE ?",
 			like,
 			like,
 			like,
@@ -1864,40 +1802,6 @@ func (r *Repo) GetConversationEventLog(ctx context.Context, eventID uint) (*doma
 		return nil, repository.ErrNotFound
 	}
 	return &results[0], nil
-}
-
-// GetConversationToolCallDetail 查询当前用户指定运行内的工具调用结果详情。
-func (r *Repo) GetConversationToolCallDetail(
-	ctx context.Context,
-	userID uint,
-	runID string,
-	toolCallID string,
-) (*domainconversation.ToolCallDetail, error) {
-	var item models.ChatRunEvent
-	if err := r.db.WithContext(ctx).
-		Select(conversationToolCallDetailSelectColumns(r.db)).
-		Where(
-			"user_id = ? AND run_id = ? AND event_scope = ? AND tool_call_id = ?",
-			userID,
-			runID,
-			chatRunEventScopeToolCall,
-			toolCallID,
-		).
-		Take(&item).Error; err != nil {
-		return nil, dberror.Translate(err)
-	}
-	return &domainconversation.ToolCallDetail{
-		RunID:           item.RunID,
-		ToolCallID:      item.ToolCallID,
-		ToolName:        item.ToolName,
-		Status:          item.Status,
-		OutputJSON:      item.OutputJSON,
-		OutputSizeBytes: item.OutputSizeBytes,
-		OutputOmitted:   item.OutputOmitted,
-		ErrorJSON:       item.ErrorJSON,
-		ErrorSizeBytes:  item.ErrorSizeBytes,
-		ErrorOmitted:    item.ErrorOmitted,
-	}, nil
 }
 
 func (r *Repo) hydrateConversationEventRunMetadata(ctx context.Context, results []domainconversation.EventLog) error {
@@ -3828,7 +3732,6 @@ func toConversationRunDomain(item models.ConversationRun) domainconversation.Run
 		CacheReadTokens:          item.CacheReadTokens,
 		CacheWriteTokens:         item.CacheWriteTokens,
 		ReasoningTokens:          item.ReasoningTokens,
-		ToolCallsCount:           item.ToolCallsCount,
 		FirstTokenLatencyMS:      item.FirstTokenLatencyMS,
 		TotalLatencyMS:           item.TotalLatencyMS,
 		Status:                   item.Status,
@@ -3876,8 +3779,6 @@ func toConversationEventLogDomains(items []models.ChatRunEvent) []domainconversa
 			PayloadSizeBytes: item.PayloadSizeBytes,
 			PayloadOmitted:   item.PayloadOmitted,
 			Seq:              item.Seq,
-			ToolCallID:       item.ToolCallID,
-			ToolName:         item.ToolName,
 			LatencyMS:        item.LatencyMS,
 			InputJSON:        item.InputJSON,
 			InputSizeBytes:   item.InputSizeBytes,
@@ -3924,7 +3825,6 @@ func toConversationRunModel(item *domainconversation.Run) models.ConversationRun
 		CacheReadTokens:          item.CacheReadTokens,
 		CacheWriteTokens:         item.CacheWriteTokens,
 		ReasoningTokens:          item.ReasoningTokens,
-		ToolCallsCount:           item.ToolCallsCount,
 		FirstTokenLatencyMS:      item.FirstTokenLatencyMS,
 		TotalLatencyMS:           item.TotalLatencyMS,
 		Status:                   item.Status,
@@ -4114,39 +4014,6 @@ func toConversationMessageTraceEventModel(item *domainconversation.MessageTraceE
 		Seq:             item.Seq,
 		StartedAt:       startedAt,
 		EndedAt:         item.EndedAt,
-	}
-}
-
-func toConversationToolCallModel(item *domainconversation.ToolCall) models.ChatRunEvent {
-	if item == nil {
-		return models.ChatRunEvent{}
-	}
-	startedAt := item.CreatedAt
-	if startedAt.IsZero() {
-		startedAt = time.Now()
-	}
-	eventID := strings.TrimSpace(item.ToolCallID)
-	if eventID == "" {
-		eventID = fmt.Sprintf("tool:%s:%d", strings.TrimSpace(item.ToolName), time.Now().UnixNano())
-	}
-	return models.ChatRunEvent{
-		MessageID:      item.MessageID,
-		ConversationID: item.ConversationID,
-		UserID:         item.UserID,
-		RunID:          item.RunID,
-		EventScope:     chatRunEventScopeToolCall,
-		EventID:        eventID,
-		EventType:      item.ToolType,
-		ToolCallID:     item.ToolCallID,
-		ToolName:       item.ToolName,
-		MCPServerID:    item.MCPServerID,
-		MCPServerName:  item.MCPServerName,
-		Status:         item.Status,
-		LatencyMS:      item.LatencyMS,
-		InputJSON:      item.InputJSON,
-		OutputJSON:     item.OutputJSON,
-		ErrorJSON:      item.ErrorJSON,
-		StartedAt:      startedAt,
 	}
 }
 

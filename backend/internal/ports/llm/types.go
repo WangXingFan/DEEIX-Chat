@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -372,38 +371,4 @@ type UpstreamDebugResponse struct {
 	BodyBytes     int               `json:"bodyBytes,omitempty"`
 	BodyTruncated bool              `json:"bodyTruncated,omitempty"`
 	RedactedParts int               `json:"redactedParts,omitempty"`
-}
-
-// NormalizeToolName 将任意工具名规范化为上游 API 接受的合法标识符。
-func NormalizeToolName(name string) string {
-	value := strings.TrimSpace(name)
-	if value == "" {
-		return ""
-	}
-	var builder strings.Builder
-	lastUnderscore := false
-	for _, r := range value {
-		valid := r == '_' || r == '-' || unicode.IsLetter(r) || unicode.IsDigit(r)
-		if valid {
-			builder.WriteRune(r)
-			lastUnderscore = false
-			continue
-		}
-		if !lastUnderscore {
-			builder.WriteByte('_')
-			lastUnderscore = true
-		}
-	}
-	normalized := strings.Trim(builder.String(), "_-")
-	if normalized == "" {
-		return ""
-	}
-	first := []rune(normalized)[0]
-	if !unicode.IsLetter(first) && first != '_' {
-		normalized = "tool_" + normalized
-	}
-	if len(normalized) > 64 {
-		normalized = normalized[:64]
-	}
-	return normalized
 }

@@ -38,7 +38,6 @@ func TestMessageErrorSummaryMapsKnownPlainSentinels(t *testing.T) {
 	}{
 		{name: "upstream", err: ErrUpstreamRequestFailed, want: "upstream service unavailable"},
 		{name: "quota", err: ErrStorageQuotaExceeded, want: "quota exceeded"},
-		{name: "tool answer", err: ErrToolRunFinalAnswerMissing, want: "tool run ended without a final answer"},
 	}
 
 	for _, test := range tests {

@@ -10,23 +10,20 @@ import (
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/channel"
 	domainconversation "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/conversation"
 	domainknowledgebase "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/knowledgebase"
-	domainmcp "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/mcp"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
 )
 
-func TestNormalizeConversationProjectInputInheritClearsMCPDefaults(t *testing.T) {
+func TestNormalizeConversationProjectInputNormalizesNameModelAndSkills(t *testing.T) {
 	input, err := normalizeConversationProjectInput(ConversationProjectInput{
-		Name:              " Project ",
-		DefaultModel:      " model-a ",
-		MCPDefaultMode:    domainconversation.ConversationProjectMCPDefaultModeInherit,
-		DefaultMCPToolIDs: []uint{3, 3, 2},
-		DefaultSkillIDs:   []uint{5, 0, 5, 4},
+		Name:            " Project ",
+		DefaultModel:    " model-a ",
+		DefaultSkillIDs: []uint{5, 0, 5, 4},
 	})
 	if err != nil {
 		t.Fatalf("normalizeConversationProjectInput() error = %v", err)
 	}
-	if input.Name != "Project" || input.DefaultModel != "model-a" || len(input.DefaultMCPToolIDs) != 0 {
+	if input.Name != "Project" || input.DefaultModel != "model-a" {
 		t.Fatalf("normalized project = %#v", input)
 	}
 	if !reflect.DeepEqual(input.DefaultSkillIDs, []uint{5, 4}) {
@@ -61,18 +58,14 @@ func TestNewProjectDefaultIDs(t *testing.T) {
 }
 
 func TestValidateConversationProjectDefaultsPreservesUnavailableExistingSelections(t *testing.T) {
-	service := &Service{cfg: config.NewRuntime(config.Config{MCPMaxSelectedToolsPerMessage: 1})}
+	service := &Service{cfg: config.NewRuntime(config.Config{})}
 	current := &domainconversation.ConversationProject{
-		MCPDefaultMode:          domainconversation.ConversationProjectMCPDefaultModeCustom,
-		DefaultMCPToolIDs:       []uint{3, 2},
 		DefaultSkillIDs:         []uint{5, 4},
 		DefaultKnowledgeBaseIDs: []string{"legacy-unavailable"},
 	}
 	err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
 		UserID:           1,
 		DefaultModel:     current.DefaultModel,
-		MCPDefaultMode:   current.MCPDefaultMode,
-		MCPToolIDs:       current.DefaultMCPToolIDs,
 		SkillIDs:         current.DefaultSkillIDs,
 		KnowledgeBaseIDs: current.DefaultKnowledgeBaseIDs,
 		Current:          current,
@@ -84,14 +77,13 @@ func TestValidateConversationProjectDefaultsPreservesUnavailableExistingSelectio
 
 func TestValidateConversationProjectDefaultsRejectsUnavailableKnowledgeBase(t *testing.T) {
 	service := &Service{
-		cfg: config.NewRuntime(config.Config{MCPMaxSelectedToolsPerMessage: 1}),
+		cfg: config.NewRuntime(config.Config{}),
 		knowledgeBaseResolver: knowledgeBaseResolverStub{resolveFiles: func(context.Context, uint, []string) ([]domainknowledgebase.KnowledgeBase, []domainconversation.FileObject, error) {
 			return nil, nil, domainknowledgebase.ErrReferenceUnavailable
 		}},
 	}
 	err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
 		UserID:           1,
-		MCPDefaultMode:   domainconversation.ConversationProjectMCPDefaultModeInherit,
 		KnowledgeBaseIDs: []string{"missing"},
 	})
 	if !errors.Is(err, ErrInvalidConversationProject) {
@@ -101,40 +93,17 @@ func TestValidateConversationProjectDefaultsRejectsUnavailableKnowledgeBase(t *t
 
 func TestValidateConversationProjectDefaultsRejectsKnowledgeBaseWithoutReadyFiles(t *testing.T) {
 	service := &Service{
-		cfg: config.NewRuntime(config.Config{MCPMaxSelectedToolsPerMessage: 1}),
+		cfg: config.NewRuntime(config.Config{}),
 		knowledgeBaseResolver: knowledgeBaseResolverStub{resolveFiles: func(context.Context, uint, []string) ([]domainknowledgebase.KnowledgeBase, []domainconversation.FileObject, error) {
 			return []domainknowledgebase.KnowledgeBase{{PublicID: "empty", ReadyFileCount: 0}}, nil, nil
 		}},
 	}
 	err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
 		UserID:           1,
-		MCPDefaultMode:   domainconversation.ConversationProjectMCPDefaultModeInherit,
 		KnowledgeBaseIDs: []string{"empty"},
 	})
 	if !errors.Is(err, ErrInvalidConversationProject) {
 		t.Fatalf("expected knowledge base without ready files to be rejected, got %v", err)
-	}
-}
-
-func TestValidateConversationProjectDefaultsRejectsMultipleImageProcessors(t *testing.T) {
-	service := &Service{
-		cfg: config.NewRuntime(config.Config{MCPMaxSelectedToolsPerMessage: 4}),
-		mcpRepo: selectedToolRuntimeMCPRepositoryStub{
-			listToolsByIDs: func(context.Context, []uint) ([]domainmcp.Tool, error) {
-				return []domainmcp.Tool{
-					{ID: 1, AttachmentInputMode: domainmcp.AttachmentInputModeImage},
-					{ID: 2, AttachmentInputMode: domainmcp.AttachmentInputModeImage},
-				}, nil
-			},
-		},
-	}
-	err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
-		UserID:         1,
-		MCPDefaultMode: domainconversation.ConversationProjectMCPDefaultModeCustom,
-		MCPToolIDs:     []uint{1, 2},
-	})
-	if !errors.Is(err, ErrInvalidConversationProject) {
-		t.Fatalf("expected multiple image processors to be rejected, got %v", err)
 	}
 }
 
@@ -144,39 +113,35 @@ func TestValidateConversationProjectDefaultModelAvailability(t *testing.T) {
 		{PlatformModelName: "image-model", KindsJSON: `["image_gen","image_edit"]`},
 	}}
 	service := &Service{
-		cfg:           config.NewRuntime(config.Config{MCPMaxSelectedToolsPerMessage: 1}),
+		cfg:           config.NewRuntime(config.Config{}),
 		routeResolver: resolver,
 	}
 
 	if err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
-		UserID:         1,
-		DefaultModel:   "chat-model",
-		MCPDefaultMode: domainconversation.ConversationProjectMCPDefaultModeInherit,
+		UserID:       1,
+		DefaultModel: "chat-model",
 	}); err != nil {
 		t.Fatalf("expected visible chat model to be accepted, got %v", err)
 	}
 	if err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
-		UserID:         1,
-		DefaultModel:   "image-model",
-		MCPDefaultMode: domainconversation.ConversationProjectMCPDefaultModeInherit,
+		UserID:       1,
+		DefaultModel: "image-model",
 	}); !errors.Is(err, ErrInvalidConversationProject) {
 		t.Fatalf("expected non-chat model to be rejected, got %v", err)
 	}
 
 	current := &domainconversation.ConversationProject{DefaultModel: "retired-model"}
 	if err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
-		UserID:         1,
-		DefaultModel:   current.DefaultModel,
-		MCPDefaultMode: domainconversation.ConversationProjectMCPDefaultModeInherit,
-		Current:        current,
+		UserID:       1,
+		DefaultModel: current.DefaultModel,
+		Current:      current,
 	}); err != nil {
 		t.Fatalf("expected unchanged retired model to be preserved, got %v", err)
 	}
 	if err := service.validateConversationProjectDefaults(context.Background(), conversationProjectDefaultsValidationInput{
-		UserID:         1,
-		DefaultModel:   "other-retired-model",
-		MCPDefaultMode: domainconversation.ConversationProjectMCPDefaultModeInherit,
-		Current:        current,
+		UserID:       1,
+		DefaultModel: "other-retired-model",
+		Current:      current,
 	}); !errors.Is(err, ErrInvalidConversationProject) {
 		t.Fatalf("expected newly selected unavailable model to be rejected, got %v", err)
 	}

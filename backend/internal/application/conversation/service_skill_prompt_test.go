@@ -108,9 +108,13 @@ func TestRenderSkillPromptUsesCustomContract(t *testing.T) {
 }
 
 func TestResolveSkillPromptsRejectsTooManySelectedSkills(t *testing.T) {
-	service := &Service{cfg: config.NewRuntime(config.Config{MCPMaxSelectedToolsPerMessage: 2})}
+	service := &Service{cfg: config.NewRuntime(config.Config{})}
+	skillIDs := make([]uint, maxSelectedSkillsPerMessage+1)
+	for index := range skillIDs {
+		skillIDs[index] = uint(index + 1)
+	}
 	_, err := service.resolveSkillPrompts(context.Background(), SendMessageInput{
-		SkillIDs: []uint{1, 2, 3},
+		SkillIDs: skillIDs,
 	})
 	if err != ErrTooManySelectedSkills {
 		t.Fatalf("expected ErrTooManySelectedSkills, got %v", err)
