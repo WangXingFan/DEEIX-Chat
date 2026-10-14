@@ -16,7 +16,6 @@ type messageRoutePromptInput struct {
 	DomainMessages           []model.Message
 	StableAttachments        []AttachmentInput
 	DynamicContext           userContextInput
-	SkillPrompts             *skillPrompts
 	Config                   config.Config
 }
 
@@ -58,7 +57,7 @@ func (s *Service) planRoutePrompt(
 
 func (s *Service) buildMessageRoutePrompt(ctx context.Context, route *channel.ResolvedRoute, input messageRoutePromptInput) (PromptPlan, error) {
 	// 模型上下文预算在最终 GenerateInput 完整组装后统一执行。这里保留完整活跃
-	// 分支，避免先按历史消息耗尽预算，再遗漏文件、RAG、Skill 与工具定义开销。
+	// 分支，避免先按历史消息耗尽预算，再遗漏文件、RAG 与工具定义开销。
 	routeMessages := input.DomainMessages
 	historyMessages := historyMessagesFromDomain(routeMessages, historyMessageOptions{
 		ReasoningContentPassback: input.ReasoningContentPassback,
@@ -90,7 +89,6 @@ func (s *Service) buildMessageRoutePrompt(ctx context.Context, route *channel.Re
 		BaseMessages:      baseMessages,
 		StableAttachments: input.StableAttachments,
 		DynamicContext:    input.DynamicContext,
-		SkillPrompts:      input.SkillPrompts,
 		Config:            input.Config,
 		StoreProvider:     s.storeProvider,
 	}), nil

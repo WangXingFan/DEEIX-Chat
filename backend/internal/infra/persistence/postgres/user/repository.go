@@ -10,7 +10,6 @@ import (
 
 	domainbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/billing"
 	domainknowledgebase "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/knowledgebase"
-	domainskill "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/skill"
 	domainuser "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/user"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/dberror"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/models"
@@ -956,12 +955,6 @@ func (r *Repo) DeleteAccountHard(ctx context.Context, userID uint) error {
 				label: "chat_conversations",
 				run: func(db *gorm.DB) error {
 					return db.Unscoped().Where("user_id = ?", userID).Delete(&models.Conversation{}).Error
-				},
-			},
-			{
-				label: "skills",
-				run: func(db *gorm.DB) error {
-					return db.Where("scope = ? AND owner_user_id = ?", domainskill.ScopeUser, userID).Delete(&models.Skill{}).Error
 				},
 			},
 			{

@@ -3,76 +3,23 @@
 import * as React from "react";
 
 import { listVisibleKnowledgeBases } from "@/shared/api/knowledge-bases";
-import { listVisibleSkills } from "@/shared/api/skills";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 
 export function useChatConversationDefaults({
   conversationID,
   contextKey,
   defaultsPending,
-  defaultSkillIDs,
   defaultKnowledgeBaseIDs,
-  setSelectedSkills,
   setSelectedKnowledgeBaseIDs,
 }: {
   conversationID: string | null;
   contextKey: string;
   defaultsPending: boolean;
-  defaultSkillIDs: number[];
   defaultKnowledgeBaseIDs: string[];
-  setSelectedSkills: React.Dispatch<React.SetStateAction<SkillSummaryDTO[]>>;
   setSelectedKnowledgeBaseIDs: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
-  const appliedSkillDefaultsKeyRef = React.useRef("");
-  const manuallyChangedSkillKeyRef = React.useRef("");
   const appliedKnowledgeBaseDefaultsKeyRef = React.useRef("");
   const manuallyChangedKnowledgeBaseKeyRef = React.useRef("");
-
-  React.useEffect(() => {
-    if (conversationID || defaultsPending) {
-      return;
-    }
-    if (
-      appliedSkillDefaultsKeyRef.current === contextKey ||
-      manuallyChangedSkillKeyRef.current === contextKey
-    ) {
-      return;
-    }
-    if (defaultSkillIDs.length === 0) {
-      appliedSkillDefaultsKeyRef.current = contextKey;
-      setSelectedSkills([]);
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const token = await resolveAccessToken();
-        if (!token) {
-          return;
-        }
-        const availableSkills = await listVisibleSkillsByIDs(token, defaultSkillIDs);
-        if (cancelled || manuallyChangedSkillKeyRef.current === contextKey) {
-          return;
-        }
-        const skillsByID = new Map(availableSkills.map((skill) => [skill.id, skill] as const));
-        const defaults = defaultSkillIDs
-          .map((skillID) => skillsByID.get(skillID))
-          .filter((skill): skill is SkillSummaryDTO => Boolean(skill));
-        appliedSkillDefaultsKeyRef.current = contextKey;
-        setSelectedSkills(defaults);
-      } catch {
-        if (!cancelled && manuallyChangedSkillKeyRef.current !== contextKey) {
-          appliedSkillDefaultsKeyRef.current = contextKey;
-          setSelectedSkills([]);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [conversationID, contextKey, defaultSkillIDs, defaultsPending, setSelectedSkills]);
 
   React.useEffect(() => {
     if (
@@ -116,13 +63,6 @@ export function useChatConversationDefaults({
     };
   }, [conversationID, contextKey, defaultKnowledgeBaseIDs, defaultsPending, setSelectedKnowledgeBaseIDs]);
 
-  const onSelectedSkillsChange = React.useCallback((skills: SkillSummaryDTO[]) => {
-    if (!conversationID) {
-      manuallyChangedSkillKeyRef.current = contextKey;
-    }
-    setSelectedSkills(skills);
-  }, [conversationID, contextKey, setSelectedSkills]);
-
   const onSelectedKnowledgeBasesChange = React.useCallback((ids: string[]) => {
     if (!conversationID) {
       manuallyChangedKnowledgeBaseKeyRef.current = contextKey;
@@ -130,17 +70,5 @@ export function useChatConversationDefaults({
     setSelectedKnowledgeBaseIDs(ids.slice(0, 8));
   }, [conversationID, contextKey, setSelectedKnowledgeBaseIDs]);
 
-  return { onSelectedKnowledgeBasesChange, onSelectedSkillsChange };
-}
-
-async function listVisibleSkillsByIDs(accessToken: string, skillIDs: number[]): Promise<SkillSummaryDTO[]> {
-  const pageSize = Math.min(100, skillIDs.length);
-  const firstPage = await listVisibleSkills(accessToken, { ids: skillIDs, page: 1, pageSize });
-  const results = firstPage.results.slice();
-  const pageCount = Math.ceil(firstPage.total / pageSize);
-  for (let page = 2; page <= pageCount; page += 1) {
-    const nextPage = await listVisibleSkills(accessToken, { ids: skillIDs, page, pageSize });
-    results.push(...nextPage.results);
-  }
-  return results;
+  return { onSelectedKnowledgeBasesChange };
 }

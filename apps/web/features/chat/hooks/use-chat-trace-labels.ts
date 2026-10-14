@@ -117,7 +117,6 @@ export type ProcessTraceLabels = {
     contentRetrieval: string;
     fileContext: string;
     contextCompaction: string;
-    skillContext: string;
     requestResult: string;
     upstreamRequestTriggered: string;
   };
@@ -255,7 +254,6 @@ export function useChatTraceLabels(): ProcessTraceLabels {
         contentRetrieval: t("stages.contentRetrieval"),
         fileContext: t("stages.fileContext"),
         contextCompaction: t("stages.contextCompaction"),
-        skillContext: t("stages.skillContext"),
         requestResult: t("stages.requestResult"),
         upstreamRequestTriggered: t("stages.upstreamRequestTriggered"),
       },

@@ -14,7 +14,6 @@ import {
 import type { PendingAttachment } from "@/features/chat/types/chat-runtime";
 import type { ChatAreaMessage } from "@/features/chat/types/messages";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 
 export type ChatSubmissionBranchReason = "default" | "retry" | "edit";
 
@@ -26,7 +25,6 @@ export type ChatSubmissionBlock =
 export type ChatSubmissionPlan = {
   payloadContent: string;
   platformModelName: string;
-  selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
   sanitizedOptions: ConversationOptions;
@@ -63,7 +61,6 @@ export function planChatSubmission(input: {
   maxFilesPerMessage: number;
   selectedPlatformModelName: string;
   options: ConversationOptions;
-  selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
   visibleConversationScopeKey: string;
@@ -76,7 +73,6 @@ export function planChatSubmission(input: {
   const payloadContent = content || input.attachmentFallbackContent;
   const platformModelName = (queuedSubmission?.platformModelName ?? input.selectedPlatformModelName).trim();
   const requestOptions = queuedSubmission?.options ?? input.options;
-  const selectedSkills = queuedSubmission?.selectedSkills ?? input.selectedSkills;
   const selectedKnowledgeBaseIDs = queuedSubmission?.selectedKnowledgeBaseIDs ?? input.selectedKnowledgeBaseIDs;
   const htmlVisualPromptEnabled = queuedSubmission?.htmlVisualPromptEnabled ?? input.htmlVisualPromptEnabled;
   const targetConversationScopeKey = queuedSubmission?.conversationScopeKey ?? input.visibleConversationScopeKey;
@@ -169,7 +165,6 @@ export function planChatSubmission(input: {
     plan: {
       payloadContent,
       platformModelName,
-      selectedSkills,
       selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
       sanitizedOptions,

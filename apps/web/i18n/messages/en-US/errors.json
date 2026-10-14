@@ -257,7 +257,6 @@
     "multipleImageProcessors": "Select only one image attachment processor.",
     "notFound": "Message not found.",
     "tooManyFiles": "Too many files in one message.",
-    "tooManySelectedSkills": "Too many skills selected for this message.",
     "tooManySelectedTools": "Too many tools selected for this message."
   },
   "messageGenerationRun": {
@@ -313,8 +312,6 @@
     "invalidModelVendor": "Invalid model vendor.",
     "invalidOverwriteCustomizedMetadata": "Invalid metadata overwrite option.",
     "invalidRunIds": "Invalid run IDs.",
-    "invalidSkill": "Invalid skill.",
-    "invalidSkillUse": "Invalid skill configuration.",
     "invalidTwoFactorChallenge": "Invalid two-factor challenge.",
     "invalidUpstreamBaseUrl": "Invalid upstream base URL.",
     "invalidUserid": "Invalid user ID."
@@ -381,14 +378,6 @@
     "notFound": "Setting not found.",
     "serviceUnavailable": "Settings service is unavailable.",
     "smtpInvalid": "Invalid SMTP settings."
-  },
-  "skill": {
-    "invalidId": "Invalid skill ID.",
-    "notFound": "Skill not found.",
-    "tooManyIds": "Too many skills were selected."
-  },
-  "skillTrigger": {
-    "alreadyExists": "Skill trigger already exists."
   },
   "toolCall": {
     "invalidId": "Invalid tool call ID.",

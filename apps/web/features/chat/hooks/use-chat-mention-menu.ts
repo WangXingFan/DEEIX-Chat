@@ -14,17 +14,14 @@ import {
 } from "@/features/chat/model/mention-file-search";
 import type { ChatModelOption, PendingAttachment } from "@/features/chat/types/chat-runtime";
 import type { FileObjectDTO } from "@/shared/api/file-types";
-import { listVisibleSkills } from "@/shared/api/skills";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { readSessionRevision } from "@/shared/auth/session";
 import { resolveModelOptionLabel, resolveModelPresentationGroup } from "@/entities/model";
 
-const DEFAULT_MENTION_MENU_KINDS: readonly ChatMentionMenuKind[] = ["model", "file", "skill"];
+const DEFAULT_MENTION_MENU_KINDS: readonly ChatMentionMenuKind[] = ["model", "file"];
 const MENTION_TRIGGER_KINDS: readonly ChatMentionMenuKind[] = ["model", "file"];
-const PROMPT_TRIGGER_KINDS: readonly ChatMentionMenuKind[] = ["skill"];
 
-export type ChatMentionMenuKind = "file" | "model" | "skill";
+export type ChatMentionMenuKind = "file" | "model";
 export type ChatMentionMenuTab = "all" | ChatMentionMenuKind;
 
 type ChatMentionFileMenuItem = {
@@ -45,19 +42,7 @@ type ChatMentionModelMenuItem = {
   selected: boolean;
 };
 
-type ChatMentionSkillMenuItem = {
-  id: string;
-  kind: "skill";
-  label: string;
-  description: string;
-  skill: SkillSummaryDTO;
-  selected: boolean;
-};
-
-export type ChatMentionMenuItem =
-  | ChatMentionFileMenuItem
-  | ChatMentionModelMenuItem
-  | ChatMentionSkillMenuItem;
+export type ChatMentionMenuItem = ChatMentionFileMenuItem | ChatMentionModelMenuItem;
 
 export type ChatMentionMenuRow =
   | { type: "header"; key: string; labelKey?: string; label?: string }
@@ -81,16 +66,14 @@ export type ChatMentionMenuLayout = {
 
 type ChatMentionMenuPlacementPreference = "auto" | "bottom" | "top";
 type ChatMentionMenuPlacementAnchor = "caret" | "container";
-type ChatMentionTriggerKind = "mention" | "prompt";
+type ChatMentionTriggerKind = "mention";
 
 type ChatMentionMenuControllerArgs = {
   attachments: PendingAttachment[];
   defaultFileLabel: string;
   disabled: boolean;
   draft: string;
-  maxSelectedSkills: number;
   modelOptions: ChatModelOption[];
-  selectedSkills?: SkillSummaryDTO[];
   selectedPlatformModelName: string;
   anchorRef: React.RefObject<HTMLElement | null>;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -98,11 +81,9 @@ type ChatMentionMenuControllerArgs = {
   enabledKinds?: readonly ChatMentionMenuKind[];
   onFileSelect: (file: FileObjectDTO) => void | Promise<void>;
   onModelChange: (platformModelName: string) => void;
-  onSelectedSkillsChange?: (skills: SkillSummaryDTO[]) => void;
   placementAnchor?: ChatMentionMenuPlacementAnchor;
   placementPreference?: ChatMentionMenuPlacementPreference;
   onModelCatalogRefresh?: () => void | Promise<void>;
-  onSkillLimitReached?: () => void;
 };
 
 type ChatMentionTriggerQuery = {
@@ -128,7 +109,7 @@ type ChatMentionSelection = {
 
 type CommandRecentsSnapshot = Partial<Record<CommandRecentsKind, CommandRecentsEntry[]>>;
 
-function canStartTrigger(value: string, triggerIndex: number, trigger: "@" | "/"): boolean {
+function canStartTrigger(value: string, triggerIndex: number): boolean {
   if (triggerIndex === 0) {
     return true;
   }
@@ -140,23 +121,17 @@ function canStartTrigger(value: string, triggerIndex: number, trigger: "@" | "/"
   if (/[[({<，。！？、：；,.!?;:]/.test(previous)) {
     return true;
   }
-  if (trigger === "@") {
-    return !/[A-Za-z0-9._-]/.test(previous);
-  }
-  return !/[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]/.test(previous);
+  return !/[A-Za-z0-9._-]/.test(previous);
 }
 
 function resolveTriggerQuery(value: string, caretIndex: number): ChatMentionTriggerQuery | null {
   const end = Math.min(Math.max(caretIndex, 0), value.length);
   const prefix = value.slice(0, end);
-  const mentionIndex = prefix.lastIndexOf("@");
-  const promptIndex = prefix.lastIndexOf("/");
-  const triggerIndex = Math.max(mentionIndex, promptIndex);
-  const trigger = triggerIndex >= 0 ? prefix[triggerIndex] : "";
-  if (trigger !== "@" && trigger !== "/") {
+  const triggerIndex = prefix.lastIndexOf("@");
+  if (triggerIndex < 0) {
     return null;
   }
-  if (!canStartTrigger(value, triggerIndex, trigger)) {
+  if (!canStartTrigger(value, triggerIndex)) {
     return null;
   }
 
@@ -166,7 +141,7 @@ function resolveTriggerQuery(value: string, caretIndex: number): ChatMentionTrig
   }
 
   return {
-    kind: trigger === "@" ? "mention" : "prompt",
+    kind: "mention",
     query: query.toLowerCase(),
     range: { start: triggerIndex, end },
   };
@@ -301,18 +276,6 @@ function filterModels(
     }));
 }
 
-function skillsToItems(skills: SkillSummaryDTO[], selectedSkills: SkillSummaryDTO[]): ChatMentionSkillMenuItem[] {
-  const selectedIDs = new Set(selectedSkills.map((skill) => skill.id));
-  return skills.map((skill) => ({
-    id: `skill:${skill.id}`,
-    kind: "skill" as const,
-    label: skill.trigger || skill.title,
-    description: skill.description,
-    skill,
-    selected: selectedIDs.has(skill.id),
-  }));
-}
-
 function filesToItems(
   files: FileObjectDTO[],
   attachments: PendingAttachment[],
@@ -335,8 +298,6 @@ function mentionItemRecentsID(item: ChatMentionMenuItem): string {
       return item.model.platformModelName;
     case "file":
       return item.file.fileID;
-    case "skill":
-      return String(item.skill.id);
   }
 }
 
@@ -403,27 +364,6 @@ type BuildRowsArgs = {
   filesLoadingMore: boolean;
 };
 
-function buildScopeGroupedRows(
-  rows: ChatMentionMenuRow[],
-  items: ChatMentionMenuItem[],
-  scopeOf: (item: ChatMentionMenuItem) => "builtin" | "user",
-) {
-  const builtin = items.filter((item) => scopeOf(item) === "builtin");
-  const mine = items.filter((item) => scopeOf(item) !== "builtin");
-  if (builtin.length > 0) {
-    rows.push({ type: "header", key: "header:builtin", labelKey: "mention.groups.builtin" });
-    for (const item of builtin) {
-      rows.push({ type: "item", key: `tab:${item.id}`, item });
-    }
-  }
-  if (mine.length > 0) {
-    rows.push({ type: "header", key: "header:mine", labelKey: "mention.groups.mine" });
-    for (const item of mine) {
-      rows.push({ type: "item", key: `tab:${item.id}`, item });
-    }
-  }
-}
-
 function buildKindTabRows(
   kind: ChatMentionMenuKind,
   data: ChatMentionKindData,
@@ -463,11 +403,6 @@ function buildKindTabRows(
         rows.push({ type: "item", key: `tab:${item.id}`, item });
       }
     }
-    return rows;
-  }
-
-  if (kind === "skill") {
-    buildScopeGroupedRows(rows, data.items, (item) => (item.kind === "skill" ? item.skill.scope : "user"));
     return rows;
   }
 
@@ -645,28 +580,23 @@ export function useChatMentionMenu({
   defaultFileLabel,
   disabled,
   draft,
-  maxSelectedSkills,
   modelOptions,
-  selectedSkills = [],
   selectedPlatformModelName,
   anchorRef,
   textareaRef,
   onDraftChange,
-  onSelectedSkillsChange,
   enabledKinds = DEFAULT_MENTION_MENU_KINDS,
   onFileSelect,
   onModelChange,
   placementAnchor = "caret",
   placementPreference = "auto",
   onModelCatalogRefresh,
-  onSkillLimitReached,
 }: ChatMentionMenuControllerArgs) {
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuID = React.useId();
   const [inputFocused, setInputFocused] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [activeTab, setActiveTab] = React.useState<ChatMentionMenuTab>("all");
-  const [browseKind, setBrowseKind] = React.useState<ChatMentionTriggerKind | null>(null);
   const [dismissedTriggerKey, setDismissedTriggerKey] = React.useState<string | null>(null);
   const [menuLayout, setMenuLayout] = React.useState<ChatMentionMenuLayout | null>(null);
   const [recentsSnapshot, setRecentsSnapshot] = React.useState<CommandRecentsSnapshot>({});
@@ -676,9 +606,6 @@ export function useChatMentionMenu({
   const [filesLoading, setFilesLoading] = React.useState(false);
   const [filesLoadingMore, setFilesLoadingMore] = React.useState(false);
   const [filesQueryKey, setFilesQueryKey] = React.useState<string | null>(null);
-  const [skills, setSkills] = React.useState<SkillSummaryDTO[]>([]);
-  const [skillsTotal, setSkillsTotal] = React.useState(0);
-  const [skillsLoading, setSkillsLoading] = React.useState(false);
   const [selection, setSelection] = React.useState<ChatMentionSelection>(() => ({
     end: draft.length,
     start: draft.length,
@@ -687,9 +614,9 @@ export function useChatMentionMenu({
   const filesGenerationRef = React.useRef(0);
   const enabledKindSet = React.useMemo(() => new Set(enabledKinds), [enabledKinds]);
   const triggerQuery = selection.start === selection.end ? resolveTriggerQuery(draft, selection.start) : null;
-  const sessionKind: ChatMentionTriggerKind | null = triggerQuery?.kind ?? browseKind;
+  const sessionKind: ChatMentionTriggerKind | null = triggerQuery?.kind ?? null;
   const sessionActive = sessionKind !== null;
-  const query = triggerQuery ? triggerQuery.query : browseKind ? "" : null;
+  const query = triggerQuery ? triggerQuery.query : null;
   const normalizedQuery = (query ?? "").trim().toLowerCase();
   const hasQuery = normalizedQuery.length > 0;
   const triggerKey = triggerQuery
@@ -699,9 +626,6 @@ export function useChatMentionMenu({
   const sessionKinds = React.useMemo<ChatMentionMenuKind[]>(() => {
     if (sessionKind === "mention") {
       return MENTION_TRIGGER_KINDS.filter((kind) => enabledKindSet.has(kind));
-    }
-    if (sessionKind === "prompt") {
-      return PROMPT_TRIGGER_KINDS.filter((kind) => enabledKindSet.has(kind));
     }
     return [];
   }, [enabledKindSet, sessionKind]);
@@ -726,12 +650,6 @@ export function useChatMentionMenu({
   }, [draft, updateSelection]);
 
   React.useEffect(() => {
-    if (disabled) {
-      setBrowseKind(null);
-    }
-  }, [disabled]);
-
-  React.useEffect(() => {
     if (sessionKind === null) {
       return;
     }
@@ -746,7 +664,6 @@ export function useChatMentionMenu({
     setRecentsSnapshot({
       model: readCommandRecents("model"),
       file: readCommandRecents("file"),
-      skill: readCommandRecents("skill"),
     });
   }, [sessionActive]);
 
@@ -879,50 +796,6 @@ export function useChatMentionMenu({
     })();
   }, [fileSearchKey, files.length, filesLoading, filesLoadingMore, filesPage, filesQueryKey, filesTotal]);
 
-  const skillSearchKey =
-    sessionKind === "prompt" && enabledKindSet.has("skill") && !disabled ? normalizedQuery : null;
-
-  React.useEffect(() => {
-    if (skillSearchKey === null) {
-      setSkills([]);
-      setSkillsTotal(0);
-      setSkillsLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      setSkillsLoading(true);
-      void (async () => {
-        try {
-          const token = await resolveAccessToken();
-          if (!token || controller.signal.aborted) {
-            return;
-          }
-          const data = await listVisibleSkills(token, { query: skillSearchKey, page: 1, pageSize: 50 }, controller.signal);
-          if (!controller.signal.aborted) {
-            setSkills(data.results);
-            setSkillsTotal(data.total ?? data.results.length);
-          }
-        } catch {
-          if (!controller.signal.aborted) {
-            setSkills([]);
-            setSkillsTotal(0);
-          }
-        } finally {
-          if (!controller.signal.aborted) {
-            setSkillsLoading(false);
-          }
-        }
-      })();
-    }, 180);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [skillSearchKey]);
-
   const kindData = React.useMemo<Partial<Record<ChatMentionMenuKind, ChatMentionKindData>>>(() => {
     if (query === null) {
       return {};
@@ -942,11 +815,6 @@ export function useChatMentionMenu({
           total: ready ? Math.max(filesTotal, items.length) : 0,
           loading: filesLoading || (!ready && fileSearchKey !== null),
         };
-        continue;
-      }
-      if (kind === "skill") {
-        const items = skillsToItems(skills, selectedSkills);
-        data.skill = { items, total: Math.max(skillsTotal, items.length), loading: skillsLoading };
       }
     }
     return data;
@@ -962,11 +830,7 @@ export function useChatMentionMenu({
     normalizedQuery,
     query,
     selectedPlatformModelName,
-    selectedSkills,
     sessionKinds,
-    skills,
-    skillsLoading,
-    skillsTotal,
   ]);
 
   const rows = React.useMemo(
@@ -1097,25 +961,10 @@ export function useChatMentionMenu({
   }, [textareaRef]);
 
   const closeSession = React.useCallback(() => {
-    if (browseKind !== null) {
-      setBrowseKind(null);
-    }
     if (!triggerQuery) {
       return;
     }
     const nextDraft = removeTriggerRange(draft, triggerQuery.range);
-    onDraftChange(nextDraft.value);
-    setDismissedTriggerKey(null);
-    focusTextarea(nextDraft.caretIndex);
-  }, [browseKind, draft, focusTextarea, onDraftChange, triggerQuery]);
-
-  // First multi-select pick: remove the trigger text but keep the menu open for more picks.
-  const enterBrowseMode = React.useCallback(() => {
-    if (!triggerQuery) {
-      return;
-    }
-    const nextDraft = removeTriggerRange(draft, triggerQuery.range);
-    setBrowseKind(triggerQuery.kind);
     onDraftChange(nextDraft.value);
     setDismissedTriggerKey(null);
     focusTextarea(nextDraft.caretIndex);
@@ -1144,43 +993,17 @@ export function useChatMentionMenu({
         return;
       }
 
-      if (item.kind === "skill") {
-        const alreadySelected = selectedSkills.some((skill) => skill.id === item.skill.id);
-        if (!alreadySelected && selectedSkills.length >= maxSelectedSkills) {
-          onSkillLimitReached?.();
-          return;
-        }
-        if (!alreadySelected) {
-          recordCommandRecentUsage("skill", String(item.skill.id));
-        }
-        onSelectedSkillsChange?.(
-          alreadySelected
-            ? selectedSkills.filter((skill) => skill.id !== item.skill.id)
-            : [...selectedSkills, item.skill],
-        );
-        if (triggerQuery) {
-          enterBrowseMode();
-        }
-        return;
-      }
-
       recordCommandRecentUsage("file", item.file.fileID);
       void onFileSelect(item.file);
       closeSession();
     },
     [
       closeSession,
-      draft,
-      enterBrowseMode,
       focusTextarea,
-      maxSelectedSkills,
       onDraftChange,
       onFileSelect,
       onModelChange,
-      onSelectedSkillsChange,
-      onSkillLimitReached,
       selectTab,
-      selectedSkills,
       textareaRef,
       triggerQuery,
     ],
@@ -1191,13 +1014,10 @@ export function useChatMentionMenu({
       if (dismissedTriggerKey !== null) {
         setDismissedTriggerKey(null);
       }
-      if (browseKind !== null) {
-        setBrowseKind(null);
-      }
       updateSelection();
       onDraftChange(value);
     },
-    [browseKind, dismissedTriggerKey, onDraftChange, updateSelection],
+    [dismissedTriggerKey, onDraftChange, updateSelection],
   );
 
   const handleSelectionChange = React.useCallback(() => {
@@ -1254,16 +1074,12 @@ export function useChatMentionMenu({
       }
       if (event.key === "Escape") {
         event.preventDefault();
-        if (browseKind !== null) {
-          setBrowseKind(null);
-        } else {
-          setDismissedTriggerKey(triggerKey);
-        }
+        setDismissedTriggerKey(triggerKey);
         return true;
       }
       return false;
     },
-    [activeRow, browseKind, effectiveTab, open, select, selectTab, selectableRows.length, showTabBar, tabIDs, triggerKey],
+    [activeRow, effectiveTab, open, select, selectTab, selectableRows.length, showTabBar, tabIDs, triggerKey],
   );
 
   return {
@@ -1271,7 +1087,6 @@ export function useChatMentionMenu({
     activeTab: effectiveTab,
     handleBlur: () => {
       setInputFocused(false);
-      setBrowseKind(null);
     },
     handleChange,
     handleFocus: () => {

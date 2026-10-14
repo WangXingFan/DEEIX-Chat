@@ -39,7 +39,7 @@ apps/*  →  packages/core  →  packages/api-contract  →  backend/docs/swagge
 |---|---|---|---|
 | Web (`apps/web`) | 完整产品 | 全部功能，包括 Admin | — |
 | 桌面 (`apps/desktop`) | Web 的安装版，可**本地独立运行**或连接服务器，**多标签页**同时连多个服务器 | Web 全部功能 + 托盘、自动更新、系统 keychain、OAuth 回环、内置本地服务器（sidecar）、每服务器一个 webview 的标签页 | **不写任何业务 UI 或业务逻辑**。Tauri 工程只包含 Rust 壳、窗口、托盘、更新器、sidecar 进程管理与会话命令 |
-| 移动 (`apps/mobile`) | 消费端 | 聊天、会话、文件上传、相机/语音、推送通知、账户设置 | 不做 Admin、账单后台、知识库管理、Skill 配置 |
+| 移动 (`apps/mobile`) | 消费端 | 聊天、会话、文件上传、相机/语音、推送通知、账户设置 | 不做 Admin、账单后台、知识库管理 |
 
 原则：如果发现要在桌面工程里写聊天逻辑，说明 Web 端缺了一个抽象；如果发现移动端和 Web 端各写了一份"什么时候该登出"，说明 `packages/core` 缺了一个模块。
 

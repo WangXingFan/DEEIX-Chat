@@ -259,15 +259,16 @@ s20260002,Student02,student02@example.edu
 
 按依赖关系实施，通常先处理旁路模块，再处理与主调用链耦合的计费、工具和记忆。
 
-> 进度：公告、提示词预设、公开分享、交互式 UI 组件库、长期记忆与历史语义召回、工具市场与 MCP（含后端运行时、前端入口、模型原生工具配置、国际化与文档）、媒体生成（图像与视频生成/编辑适配器、媒体任务与制品下载、管理端媒体协议与预设、前端流式媒体通道、专属错误码与文案、媒体预览演示路由、共享媒体契约字段与文档配图）、临时对话与对话导出（临时对话服务/上下文/附件/生成与 HTTP 入口、导出服务与游标分页查询、单条与全平台导出路由及管理端导出接口与装配、前端临时模式运行时与切换入口、对话导出菜单与 API 封装、相关国际化与文档）、对话项目（项目服务与 HTTP 入口、项目仓储与模型、项目级提示词与默认模型/技能/知识库解析、侧边栏项目导航与项目对话框、项目分组与批量移动、项目相关国际化与文档，会话记录与 `project_id` 列保留为归档数据）已删除并通过构建检查。剩余阶段 4 范围：计费（保留轻量 token 用量）、Skills，以及拒绝旧请求中启用上述功能的字段。
+> 进度：公告、提示词预设、公开分享、交互式 UI 组件库、长期记忆与历史语义召回、工具市场与 MCP（含后端运行时、前端入口、模型原生工具配置、国际化与文档）、媒体生成（图像与视频生成/编辑适配器、媒体任务与制品下载、管理端媒体协议与预设、前端流式媒体通道、专属错误码与文案、媒体预览演示路由、共享媒体契约字段与文档配图）、临时对话与对话导出（临时对话服务/上下文/附件/生成与 HTTP 入口、导出服务与游标分页查询、单条与全平台导出路由及管理端导出接口与装配、前端临时模式运行时与切换入口、对话导出菜单与 API 封装、相关国际化与文档）、对话项目（项目服务与 HTTP 入口、项目仓储与模型、项目级提示词与默认模型/技能/知识库解析、侧边栏项目导航与项目对话框、项目分组与批量移动、项目相关国际化与文档，会话记录与 `project_id` 列保留为归档数据）、Skills（技能服务与 HTTP 入口、技能仓储与模型、对话技能提示注入与追踪字段、技能运行配置、前端技能实体与 API 封装、技能选择器与 `/` 触发、相关错误码、国际化与文档，技能表保留为归档数据）已删除并通过构建检查。剩余阶段 4 范围：计费（保留轻量 token 用量），以及拒绝旧请求中启用上述功能的字段。
 > 媒体生成切片验证：后端 `go test ./...`（仅 3 项既有 Windows 环境失败）、`go vet ./...` 与标记构建通过；网页端 `tsc --noEmit`、`biome lint .`、`check-architecture.mjs` 通过；`packages/api-contract` 生成结果与实现一致。历史消息中的既有媒体附件与工具结果仍按只读展示处理，不再提供生成入口。
 > 临时对话与导出切片验证：后端 `go test ./...`（仅 3 项既有 Windows 环境失败）、`go vet ./...`、`staticcheck`、`deadcode`、`gofmt` 与 `go build ./...` 通过；网页端 `tsc --noEmit`、`biome lint .`、`check-architecture.mjs` 通过；`packages/api-contract` 生成结果与实现一致，`--check` 无差异。对话截图与基础复制回答保留。
 > 对话项目切片验证：后端 `go test`（`application/conversation`、`transport/http/conversation`、`infra/persistence/postgres/{conversation,knowledgebase,user}`，仅 1 项既有 Windows 环境失败）、`go build ./...`、`go vet ./...`、`staticcheck`、`deadcode` 与 `gofmt` 通过；网页端 `tsc --noEmit`、`biome lint .`、`check-architecture.mjs` 通过；`packages/api-contract` 生成结果与实现一致，`--check` 无差异。历史会话与 `project_id` 列保留为归档数据，运行代码不再读写项目。
+> 技能切片验证：后端 `go test ./internal/application/... ./internal/transport/... ./internal/infra/persistence/... ./internal/app/...`（仅 2 项既有 Windows 环境失败）、`go build ./...`、`go vet ./...`、`staticcheck`、`deadcode`、`gofmt` 与 `interface{}`/`context` 基线检查通过；网页端 `tsc --noEmit`、`biome lint .`、`check-architecture.mjs` 通过；`packages/api-contract` 生成结果与实现一致，`--check` 无差异。技能表保留为归档数据，运行代码不再读写技能。
 
 - [ ] 删除多余 HTTP 路由和 handler，收紧资料读取及来源访问边界。
 - [ ] 从主装配及 auth、channel、admin、conversation 拆除订阅解析、余额校验、费用预占和结算。
 - [ ] 模型可见性只由启用状态及有效授权决定，不依赖价格或计费账户存在。
-- [ ] 删除工具、记忆、媒体、分享、项目等分支及其生产任务；拒绝旧请求中试图启用这些功能的字段。
+- [ ] 删除工具、记忆、媒体、分享、项目、技能等分支及其生产任务；拒绝旧请求中试图启用这些功能的字段。
 - [ ] 清理服务实现、接口、缓存、持久化适配、配置 seed、运行时配置和无调用的错误映射。
 - [ ] 仍保留必要 token 用量元信息或请求追踪时，写入轻量运行记录，不继续依赖计费账本。
 

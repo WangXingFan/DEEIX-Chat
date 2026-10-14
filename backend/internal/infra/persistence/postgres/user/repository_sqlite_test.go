@@ -160,16 +160,6 @@ func TestDeleteAccountHardRemovesUserScopedAssociations(t *testing.T) {
 	}).Error; err != nil {
 		t.Fatalf("seed permission group user access: %v", err)
 	}
-	skill := models.Skill{
-		Scope:       "user",
-		OwnerUserID: user.ID,
-		Title:       "Delete user skill",
-		Trigger:     "delete-user-skill",
-		Enabled:     true,
-	}
-	if err = db.Create(&skill).Error; err != nil {
-		t.Fatalf("seed user skill: %v", err)
-	}
 	personalKnowledgeBase := models.KnowledgeBase{
 		PublicID: "kb_delete_user", Scope: "user", OwnerUserID: user.ID, Name: "Delete user knowledge base", Enabled: true,
 	}
@@ -204,7 +194,6 @@ func TestDeleteAccountHardRemovesUserScopedAssociations(t *testing.T) {
 		t.Fatalf("permission group user access count = %d, want 0", count)
 	}
 	for label, item := range map[string]any{
-		"user Skills":          &models.Skill{},
 		"knowledge base files": &models.KnowledgeBaseFile{},
 	} {
 		if err = db.Model(item).Count(&count).Error; err != nil {

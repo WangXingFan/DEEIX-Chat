@@ -566,19 +566,12 @@ func (s *Service) sendMessageInternal(
 		RAGChunks:      ragContextChunks,
 		RAGFallbacks:   ragFallbacks,
 	})
-	skillPrompts, err := s.resolveSkillPrompts(ctx, input)
-	if err != nil {
-		retErr = err
-		return nil, err
-	}
-	recordSkillPromptTrace(traceRecorder, skillPrompts)
 	routePromptInput := messageRoutePromptInput{
 		UserContent:             input.Content,
 		HTMLVisualPromptEnabled: input.HTMLVisualPromptEnabled,
 		DomainMessages:          promptScope.activeMessages(),
 		StableAttachments:       stableFullContextAttachments,
 		DynamicContext:          userCtx,
-		SkillPrompts:            skillPrompts,
 		Config:                  cfg,
 	}
 	promptPlan, reasoningContentPassback, err := s.planRoutePrompt(ctx, input.UserID, routePromptInput, route)

@@ -401,7 +401,7 @@
     "uploadFile": "Upload file",
     "screenshot": "Screenshot",
     "openTools": "Menu",
-    "inputPlaceholder": "Message, or use / for context, @ for resources",
+    "inputPlaceholder": "Message, or use @ for resources",
     "voiceStartingPlaceholder": "Starting voice input…",
     "voiceListeningPlaceholder": "Receiving voice input…",
     "modelOptions": "Parameters",
@@ -456,9 +456,6 @@
     "uploadingAttachment": "Uploading {name}",
     "ragDisabledTitle": "This file has RAG disabled and will be injected as full context. It may use more tokens.",
     "ragOff": "RAG off",
-    "skillLimitTitle": "Skill limit reached",
-    "skillLimitDescription": "A message can load up to {limit} skills. Clear one before selecting more.",
-    "selectedSkillsLabel": "Loaded skills",
     "htmlVisualPrompt": "Visual layout prompt",
     "htmlVisualPromptEnabled": "Visual layout prompt is enabled. This turn will inject safe inline HTML formatting rules when useful.",
     "htmlVisualPromptDisabled": "Enable the visual layout prompt to guide safe inline HTML for complex structures.",
@@ -495,26 +492,19 @@
       "fileFallback": "File",
       "sections": {
         "file": "Files",
-        "model": "Models",
-        "skill": "Skills"
+        "model": "Models"
       },
       "tabs": {
         "all": "All",
         "file": "Files",
-        "model": "Models",
-        "skill": "Skills"
+        "model": "Models"
       },
       "recent": "Recent",
-      "groups": {
-        "builtin": "Built-in",
-        "mine": "Mine"
-      },
       "viewAll": "View all {count}",
       "empty": {
         "all": "No matching results",
         "file": "No matching files",
-        "model": "No matching models",
-        "skill": "No matching skills"
+        "model": "No matching models"
       }
     },
     "output": "Output"
@@ -682,7 +672,6 @@
       "contentRetrieval": "Content retrieval",
       "fileContext": "File context",
       "contextCompaction": "Context compaction",
-      "skillContext": "Skill context",
       "requestResult": "Request result",
       "upstreamRequestTriggered": "Upstream model request triggered"
     },

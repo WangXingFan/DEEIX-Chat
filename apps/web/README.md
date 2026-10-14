@@ -36,7 +36,6 @@ apps/web/
 │   ├── file/                  # 文件：预览、展示、处理状态与轮询、删除选项、文件库事件
 │   ├── identity-provider/     # 身份源图标
 │   ├── model/                 # 模型：身份与图标、选择器、选项展示与参数策略
-│   ├── skill/                 # 技能表单模型
 │   └── user-settings/         # 用户设置存储与对话内容宽度
 ├── features/                  # 按业务域组织页面组件、hooks 和模型
 │   ├── admin/                 # 管理后台

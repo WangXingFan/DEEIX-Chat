@@ -15,12 +15,10 @@ import (
 	appstorage "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/objectstorage"
 	appprocessing "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/processing"
 	apprag "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/rag"
-	appskill "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/skill"
 	appupload "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/application/upload"
 	domainbilling "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/billing"
 	model "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/conversation"
 	domainknowledgebase "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/knowledgebase"
-	domainskill "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/domain/skill"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/ports/llm"
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/repository"
@@ -37,11 +35,6 @@ type routeResolver interface {
 // conversation 只依赖这个窄接口，不直接感知 channel.Service 的具体实现。
 type defaultRouteResolver interface {
 	ResolveDefaultRoute(ctx context.Context, input channel.ResolveRouteInput) (*channel.ResolvedRoute, error)
-}
-
-type skillResolver interface {
-	ResolveAvailable(ctx context.Context, userID uint, id uint) (*domainskill.Skill, error)
-	ListVisible(ctx context.Context, userID uint, input appskill.ListInput) ([]domainskill.Skill, int64, error)
 }
 
 type knowledgeBaseResolver interface {
@@ -80,7 +73,6 @@ type Service struct {
 	processingSvc         *appprocessing.Service
 	extractSvc            *extraction.Service
 	ragSvc                *apprag.Service
-	skillResolver         skillResolver
 	knowledgeBaseResolver knowledgeBaseResolver
 	billingSvc            *appbilling.Service
 	auditWriter           auditWriter
@@ -141,7 +133,6 @@ type SendMessageInput struct {
 	Options                 map[string]any
 	ClientRunID             string
 	FileIDs                 []string
-	SkillIDs                []uint
 	KnowledgeBaseIDs        []string
 	HTMLVisualPromptEnabled bool
 	ParentMessagePublicID   string
@@ -152,11 +143,6 @@ type SendMessageInput struct {
 	UsageAuthorization *domainbilling.UsageAuthorization
 	// OnEvent 用于向调用方推送中间事件（如 rag_search），流式场景使用。
 	OnEvent func(eventType string, payload map[string]any) error
-}
-
-// SetSkillResolver 注入会话技能解析器。
-func (s *Service) SetSkillResolver(resolver skillResolver) {
-	s.skillResolver = resolver
 }
 
 // SetKnowledgeBaseResolver 注入会话知识库解析器。

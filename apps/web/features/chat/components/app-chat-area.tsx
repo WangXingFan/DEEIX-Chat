@@ -47,7 +47,6 @@ import { cn } from "@/lib/utils";
 import type { ConversationDTO, ConversationOptions } from "@/shared/api/conversation-types";
 import { useAuthSession } from "@/shared/auth/auth-session-context";
 import { DeleteFilesOption } from "@/entities/file";
-import { MAX_SELECTED_SKILLS } from "@/entities/skill";
 import { resolveChatContentWidthClassName } from "@/entities/user-settings";
 
 const EMPTY_CONVERSATION_OPTIONS: ConversationOptions = {};
@@ -234,9 +233,7 @@ export function AppChatArea() {
     refreshModelOption,
   });
   const {
-    selectedSkills,
     selectedKnowledgeBaseIDs,
-    setSelectedSkills,
     setSelectedKnowledgeBaseIDs,
   } = useChatComposerSelection({
     conversationKey: selectionConversationKey,
@@ -246,13 +243,11 @@ export function AppChatArea() {
     storageScope: user?.publicID ?? "",
   });
   const newConversationSelectionKey = String(newConversationRevision);
-  const { onSelectedKnowledgeBasesChange, onSelectedSkillsChange } = useChatConversationDefaults({
+  const { onSelectedKnowledgeBasesChange } = useChatConversationDefaults({
     conversationID,
     contextKey: newConversationSelectionKey,
     defaultsPending: false,
-    defaultSkillIDs: [],
     defaultKnowledgeBaseIDs: [],
-    setSelectedSkills,
     setSelectedKnowledgeBaseIDs,
   });
   const htmlVisualPrompt = useChatVisualPrompt();
@@ -302,7 +297,6 @@ export function AppChatArea() {
     messages,
     activeConversation: currentConversation,
     selectedPlatformModelName,
-    selectedSkills,
     selectedKnowledgeBaseIDs,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
     options: modelOptionPolicyDisabled ? EMPTY_CONVERSATION_OPTIONS : options,
@@ -511,7 +505,6 @@ export function AppChatArea() {
     billingDisplayCurrency,
     billingDisplayUsdToCnyRate,
     selectedPlatformModelName,
-    selectedSkills,
     selectedKnowledgeBaseIDs,
     queuedMessages,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
@@ -524,8 +517,6 @@ export function AppChatArea() {
     onDraftChange: setDraft,
     onModelChange: setSelectedPlatformModelName,
     onModelCatalogRefresh: refreshModelCatalogForComposer,
-    maxSelectedSkills: MAX_SELECTED_SKILLS,
-    onSelectedSkillsChange,
     onSelectedKnowledgeBasesChange,
     onHTMLVisualPromptChange: htmlVisualPrompt.setEnabled,
     onOptionsChange: setModelOptions,

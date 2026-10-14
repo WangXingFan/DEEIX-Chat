@@ -412,7 +412,7 @@ func TestMaxPromptTokenEstimateKeepsFullContextForStatefulContinuation(t *testin
 func TestFitGenerateInputToModelBudgetTrimsWholeOldestTurnsAfterFinalAssembly(t *testing.T) {
 	input := llm.GenerateInput{
 		Messages: []llm.Message{
-			{Role: "system", Content: "stable files, skills, and policy"},
+			{Role: "system", Content: "stable files and policy"},
 			{Role: "user", Content: strings.Repeat("old question ", 5_000)},
 			{Role: "assistant", Content: strings.Repeat("old answer ", 5_000)},
 			{Role: "user", Content: "recent question"},

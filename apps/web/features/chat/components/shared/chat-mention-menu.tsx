@@ -3,7 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { Box, Check, ChevronRight, FileText, LoaderCircle, ScrollText } from "lucide-react";
+import { Check, ChevronRight, FileText, LoaderCircle } from "lucide-react";
 
 import type {
   ChatMentionMenuItem,
@@ -52,17 +52,9 @@ function ChatMentionMenuItemButton({
     >
       {item.kind === "model" ? (
         <ModelIcon iconUrl={iconURL} label={item.label} />
-      ) : item.kind === "file" ? (
-        <span className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground">
-          <FileText className="size-3.5" strokeWidth={1.7} />
-        </span>
-      ) : item.kind === "skill" ? (
-        <span className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground">
-          <Box className="size-3.5" strokeWidth={1.7} />
-        </span>
       ) : (
         <span className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground">
-          <ScrollText className="size-3.5" strokeWidth={1.7} />
+          <FileText className="size-3.5" strokeWidth={1.7} />
         </span>
       )}
       <span className="flex min-w-0 flex-1 items-baseline gap-2 overflow-hidden">

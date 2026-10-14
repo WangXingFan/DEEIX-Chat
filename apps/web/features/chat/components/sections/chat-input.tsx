@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, CornerDownRight, Eye, EyeOff, LoaderCircle, PencilLine, Trash2 } from "lucide-react";
+import { CornerDownRight, Eye, EyeOff, LoaderCircle, PencilLine, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import * as React from "react";
@@ -61,7 +61,6 @@ import type { SendShortcut } from "@/features/settings";
 import { cn } from "@/lib/utils";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
 import type { FileObjectDTO } from "@/shared/api/file-types";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { StreamdownRender } from "@/shared/components/markdown/streamdown-render";
 import { useDialogSnapshot } from "@/shared/hooks/use-dialog-snapshot";
 import { useScrollFadeFallbackRef } from "@/shared/hooks/use-scroll-fade-fallback-ref";
@@ -100,11 +99,9 @@ type ChatInputProps = {
   billingDisplayCurrency: BillingDisplayCurrency;
   billingDisplayUsdToCnyRate: number | null;
   selectedPlatformModelName: string;
-  selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   queuedMessages: QueuedComposerMessage[];
   htmlVisualPromptEnabled: boolean;
-  maxSelectedSkills: number;
   options: ConversationOptions;
   defaultOptions: ConversationOptions;
   modelOptionPolicy: ModelOptionPolicy | null;
@@ -115,7 +112,6 @@ type ChatInputProps = {
   onDraftChange: (value: string) => void;
   onModelChange: (platformModelName: string) => void;
   onModelCatalogRefresh?: () => void | Promise<void>;
-  onSelectedSkillsChange: (skills: SkillSummaryDTO[]) => void;
   onSelectedKnowledgeBasesChange: (ids: string[]) => void;
   onHTMLVisualPromptChange: (enabled: boolean) => void;
   onOptionsChange: React.Dispatch<React.SetStateAction<ConversationOptions>>;
@@ -178,11 +174,9 @@ function ChatInputComponent({
   billingDisplayCurrency,
   billingDisplayUsdToCnyRate,
   selectedPlatformModelName,
-  selectedSkills,
   selectedKnowledgeBaseIDs,
   queuedMessages,
   htmlVisualPromptEnabled,
-  maxSelectedSkills,
   options,
   defaultOptions,
   modelOptionPolicy,
@@ -193,7 +187,6 @@ function ChatInputComponent({
   onDraftChange,
   onModelChange,
   onModelCatalogRefresh,
-  onSelectedSkillsChange,
   onSelectedKnowledgeBasesChange,
   onHTMLVisualPromptChange,
   onOptionsChange,
@@ -362,7 +355,6 @@ function ChatInputComponent({
   const selectedModelName = selectedModel?.platformModelName || selectedPlatformModelName;
   const modelOptionPolicyDisabled = modelOptionPolicy?.mode?.trim() === "disabled";
   const hasComposerAttachments = attachments.length > 0 || uploadingAttachments.length > 0;
-  const showSelectedSkills = selectedSkills.length > 0;
   const {
     activeRowKey: mentionActiveRowKey,
     activeTab: mentionActiveTab,
@@ -387,9 +379,7 @@ function ChatInputComponent({
     defaultFileLabel: tComposer("mention.fileFallback"),
     disabled: loading || uploading || modelLoading || modelDisabled,
     draft,
-    maxSelectedSkills,
     modelOptions,
-    selectedSkills,
     selectedPlatformModelName,
     anchorRef: inputGroupRef,
     textareaRef,
@@ -397,14 +387,8 @@ function ChatInputComponent({
     onFileSelect: onAttachExistingFile,
     onModelCatalogRefresh,
     onModelChange,
-    onSelectedSkillsChange,
     placementAnchor: "container",
     placementPreference: isConversationMode ? "top" : "bottom",
-    onSkillLimitReached: () => {
-      toast.error(tComposer("skillLimitTitle"), {
-        description: tComposer("skillLimitDescription", { limit: maxSelectedSkills }),
-      });
-    },
   });
   const onSelectUploadTool = React.useCallback(() => {
     fileInputRef.current?.click();
@@ -596,29 +580,6 @@ function ChatInputComponent({
         style={inputGroupHeight === null ? undefined : { height: inputGroupHeight }}
       >
         <div ref={inputGroupMeasureRef} className="flex w-full flex-col">
-          {showSelectedSkills ? (
-            <div className="flex w-full max-h-14 flex-wrap items-center justify-start gap-x-3 gap-y-1 overflow-y-auto px-5 pt-3">
-              {selectedSkills.map((skill) => (
-                <button
-                  key={skill.id}
-                  type="button"
-                  className="group inline-flex h-6 max-w-48 items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/85 disabled:opacity-60"
-                  disabled={loading || uploading}
-                  onClick={() => onSelectedSkillsChange(selectedSkills.filter((item) => item.id !== skill.id))}
-                  aria-label={skill.title}
-                >
-                  <Box className="size-4 shrink-0" strokeWidth={1.7} />
-                  <span className="min-w-0 truncate">{skill.trigger || skill.title}</span>
-                  <XIcon
-                    size={12}
-                    strokeWidth={1.7}
-                    className="shrink-0 opacity-45 transition-opacity group-hover:opacity-80"
-                  />
-                </button>
-              ))}
-            </div>
-          ) : null}
-
           {hasComposerAttachments ? (
             <div className="w-full space-y-1 px-2.5 pt-1">
               {showRagWarn ? (
@@ -771,7 +732,7 @@ function ChatInputComponent({
             style={{ fontFamily: "var(--font-chat)", fontWeight: "var(--font-chat-weight)" }}
             className={cn(
               "rounded-3xl min-h-12 overflow-y-auto px-5 text-[15px] leading-6 placeholder:text-muted-foreground placeholder:font-[inherit] placeholder:leading-[inherit]",
-              showSelectedSkills || hasComposerAttachments ? "pt-2" : "pt-4",
+              hasComposerAttachments ? "pt-2" : "pt-4",
               inputHeightClassName,
               speechInput.active ? "placeholder:font-normal placeholder:text-muted-foreground" : "",
             )}

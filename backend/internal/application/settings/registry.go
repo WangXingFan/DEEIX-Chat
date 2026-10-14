@@ -143,8 +143,6 @@ var settingSpecs = []settingSpec{
 		Apply: applyField(func(c *config.Config) *string { return &c.ConversationLabelsPrompt }, rawText)},
 	{Namespace: "chat", Key: "default_system_prompt", ValueType: "string", Default: "", Description: "全局默认系统提示词，仅对聊天任务生效；空串表示不注入",
 		Validate: maxLength(20000), Apply: applyField(func(c *config.Config) *string { return &c.DefaultSystemPrompt }, rawText)},
-	{Namespace: "chat", Key: "skills_prompt", ValueType: "string", Default: "", Description: "Skills 调用提示词；空串使用内置默认值",
-		Validate: maxLength(20000), Apply: applyField(func(c *config.Config) *string { return &c.SkillsPrompt }, rawText)},
 	{Namespace: "chat", Key: "model_option_policy_mode", ValueType: "string", Default: "allowlist", Description: "模型 options 透传策略：allowlist=仅白名单，denylist=黑名单拦截，disabled=禁止透传",
 		Validate: oneOf("allowlist", "denylist", "disabled"), Apply: applyField(func(c *config.Config) *string { return &c.ModelOptionPolicyMode }, trimmedText)},
 	{Namespace: "chat", Key: "model_option_allowed_paths", ValueType: "json", Default: config.DefaultModelOptionAllowedPathsJSON(), Description: "模型 options 白名单路径 JSON，default 对所有协议生效",

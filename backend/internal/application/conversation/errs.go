@@ -53,12 +53,6 @@ var (
 	ErrKnowledgeBaseScopeEmpty = apperr.New(MessageErrorCodeKnowledgeBaseScopeEmpty, "no knowledge base scope is configured")
 	// ErrTooManyMessageFiles 单条消息文件数超限。
 	ErrTooManyMessageFiles = apperr.NewMasked("message.too_many_files", "too many files in one message", "too many message files")
-	// ErrTooManySelectedSkills 单条消息选择的 Skill 数超限。
-	ErrTooManySelectedSkills = apperr.New("message.too_many_selected_skills", "too many selected skills")
-	// ErrSkillNotFound 技能不存在或当前用户不可用。
-	ErrSkillNotFound = apperr.New("skill.not_found", "skill not found")
-	// ErrInvalidSkillUse 技能使用入参不合法。
-	ErrInvalidSkillUse = apperr.New("request.invalid_skill_use", "invalid skill use")
 	// ErrInvalidMessageBranch 消息分支参数无效。
 	ErrInvalidMessageBranch = apperr.New("message.invalid_branch", "invalid message branch")
 	// ErrInvalidMessageContent 消息内容不合法。

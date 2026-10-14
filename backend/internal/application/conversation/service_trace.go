@@ -1213,18 +1213,6 @@ func mergeTracePayload(dst *tracePayload, src *tracePayload) {
 	if src.Error != "" {
 		dst.Error = src.Error
 	}
-	if src.SkillCount != 0 {
-		dst.SkillCount = src.SkillCount
-	}
-	if src.SkillIDs != nil {
-		dst.SkillIDs = append([]uint(nil), src.SkillIDs...)
-	}
-	if src.SkillTitles != nil {
-		dst.SkillTitles = append([]string(nil), src.SkillTitles...)
-	}
-	if src.SkillTriggers != nil {
-		dst.SkillTriggers = append([]string(nil), src.SkillTriggers...)
-	}
 	if src.Reason != "" {
 		dst.Reason = src.Reason
 	}

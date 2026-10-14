@@ -11,14 +11,12 @@ import type {
   ConversationOptions,
   MessageDTO,
 } from "@/shared/api/conversation-types";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 
 export function useChatSubmitStream({
   conversationID,
   conversationScopeKey,
   activeConversation,
   selectedPlatformModelName,
-  selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
   options,
@@ -61,7 +59,6 @@ export function useChatSubmitStream({
   conversationScopeKey: string;
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
-  selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
   options: ConversationOptions;
@@ -109,7 +106,6 @@ export function useChatSubmitStream({
     conversationScopeKey,
     activeConversation,
     selectedPlatformModelName,
-    selectedSkills,
     selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
     options,

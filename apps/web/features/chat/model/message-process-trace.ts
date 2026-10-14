@@ -12,7 +12,6 @@ export const TRACE_KIND_CONTEXT_PLANNING = "context_planning";
 export const TRACE_KIND_RAG = "content_retrieval";
 export const TRACE_KIND_FILE_CONTEXT = "file_context";
 export const TRACE_KIND_CONTEXT_COMPACTION = "context_compaction";
-export const TRACE_KIND_SKILL_CONTEXT = "skill_context";
 
 // Legacy persisted traces only. New traces are rendered from payload_json.trace_stages.
 const TRACE_LABEL_UPSTREAM_RESULT = "\u8bf7\u6c42\u7ed3\u679c";
@@ -562,8 +561,6 @@ export function displayTraceStageLabel(label: string, labels: ProcessTraceLabels
     case TRACE_KIND_CONTEXT_COMPACTION:
     case TRACE_LABEL_CONTEXT_COMPACTION:
       return labels.stages.contextCompaction;
-    case TRACE_KIND_SKILL_CONTEXT:
-      return labels.stages.skillContext;
     case TRACE_LABEL_UPSTREAM_RESULT:
       return labels.stages.requestResult;
     default:

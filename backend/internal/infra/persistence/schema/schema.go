@@ -51,7 +51,6 @@ func Models() []any {
 		&models.ModelPricing{},
 		&models.UsageLedger{},
 		&models.AuditLog{},
-		&models.Skill{},
 		&models.KnowledgeBase{},
 		&models.KnowledgeBaseFile{},
 		&models.SystemSetting{},
@@ -199,9 +198,6 @@ func backfillUsageLedgerBillingAt(db *gorm.DB) error {
 
 // CleanupRemovedColumns 删除已从 Gorm 模型中移除的列。
 func CleanupRemovedColumns(db *gorm.DB) error {
-	if err := dropColumns(db, &models.Skill{}, []string{"content", "sections_json"}); err != nil {
-		return err
-	}
 	// discount_percent 从未进入任何计价路径，随字段移除一并清理。
 	if err := dropColumns(db, &models.BillingPlan{}, []string{"discount_percent"}); err != nil {
 		return err

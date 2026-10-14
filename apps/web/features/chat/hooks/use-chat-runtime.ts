@@ -9,7 +9,6 @@ import type {
   ConversationOptions,
   MessageDTO,
 } from "@/shared/api/conversation-types";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 
 function selectPendingExchangesByScope(
   exchanges: PendingExchangeMap,
@@ -90,7 +89,6 @@ export function useChatRuntime({
   messages,
   activeConversation,
   selectedPlatformModelName,
-  selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
   options,
@@ -124,7 +122,6 @@ export function useChatRuntime({
   messages: MessageDTO[];
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
-  selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
   options: ConversationOptions;
@@ -200,7 +197,6 @@ export function useChatRuntime({
     conversationScopeKey,
     activeConversation,
     selectedPlatformModelName,
-    selectedSkills,
     selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
     options,

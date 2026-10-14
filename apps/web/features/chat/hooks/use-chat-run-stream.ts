@@ -16,7 +16,6 @@ import type {
   SendMessageResult,
   StreamMessageEvent,
 } from "@/shared/api/conversation-types";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 
 // Streaming execution of a single generation: register stream event callbacks, dispatch the request by task type, and settle the exchange on completion.
 export function useChatRunStream({
@@ -56,7 +55,6 @@ export function useChatRunStream({
       options,
       effectiveAttachments,
       platformModelName,
-      selectedSkills,
       selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
       parentMessagePublicID,
@@ -73,7 +71,6 @@ export function useChatRunStream({
       options: ConversationOptions;
       effectiveAttachments: PendingAttachment[];
       platformModelName: string;
-      selectedSkills: SkillSummaryDTO[];
       selectedKnowledgeBaseIDs: string[];
       htmlVisualPromptEnabled: boolean;
       parentMessagePublicID: string | null;
@@ -202,7 +199,6 @@ export function useChatRunStream({
         branchReason,
         contentType: effectiveAttachments.length > 0 ? "mixed" : "text",
         content,
-        skillIDs: selectedSkills.length > 0 ? selectedSkills.map((skill) => skill.id) : undefined,
         knowledgeBaseIDs: selectedKnowledgeBaseIDs,
         htmlVisualPrompt: htmlVisualPromptEnabled || undefined,
       };

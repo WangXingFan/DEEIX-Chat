@@ -35,10 +35,6 @@ type tracePayload struct {
 	Error          string                     `json:"error,omitempty"`
 	Reason         string                     `json:"reason,omitempty"`
 	Status         string                     `json:"status,omitempty"`
-	SkillCount     int                        `json:"skill_count,omitempty"`
-	SkillIDs       []uint                     `json:"skill_ids,omitempty"`
-	SkillTitles    []string                   `json:"skill_titles,omitempty"`
-	SkillTriggers  []string                   `json:"skill_triggers,omitempty"`
 	UpstreamDebug  json.RawMessage            `json:"upstream_debug,omitempty"`
 }
 

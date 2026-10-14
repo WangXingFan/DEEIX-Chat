@@ -273,27 +273,6 @@ func TestValidateEPayGatewaySetting(t *testing.T) {
 	}
 }
 
-func TestValidateCustomPromptSettings(t *testing.T) {
-	for _, item := range []PatchItem{
-		{Namespace: "chat", Key: "skills_prompt", Value: "Use selected skills only when relevant."},
-	} {
-		if err := validatePatchItem(item); err != nil {
-			t.Fatalf("expected %s:%s to pass, got %v", item.Namespace, item.Key, err)
-		}
-	}
-}
-
-func TestRuntimeSettingsAppliesCustomPromptSettings(t *testing.T) {
-	runtimeSettings := NewRuntimeSettings(nil, nil, "test-data-encryption-key")
-	cfg := config.Config{}
-
-	runtimeSettings.applyItem(&cfg, domainsettings.SystemSetting{Namespace: "chat", Key: "skills_prompt", Value: "Use selected skills only when relevant."})
-
-	if cfg.SkillsPrompt != "Use selected skills only when relevant." {
-		t.Fatalf("expected skills prompt to be applied, got %q", cfg.SkillsPrompt)
-	}
-}
-
 func TestRuntimeSettingsAppliesConversationDefaultModel(t *testing.T) {
 	runtimeSettings := NewRuntimeSettings(nil, nil, "test-data-encryption-key")
 	cfg := config.Config{}

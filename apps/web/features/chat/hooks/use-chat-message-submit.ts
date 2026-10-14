@@ -64,7 +64,6 @@ import type {
   StreamMessageEvent,
 } from "@/shared/api/conversation-types";
 import { ApiError } from "@/shared/api/http-client";
-import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { notifyResponseCompletion } from "@/shared/lib/browser-notifications";
 
@@ -73,7 +72,6 @@ export function useChatMessageSubmit({
   conversationScopeKey,
   activeConversation,
   selectedPlatformModelName,
-  selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
   options,
@@ -123,7 +121,6 @@ export function useChatMessageSubmit({
   conversationScopeKey: string;
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
-  selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
   options: ConversationOptions;
@@ -299,7 +296,6 @@ export function useChatMessageSubmit({
         maxFilesPerMessage,
         selectedPlatformModelName,
         options,
-        selectedSkills,
         selectedKnowledgeBaseIDs,
         htmlVisualPromptEnabled,
         visibleConversationScopeKey: conversationScopeKeyRef.current,
@@ -527,7 +523,6 @@ export function useChatMessageSubmit({
           options: plan.sanitizedOptions,
           effectiveAttachments,
           platformModelName,
-          selectedSkills: plan.selectedSkills,
           selectedKnowledgeBaseIDs: plan.selectedKnowledgeBaseIDs,
           htmlVisualPromptEnabled: plan.htmlVisualPromptEnabled,
           parentMessagePublicID: resolvedParentPublicID,
@@ -768,7 +763,6 @@ export function useChatMessageSubmit({
       runStream,
       selectedKnowledgeBaseIDs,
       selectedPlatformModelName,
-      selectedSkills,
       sendQueuedAfterCurrentRef,
       setAttachments,
       setBranchSelections,
@@ -856,7 +850,6 @@ export function useChatMessageSubmit({
           attachments: currentAttachments,
           platformModelName: selectedPlatformModelName,
           options: sanitizeConversationOptions(options),
-          selectedSkills: selectedSkills.slice(),
           selectedKnowledgeBaseIDs: selectedKnowledgeBaseIDs.slice(),
           htmlVisualPromptEnabled,
         },
@@ -877,7 +870,6 @@ export function useChatMessageSubmit({
     htmlVisualPromptEnabled,
     options,
     selectedPlatformModelName,
-    selectedSkills,
     selectedKnowledgeBaseIDs,
     setAttachments,
     setDraft,

@@ -112,7 +112,6 @@ var codeMessages = map[string]string{
 	"settings.embedding_invalid":                    "invalid embedding settings",
 	"settings.extract_invalid":                      "invalid file extraction settings",
 	"settings.model_option_policy_invalid":          "invalid model option policy settings",
-	"skill.too_many_ids":                            "too many skill ids",
 	"usage_statistics.invalid_billing_scope":        "invalid billing scope",
 	"usage_statistics.invalid_date_range":           "invalid usage statistics date range",
 	"usage_statistics.invalid_rank_by":              "invalid usage ranking field",

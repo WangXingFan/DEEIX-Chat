@@ -8,7 +8,7 @@ import (
 )
 
 // allowedTableDomains 是表名允许使用的业务域前缀白名单，取自当前全部表名。
-// 表名须以 "<域>_" 开头，或恰为 "<域>s"（如 skills、knowledge_bases、permission_groups）。
+// 表名须以 "<域>_" 开头，或恰为 "<域>s"（如 knowledge_bases、permission_groups）。
 // 新增业务域时须在此显式登记，避免表名前缀随意扩散。
 var allowedTableDomains = []string{
 	"audit",
@@ -21,7 +21,6 @@ var allowedTableDomains = []string{
 	"llm",
 	"permission_group",
 	"prompt",
-	"skill",
 	"system",
 	"ui",
 	"user",

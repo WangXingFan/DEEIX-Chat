@@ -60,7 +60,6 @@ type SendMessageRequest struct {
 	Options                 map[string]any `json:"options,omitempty"`
 	ClientRunID             string         `json:"clientRunID,omitempty" binding:"omitempty,max=64"`
 	FileIDs                 []string       `json:"fileIDs,omitempty" binding:"max=20"`
-	SkillIDs                []uint         `json:"skillIDs,omitempty" binding:"max=128"`
 	KnowledgeBaseIDs        []string       `json:"knowledgeBaseIDs,omitempty" binding:"max=8,dive,required,max=32"`
 	HTMLVisualPromptEnabled bool           `json:"htmlVisualPrompt,omitempty"`
 	ParentMessagePublicID   string         `json:"parentMessagePublicID,omitempty" binding:"omitempty,max=32"`

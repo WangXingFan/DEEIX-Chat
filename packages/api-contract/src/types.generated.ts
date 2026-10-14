@@ -2435,19 +2435,6 @@ export interface PatchRedemptionCodeRequestDoc {
   status?: "active" | "inactive";
 }
 
-export interface PatchSkillRequest {
-  /** @maxLength 256 */
-  description?: string;
-  enabled?: boolean;
-  /** @maxLength 10000 */
-  markdown?: string;
-  sortOrder?: number;
-  /** @maxLength 64 */
-  title?: string;
-  /** @maxLength 64 */
-  trigger?: string;
-}
-
 export interface PatchUserRequest {
   /** @maxLength 2048 */
   avatarURL?: string;
@@ -2964,8 +2951,6 @@ export interface SendMessageRequest {
   options?: Record<string, any>;
   /** @maxLength 32 */
   parentMessagePublicID?: string;
-  /** @maxItems 128 */
-  skillIDs?: number[];
   /** @maxLength 32 */
   sourceMessagePublicID?: string;
 }
@@ -3037,71 +3022,6 @@ export interface SetModelsDisplayGroupRequest {
 export interface SettingsPatchSettingsRequest {
   /** @minItems 1 */
   items: PatchItem[];
-}
-
-export interface SkillDataResponse {
-  skill: SkillResponse;
-}
-
-export interface SkillDeleteDataResponse {
-  deleted: boolean;
-}
-
-export interface SkillDeleteResponseDoc {
-  data: SkillDeleteDataResponse;
-  errorMsg: string;
-}
-
-export interface SkillErrorDoc {
-  errorMsg: string;
-}
-
-export interface SkillPageResponseDoc {
-  data: {
-    results: SkillResponse[];
-    total: number;
-  };
-  errorMsg: string;
-}
-
-export interface SkillResponse {
-  createdAt: string;
-  createdByUserID: number;
-  description: string;
-  enabled: boolean;
-  id: number;
-  markdown: string;
-  scope: string;
-  sortOrder: number;
-  title: string;
-  trigger: string;
-  updatedAt: string;
-  updatedByUserID: number;
-}
-
-export interface SkillResponseDoc {
-  data: SkillDataResponse;
-  errorMsg: string;
-}
-
-export interface SkillSummaryPageResponseDoc {
-  data: {
-    results: SkillSummaryResponse[];
-    total: number;
-  };
-  errorMsg: string;
-}
-
-export interface SkillSummaryResponse {
-  createdAt: string;
-  description: string;
-  enabled: boolean;
-  id: number;
-  scope: string;
-  sortOrder: number;
-  title: string;
-  trigger: string;
-  updatedAt: string;
 }
 
 export interface StorageQuotaResponse {
@@ -4063,19 +3983,6 @@ export interface WriteMyKnowledgeBaseRequest {
   description?: string;
   /** @maxLength 80 */
   name: string;
-}
-
-export interface WriteSkillRequest {
-  /** @maxLength 256 */
-  description?: string;
-  enabled?: boolean;
-  /** @maxLength 10000 */
-  markdown: string;
-  sortOrder?: number;
-  /** @maxLength 64 */
-  title: string;
-  /** @maxLength 64 */
-  trigger: string;
 }
 
 export namespace Admin {
@@ -6510,85 +6417,6 @@ export namespace Admin {
   }
 
   /**
-   * No description
-   * @tags admin-skills
-   * @name SkillsList
-   * @summary 管理员查询内置技能
-   * @request GET:/admin/skills
-   * @secure
-   */
-  export namespace SkillsList {
-    export type RequestParams = {};
-    export type RequestQuery = {
-      /** 是否启用 */
-      enabled?: boolean;
-      /** 页码（从 1 开始，默认 1） */
-      page?: number;
-      /** 每页数量（1-1000，默认 20） */
-      page_size?: number;
-      /** 搜索关键词 */
-      q?: string;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillPageResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags admin-skills
-   * @name SkillsCreate
-   * @summary 管理员创建内置技能
-   * @request POST:/admin/skills
-   * @secure
-   */
-  export namespace SkillsCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = WriteSkillRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags admin-skills
-   * @name SkillsDelete
-   * @summary 管理员删除内置技能
-   * @request DELETE:/admin/skills/{id}
-   * @secure
-   */
-  export namespace SkillsDelete {
-    export type RequestParams = {
-      /** 技能ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillDeleteResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags admin-skills
-   * @name SkillsPartialUpdate
-   * @summary 管理员更新内置技能
-   * @request PATCH:/admin/skills/{id}
-   * @secure
-   */
-  export namespace SkillsPartialUpdate {
-    export type RequestParams = {
-      /** 技能ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = PatchSkillRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillResponseDoc;
-  }
-
-  /**
    * @description 管理员按日期、统计对象、平台模型和计费范围查看全局费用、Token、调用次数及排名；用户与权限组筛选互斥
    * @tags admin
    * @name UsageStatisticsList
@@ -8869,131 +8697,6 @@ export namespace Settings {
     export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = Envelope;
-  }
-}
-
-export namespace Skills {
-  /**
-   * @description 返回管理员内置和当前用户自定义的已启用技能摘要，用于会话按需选择 Skill 上下文
-   * @tags skills
-   * @name SkillsList
-   * @summary 查询当前用户可用技能
-   * @request GET:/skills
-   * @secure
-   */
-  export namespace SkillsList {
-    export type RequestParams = {};
-    export type RequestQuery = {
-      /** 按技能 ID 筛选，可重复传递 */
-      id?: number[];
-      /** 页码（从 1 开始，默认 1） */
-      page?: number;
-      /** 每页数量（1-1000，默认 20） */
-      page_size?: number;
-      /** 搜索关键词 */
-      q?: string;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillSummaryPageResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags skills
-   * @name MineList
-   * @summary 查询我的自定义技能
-   * @request GET:/skills/mine
-   * @secure
-   */
-  export namespace MineList {
-    export type RequestParams = {};
-    export type RequestQuery = {
-      /** 是否启用 */
-      enabled?: boolean;
-      /** 页码（从 1 开始，默认 1） */
-      page?: number;
-      /** 每页数量（1-1000，默认 20） */
-      page_size?: number;
-      /** 搜索关键词 */
-      q?: string;
-    };
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillPageResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags skills
-   * @name MineCreate
-   * @summary 创建我的自定义技能
-   * @request POST:/skills/mine
-   * @secure
-   */
-  export namespace MineCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = WriteSkillRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags skills
-   * @name MineDelete
-   * @summary 删除我的自定义技能
-   * @request DELETE:/skills/mine/{id}
-   * @secure
-   */
-  export namespace MineDelete {
-    export type RequestParams = {
-      /** 技能ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillDeleteResponseDoc;
-  }
-
-  /**
-   * No description
-   * @tags skills
-   * @name MinePartialUpdate
-   * @summary 更新我的自定义技能
-   * @request PATCH:/skills/mine/{id}
-   * @secure
-   */
-  export namespace MinePartialUpdate {
-    export type RequestParams = {
-      /** 技能ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = PatchSkillRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillResponseDoc;
-  }
-
-  /**
-   * @description 按需返回单个可用 Skill 的完整 SKILL.md 内容，用于用户查看详情
-   * @tags skills
-   * @name SkillsDetail
-   * @summary 查询当前用户可用技能详情
-   * @request GET:/skills/{id}
-   * @secure
-   */
-  export namespace SkillsDetail {
-    export type RequestParams = {
-      /** 技能ID */
-      id: number;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = SkillResponseDoc;
   }
 }
 
