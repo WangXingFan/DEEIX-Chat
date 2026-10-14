@@ -3,28 +3,15 @@
 import { useTranslations } from "next-intl";
 import * as React from "react";
 import { toast } from "sonner";
-import type { ChatSubmitTask } from "@/features/chat/model/chat-task";
-import { buildMediaImagePreviewMarkdown } from "@/features/chat/model/media-image-preview";
 import { mergeProcessTraceSnapshot, toPendingProcessTrace } from "@/features/chat/model/message-submit";
 import { settleCompletedExchange } from "@/features/chat/model/message-submit-exchange";
-import {
-  resolveMediaStatusLabel,
-  resolveVideoExtensionOptions,
-} from "@/features/chat/model/message-submit-media";
 import type { PendingAttachment, PendingExchange } from "@/features/chat/types/chat-runtime";
 import {
   type ConversationStreamOptions,
   streamMessage as streamConversationMessage,
-  streamImageEdit,
-  streamImageGeneration,
-  streamVideoExtension,
-  streamVideoGeneration,
 } from "@/shared/api/conversation";
 import type {
   ConversationOptions,
-  MediaImageRequest,
-  MediaVideoExtensionRequest,
-  MediaVideoRequest,
   SendMessageRequest,
   SendMessageResult,
   StreamMessageEvent,
@@ -63,7 +50,6 @@ export function useChatRunStream({
     async ({
       token,
       conversationID,
-      submitTask,
       exchangeKey,
       clientRunID,
       content,
@@ -81,7 +67,6 @@ export function useChatRunStream({
     }: {
       token: string;
       conversationID: string;
-      submitTask: ChatSubmitTask;
       exchangeKey: string;
       clientRunID: string;
       content: string;
@@ -118,28 +103,6 @@ export function useChatRunStream({
             ...current,
             assistantFileProc: true,
             assistantActivityLabel: message.trim() || t("retrievingContent"),
-          }));
-        },
-        onMediaStatus: (event) => {
-          const activityLabel = resolveMediaStatusLabel(event.status, event.message, event.content_type, t);
-          updatePendingExchange(exchangeKey, (current) => ({
-            ...current,
-            assistantFileProc: true,
-            assistantActivityLabel: activityLabel,
-          }));
-        },
-        onMediaImageDelta: (event) => {
-          const previewMarkdown = buildMediaImagePreviewMarkdown(event, t("imagePreviewAlt"));
-          if (!previewMarkdown) {
-            return;
-          }
-          updatePendingExchange(exchangeKey, (current) => ({
-            ...current,
-            assistantPending: false,
-            assistantStreaming: true,
-            assistantFileProc: false,
-            assistantActivityLabel: undefined,
-            assistantText: previewMarkdown,
           }));
         },
         onCompactDone: (event) => {
@@ -229,59 +192,21 @@ export function useChatRunStream({
         },
       };
 
-      const effectiveOptions = submitTask === "video_extension" ? resolveVideoExtensionOptions(options) : options;
-      const commonStreamPayload = {
+      const chatPayload: SendMessageRequest = {
         model: platformModelName,
-        options: Object.keys(effectiveOptions).length > 0 ? effectiveOptions : undefined,
+        options: Object.keys(options).length > 0 ? options : undefined,
         clientRunID,
         fileIDs: effectiveAttachments.length > 0 ? effectiveAttachments.map((item) => item.fileID) : undefined,
         parentMessagePublicID: parentMessagePublicID || undefined,
         sourceMessagePublicID: sourceMessagePublicID || undefined,
         branchReason,
+        contentType: effectiveAttachments.length > 0 ? "mixed" : "text",
+        content,
+        skillIDs: selectedSkills.length > 0 ? selectedSkills.map((skill) => skill.id) : undefined,
+        knowledgeBaseIDs: selectedKnowledgeBaseIDs,
+        htmlVisualPrompt: htmlVisualPromptEnabled || undefined,
       };
-      let completed: SendMessageResult;
-      if (submitTask === "chat") {
-        const chatPayload: SendMessageRequest = {
-          ...commonStreamPayload,
-          contentType: effectiveAttachments.length > 0 ? "mixed" : "text",
-          content,
-          skillIDs: selectedSkills.length > 0 ? selectedSkills.map((skill) => skill.id) : undefined,
-          knowledgeBaseIDs: selectedKnowledgeBaseIDs,
-          htmlVisualPrompt: htmlVisualPromptEnabled || undefined,
-        };
-        completed = await streamConversationMessage(token, conversationID, chatPayload, streamOptions);
-      } else if (submitTask === "video_generation") {
-        const mediaPayload: MediaVideoRequest = {
-          ...commonStreamPayload,
-          prompt: content,
-        };
-        completed = await streamVideoGeneration(token, conversationID, mediaPayload, streamOptions);
-      } else if (submitTask === "video_extension") {
-        const sourceVideoFileID = effectiveAttachments[0]?.fileID;
-        if (!sourceVideoFileID) {
-          throw new Error("video extension source is missing");
-        }
-        const mediaPayload: MediaVideoExtensionRequest = {
-          model: commonStreamPayload.model,
-          options: commonStreamPayload.options,
-          clientRunID: commonStreamPayload.clientRunID,
-          parentMessagePublicID: commonStreamPayload.parentMessagePublicID,
-          sourceMessagePublicID: commonStreamPayload.sourceMessagePublicID,
-          branchReason: commonStreamPayload.branchReason,
-          prompt: content,
-          sourceVideoFileID,
-        };
-        completed = await streamVideoExtension(token, conversationID, mediaPayload, streamOptions);
-      } else {
-        const mediaPayload: MediaImageRequest = {
-          ...commonStreamPayload,
-          prompt: content,
-        };
-        completed =
-          submitTask === "image_generation"
-            ? await streamImageGeneration(token, conversationID, mediaPayload, streamOptions)
-            : await streamImageEdit(token, conversationID, mediaPayload, streamOptions);
-      }
+      const completed = await streamConversationMessage(token, conversationID, chatPayload, streamOptions);
 
       flushStreamTextNow(exchangeKey);
       flushUpstreamThinkNow(exchangeKey);

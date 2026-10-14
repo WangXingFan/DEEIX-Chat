@@ -2,9 +2,9 @@ import type { useTranslations } from "next-intl";
 import { parseAttachments } from "@/features/chat/model/chat-thread";
 import {
   resolveAssistantInputSideUsageValue,
+  streamEventErrorToApiError,
   toPendingProcessTrace,
 } from "@/features/chat/model/message-submit";
-import { streamEventErrorToApiError } from "@/features/chat/model/message-submit-media";
 import type { ChatSubmissionPlan } from "@/features/chat/model/message-submit-plan";
 import {
   mergeLiveUpstreamThinkTrace,
@@ -46,7 +46,6 @@ export function createInitialPendingExchange(
     assistantPending: true,
     assistantStreaming: true,
     assistantContentType: plan.assistantContentType,
-    assistantImageAspectRatio: plan.assistantImageAspectRatio,
     assistantInlineAlert: undefined,
     assistantCreatedAt: createdAt,
     assistantProcessTrace: undefined,

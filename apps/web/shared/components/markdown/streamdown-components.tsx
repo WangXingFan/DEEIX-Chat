@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerUpLeft, Download, Eye, Maximize2, WandSparkles } from "lucide-react";
+import { CornerUpLeft, Download, Eye, Maximize2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import * as React from "react";
 import { toast } from "sonner";
@@ -60,11 +60,6 @@ type MarkdownLinkProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
 
 type MarkdownImageProps = React.ImgHTMLAttributes<HTMLImageElement>;
 
-export type MarkdownImageActions = {
-  canEditImage?: (src: string) => boolean;
-  onEditImage?: (src: string) => void;
-};
-
 export type MarkdownArtifactActions = {
   onOpenCodeArtifact: (artifact: {
     code: string;
@@ -99,7 +94,6 @@ type MarkdownHeadingProps = React.HTMLAttributes<HTMLHeadingElement> & {
 
 const StreamdownLinkContext = React.createContext(false);
 const FootnoteBackrefGroupContext = React.createContext(false);
-export const MarkdownImageActionsContext = React.createContext<MarkdownImageActions | null>(null);
 export const MarkdownArtifactActionsContext = React.createContext<MarkdownArtifactActions | null>(null);
 
 function resolveLinkKind(href: string): ResolvedLinkKind {
@@ -662,7 +656,6 @@ export function MarkdownImage({ alt, className, onError, onLoad, src: srcProp, .
   const src = typeof srcProp === "string" ? srcProp : undefined;
   const t = useTranslations("chat.markdown");
   const insideLink = React.useContext(StreamdownLinkContext);
-  const imageActions = React.useContext(MarkdownImageActionsContext);
   const [loaded, setLoaded] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -750,7 +743,6 @@ export function MarkdownImage({ alt, className, onError, onLoad, src: srcProp, .
   }, [alt, protectedSrc, resolvedSrc, src, t]);
 
   const canUseImageActions = !insideLink && !failed && Boolean(displaySrc);
-  const canEditImage = Boolean(src && imageActions?.onEditImage && (imageActions.canEditImage?.(src) ?? true));
 
   if (!src) {
     return null;
@@ -788,11 +780,6 @@ export function MarkdownImage({ alt, className, onError, onLoad, src: srcProp, .
           <MediaActionButton label={t("previewImage")} onClick={() => setPreviewOpen(true)}>
             <Maximize2 className="size-3.5" />
           </MediaActionButton>
-          {canEditImage ? (
-            <MediaActionButton label={t("editImage")} onClick={() => imageActions?.onEditImage?.(src)}>
-              <WandSparkles className="size-3.5" />
-            </MediaActionButton>
-          ) : null}
           <MediaActionButton label={t("downloadImage")} onClick={() => void handleDownload()}>
             <Download className="size-3.5" />
           </MediaActionButton>

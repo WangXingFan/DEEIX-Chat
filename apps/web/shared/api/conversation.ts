@@ -22,9 +22,6 @@ import type {
   CreateConversationProjectRequest,
   CreateConversationRequest,
   DeleteConversationData,
-  MediaImageRequest,
-  MediaVideoExtensionRequest,
-  MediaVideoRequest,
   MessageDeleteDTO,
   MessageDTO,
   MessageFeedbackResult,
@@ -172,8 +169,6 @@ const STREAM_MESSAGE_EVENT_TYPES = [
   "upstream_think_delta",
   "delta",
   "usage",
-  "media_status",
-  "media_image_delta",
   "completed",
   "moderation_checking",
   "moderation_blocked",
@@ -353,16 +348,6 @@ function handleStreamEvent(event: ParsedStreamEvent, options: ConversationStream
 
   if (event.type === "usage") {
     options.onUsage?.(event);
-    return null;
-  }
-
-  if (event.type === "media_status") {
-    options.onMediaStatus?.(event);
-    return null;
-  }
-
-  if (event.type === "media_image_delta") {
-    options.onMediaImageDelta?.(event);
     return null;
   }
 
@@ -1125,8 +1110,6 @@ export type ConversationStreamOptions = {
   onTextSnapshot?: (content: string) => void;
   onFileProc?: (message: string) => void;
   onRagSearch?: (message: string) => void;
-  onMediaStatus?: (event: Extract<StreamMessageEvent, { type: "media_status" }>) => void;
-  onMediaImageDelta?: (event: Extract<StreamMessageEvent, { type: "media_image_delta" }>) => void;
   onCompactDone?: (event: CompactDoneEvent) => void;
   onProcessUpdate?: (event: Extract<StreamMessageEvent, { type: "process_update" }>) => void;
   onUpstreamThinkDelta?: (event: Extract<StreamMessageEvent, { type: "upstream_think_delta" }>) => void;
@@ -1312,65 +1295,5 @@ export async function streamTemporaryChatMessage(
     payload,
     options,
     "no-store",
-  );
-}
-
-export async function streamImageGeneration(
-  accessToken: string,
-  conversationPublicID: string,
-  payload: MediaImageRequest,
-  options: ConversationStreamOptions = {},
-): Promise<SendMessageResult> {
-  return postConversationStream(
-    accessToken,
-    conversationPublicID,
-    "/media/images/generations/stream",
-    payload,
-    options,
-  );
-}
-
-export async function streamImageEdit(
-  accessToken: string,
-  conversationPublicID: string,
-  payload: MediaImageRequest,
-  options: ConversationStreamOptions = {},
-): Promise<SendMessageResult> {
-  return postConversationStream(
-    accessToken,
-    conversationPublicID,
-    "/media/images/edits/stream",
-    payload,
-    options,
-  );
-}
-
-export async function streamVideoGeneration(
-  accessToken: string,
-  conversationPublicID: string,
-  payload: MediaVideoRequest,
-  options: ConversationStreamOptions = {},
-): Promise<SendMessageResult> {
-  return postConversationStream(
-    accessToken,
-    conversationPublicID,
-    "/media/videos/generations/stream",
-    payload,
-    options,
-  );
-}
-
-export async function streamVideoExtension(
-  accessToken: string,
-  conversationPublicID: string,
-  payload: MediaVideoExtensionRequest,
-  options: ConversationStreamOptions = {},
-): Promise<SendMessageResult> {
-  return postConversationStream(
-    accessToken,
-    conversationPublicID,
-    "/media/videos/extensions/stream",
-    payload,
-    options,
   );
 }

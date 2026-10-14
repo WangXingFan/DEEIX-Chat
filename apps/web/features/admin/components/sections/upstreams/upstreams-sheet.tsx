@@ -77,14 +77,7 @@ import { JsonCodeEditor } from "@/shared/components/json-code-editor";
 import { useDialogSnapshot } from "@/shared/hooks/use-dialog-snapshot";
 import { isRecord } from "@/shared/lib/type-guards";
 
-const PROTOCOL_DEFAULT_KINDS = [
-  "chat",
-  "audio",
-  "image_gen",
-  "image_edit",
-  "video_gen",
-  "video_extension",
-] as const;
+const PROTOCOL_DEFAULT_KINDS = ["chat", "audio"] as const;
 
 const NO_PROTOCOL_DEFAULT = "__system_default__";
 const CONVERSATION_ID_HEADER = [
@@ -105,8 +98,7 @@ const CODEX_COMPATIBLE_AFFINITY_HEADERS = [
 
 const PROTOCOL_OPTIONS_BY_KIND: Record<(typeof PROTOCOL_DEFAULT_KINDS)[number], string[]> = {
   // Display order (same as PROTOCOL_OPTIONS in features/admin/utils/llm-display.ts): vendors
-  // OpenAI → Anthropic → Google → xAI → OpenRouter; within a vendor, Chat Completions →
-  // Responses → image generation → image editing → video.
+  // OpenAI → Anthropic → Google → xAI → OpenRouter; within a vendor, Chat Completions → Responses.
   chat: [
     "openai_chat_completions",
     "openai_responses",
@@ -126,26 +118,6 @@ const PROTOCOL_OPTIONS_BY_KIND: Record<(typeof PROTOCOL_DEFAULT_KINDS)[number], 
     "openrouter_chat_completions",
     "openrouter_responses",
   ],
-  image_gen: [
-    "openai_image_generations",
-    "google_image_generation",
-    "gemini_interactions",
-    "xai_image",
-    "openrouter_images",
-  ],
-  image_edit: [
-    "openai_image_edits",
-    "google_image_generation",
-    "gemini_interactions",
-    "xai_image_edits",
-    "openrouter_images",
-  ],
-  video_gen: [
-    "openai_video_generations",
-    "gemini_interactions",
-    "xai_video",
-  ],
-  video_extension: ["xai_video_extensions"],
 };
 
 const CODE_TEXTAREA_CLASS = "font-mono text-xs placeholder:font-sans placeholder:text-xs";

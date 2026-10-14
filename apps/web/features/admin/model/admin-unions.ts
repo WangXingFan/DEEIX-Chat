@@ -20,20 +20,11 @@ export const ADMIN_LLM_ADAPTERS = [
   "openai_responses",
   "openrouter_chat_completions",
   "openrouter_responses",
-  "openrouter_images",
   "openai_chat_completions",
-  "openai_image_generations",
-  "openai_image_edits",
-  "openai_video_generations",
   "anthropic_messages",
   "google_generate_content",
-  "google_image_generation",
   "gemini_interactions",
   "xai_responses",
-  "xai_image",
-  "xai_image_edits",
-  "xai_video",
-  "xai_video_extensions",
 ] as const;
 export const isAdminLLMAdapter = isOneOf(ADMIN_LLM_ADAPTERS);
 

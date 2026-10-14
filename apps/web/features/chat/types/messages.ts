@@ -126,8 +126,6 @@ export type ChatBillingCost = {
   pricingSnapshotJSON: string;
 };
 
-export type ImageLoadingAspectRatio = "wide" | "portrait" | "square";
-
 /**
  * How an edited user message is applied: "regenerate" starts a new branch and
  * asks the model again; "save" rewrites the message in place and keeps every
@@ -156,7 +154,6 @@ export type ChatAreaMessage = {
   isStreaming?: boolean;
   isFileProc?: boolean; // Active file_proc stream stage.
   activityLabel?: string;
-  imageAspectRatio?: ImageLoadingAspectRatio;
   myFeedback?: "up" | "down" | null;
   thumbsUpCount?: number;
   thumbsDownCount?: number;

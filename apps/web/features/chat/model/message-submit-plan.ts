@@ -1,8 +1,3 @@
-import {
-  type ChatSubmitBlockReason,
-  type ChatSubmitTask,
-  resolveChatSubmitDecision,
-} from "@/features/chat/model/chat-task";
 import { sanitizeConversationOptions } from "@/features/chat/model/conversation-options";
 import { resolvePersistedPublicID } from "@/features/chat/model/message-submit";
 import {
@@ -16,9 +11,8 @@ import {
   MAX_CONCURRENT_RUNS,
   type QueuedChatSubmission,
 } from "@/features/chat/model/message-submit-branching";
-import { resolveImageLoadingAspectRatio } from "@/features/chat/model/message-submit-media";
-import type { ChatModelOption, PendingAttachment } from "@/features/chat/types/chat-runtime";
-import type { ChatAreaMessage, ImageLoadingAspectRatio } from "@/features/chat/types/messages";
+import type { PendingAttachment } from "@/features/chat/types/chat-runtime";
+import type { ChatAreaMessage } from "@/features/chat/types/messages";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
 import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 
@@ -27,7 +21,6 @@ export type ChatSubmissionBranchReason = "default" | "retry" | "edit";
 export type ChatSubmissionBlock =
   | { kind: "invalid" }
   | { kind: "concurrent_limit" }
-  | { kind: "media_unsupported"; reason: ChatSubmitBlockReason }
   | { kind: "no_model" };
 
 export type ChatSubmissionPlan = {
@@ -37,7 +30,6 @@ export type ChatSubmissionPlan = {
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
   sanitizedOptions: ConversationOptions;
-  submitTask: ChatSubmitTask;
   branchReason: ChatSubmissionBranchReason;
   clientRunID: string;
   exchangeKey: string;
@@ -52,7 +44,6 @@ export type ChatSubmissionPlan = {
   tempUserPublicID: string;
   tempAssistantPublicID: string;
   pendingUserPublicID: string;
-  assistantImageAspectRatio: ImageLoadingAspectRatio | undefined;
   assistantContentType: string;
 };
 
@@ -70,7 +61,6 @@ export function planChatSubmission(input: {
   attachmentFallbackContent: string;
   uploading: boolean;
   maxFilesPerMessage: number;
-  modelOptions: ChatModelOption[];
   selectedPlatformModelName: string;
   options: ConversationOptions;
   selectedSkills: SkillSummaryDTO[];
@@ -109,8 +99,6 @@ export function planChatSubmission(input: {
       input.visibleBranchScopePath,
       input.visibleMessages,
     );
-  const selectedModel =
-    input.modelOptions.find((item) => item.platformModelName === platformModelName) ?? null;
   const branchReason = input.branchReason ?? "default";
   const concurrentBranchRun = branchReason === "retry" || branchReason === "edit";
   const targetConversationHasActiveStream = activeStreams.some((active) =>
@@ -151,18 +139,9 @@ export function planChatSubmission(input: {
       : currentAttachments;
   const attachmentsTruncated = effectiveAttachments.length < currentAttachments.length;
   const sanitizedOptions = sanitizeConversationOptions(requestOptions);
-  const submitDecision = resolveChatSubmitDecision(selectedModel, effectiveAttachments, sanitizedOptions);
-  if (submitDecision.blockedReason) {
-    return {
-      ok: false,
-      block: { kind: "media_unsupported", reason: submitDecision.blockedReason },
-      attachmentsTruncated,
-    };
-  }
   if (!platformModelName) {
     return { ok: false, block: { kind: "no_model" }, attachmentsTruncated };
   }
-  const submitTask = submitDecision.task;
 
   const exchangeKey = `local-exchange-${clientRunID}`;
   const resolvedSourcePublicID = resolvePersistedPublicID(input.sourceMessagePublicID);
@@ -182,16 +161,7 @@ export function planChatSubmission(input: {
   const tempAssistantPublicID = `${exchangeKey}-assistant`;
   const pendingUserPublicID =
     assistantOnlyBranch && resolvedParentPublicID ? resolvedParentPublicID : tempUserPublicID;
-  const assistantImageAspectRatio =
-    submitTask === "image_generation" || submitTask === "image_edit"
-      ? resolveImageLoadingAspectRatio(sanitizedOptions)
-      : undefined;
-  const assistantContentType =
-    submitTask === "chat"
-      ? "markdown"
-      : submitTask === "video_generation" || submitTask === "video_extension"
-        ? "video"
-        : "image";
+  const assistantContentType = "markdown";
 
   return {
     ok: true,
@@ -203,7 +173,6 @@ export function planChatSubmission(input: {
       selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
       sanitizedOptions,
-      submitTask,
       branchReason,
       clientRunID,
       exchangeKey,
@@ -218,7 +187,6 @@ export function planChatSubmission(input: {
       tempUserPublicID,
       tempAssistantPublicID,
       pendingUserPublicID,
-      assistantImageAspectRatio,
       assistantContentType,
     },
   };

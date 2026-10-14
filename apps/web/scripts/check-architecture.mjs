@@ -241,11 +241,11 @@ const rules = [
   {
     // Route pages and layouts stay server components so the static export keeps
     // client boundaries inside features; interactive logic belongs to a feature
-    // entry component. The image-loading preview is a standalone visual playground.
-    // Comments are stripped first: a license or doc comment may precede the directive.
+    // entry component. Comments are stripped first: a license or doc comment may
+    // precede the directive.
     name: "route pages are server components",
     match: (file) => /^app\/(.+\/)?(page|layout)\.tsx$/.test(file.path) && /^\s*["']use client["']/.test(file.code),
-    allow: (file) => file.path === "app/(app)/(project)/preview/image-loading/page.tsx",
+    allow: () => false,
   },
   {
     // File names are kebab-case with no extra dot segments (`admin-types.ts`, not

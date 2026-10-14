@@ -171,7 +171,6 @@ export function areChatAreaMessagesRenderEqual(
     previous.isStreaming === next.isStreaming &&
     previous.isFileProc === next.isFileProc &&
     previous.activityLabel === next.activityLabel &&
-    previous.imageAspectRatio === next.imageAspectRatio &&
     previous.myFeedback === next.myFeedback &&
     previous.thumbsUpCount === next.thumbsUpCount &&
     previous.thumbsDownCount === next.thumbsDownCount &&

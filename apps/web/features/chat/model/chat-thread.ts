@@ -162,7 +162,6 @@ const ROOT_BRANCH_KEY = "__root__";
 type MessageLabels = {
   generationInterrupted: string;
   streamInterrupted?: string;
-  imageRunning?: string;
   moderationBlocked?: string;
   moderationBlockedDescription?: string;
   moderationEventID?: (eventID: string) => string;
@@ -279,10 +278,7 @@ export function mapServerMessage(
       const live = Boolean(liveRunID && options.liveRunIDs?.has(liveRunID));
       msg.isPending = live;
       msg.isStreaming = live;
-      msg.activityLabel = live
-        ? options.liveActivityLabels?.get(liveRunID) ||
-          (item.contentType === "image" ? labels.imageRunning : undefined)
-        : undefined;
+      msg.activityLabel = live ? options.liveActivityLabels?.get(liveRunID) : undefined;
     }
   }
   return msg;

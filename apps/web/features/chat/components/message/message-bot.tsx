@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, CircleAlert, Film, GalleryHorizontalEnd } from "lucide-react";
+import { ChevronDown, CircleAlert } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import * as React from "react";
@@ -23,7 +23,7 @@ import type { AssistantReaction } from "@/features/chat/components/message/messa
 import { AssistantMessageMeta } from "@/features/chat/components/message/message-meta";
 import { MessageAgentTrace, MessageProcessTrace } from "@/features/chat/components/message/message-process-trace";
 import { useChatInlineVideoSource } from "@/features/chat/hooks/use-chat-inline-video-source";
-import { resolveLeadingImagePreview } from "@/features/chat/model/media-image-preview";
+import { resolveLeadingImagePreview } from "@/features/chat/model/leading-image-preview";
 import {
   clearLiveUpstreamThinkTrace,
   mergeLiveUpstreamThinkTrace,
@@ -39,7 +39,6 @@ import { cn } from "@/lib/utils";
 import { type FileContentLoader, PreviewMedia } from "@/entities/file";
 import { type MarkdownArtifactActions, MarkdownImage } from "@/shared/components/markdown/streamdown-components";
 import { StreamdownRender } from "@/shared/components/markdown/streamdown-render";
-import { MediaActionBar, MediaActionButton } from "@/shared/components/media-action-bar";
 import { useBranding } from "@/shared/config/branding-provider";
 import type { BillingDisplayCurrency } from "@/entities/billing";
 
@@ -49,17 +48,6 @@ const GrainientBackground = dynamic(
   { ssr: false, loading: () => null },
 );
 
-function isEditableImageAttachment(attachment: MessageAttachment): boolean {
-  const mimeType = attachment.mimeType.toLowerCase();
-  const detectedMime = attachment.detectedMime?.toLowerCase() || "";
-  return (
-    attachment.kind === "image" ||
-    attachment.fileCategory === "image" ||
-    mimeType.startsWith("image/") ||
-    detectedMime.startsWith("image/")
-  );
-}
-
 function isVideoAttachment(attachment: MessageAttachment): boolean {
   const mimeType = attachment.mimeType.toLowerCase();
   const detectedMime = attachment.detectedMime?.toLowerCase() || "";
@@ -68,29 +56,6 @@ function isVideoAttachment(attachment: MessageAttachment): boolean {
     mimeType.startsWith("video/") ||
     detectedMime.startsWith("video/")
   );
-}
-
-function isMP4VideoAttachment(attachment: MessageAttachment): boolean {
-  const mimeType = attachment.mimeType.toLowerCase();
-  const detectedMime = attachment.detectedMime?.toLowerCase() || "";
-  return (
-    mimeType === "video/mp4" ||
-    detectedMime === "video/mp4" ||
-    attachment.fileName.toLowerCase().endsWith(".mp4")
-  );
-}
-
-function resolveFileIDFromImageSrc(src: string): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const url = new URL(src, window.location.origin);
-    const match = url.pathname.match(/\/api\/v1\/files\/([^/]+)\/content$/);
-    return match?.[1] ? decodeURIComponent(match[1]) : null;
-  } catch {
-    return null;
-  }
 }
 
 function isGeneratedVideoMarkdownContent(content: string, attachments: MessageAttachment[]): boolean {
@@ -112,27 +77,6 @@ function isGeneratedVideoMarkdownContent(content: string, attachments: MessageAt
     const match = block.match(/^\[Generated video(?: \d+)?\]\(\/api\/v1\/files\/([^/)]+)\/content\)$/);
     return Boolean(match?.[1] && videoFileIDs.has(match[1]));
   });
-}
-
-function resolveEditableImageAttachment(
-  src: string,
-  attachments: MessageAttachment[],
-  contentType: string | undefined,
-): MessageAttachment | null {
-  if (attachments.length === 0) {
-    return null;
-  }
-
-  const fileID = resolveFileIDFromImageSrc(src);
-  if (fileID) {
-    return attachments.find((attachment) => attachment.fileID === fileID) ?? null;
-  }
-
-  if (contentType === "image" && attachments.length === 1) {
-    return attachments[0];
-  }
-
-  return null;
 }
 
 type ChatMessageBotProps = {
@@ -161,8 +105,6 @@ type ChatMessageBotProps = {
   billingDisplayUsdToCnyRate?: number | null;
   readOnly?: boolean;
   attachmentContentLoader?: FileContentLoader;
-  onEditImageAttachment?: (attachment: MessageAttachment, sourceModelName?: string) => void;
-  onExtendVideoAttachment?: (attachment: MessageAttachment, sourceModelName?: string) => void;
   artifactActions?: MarkdownArtifactActions;
   showBranchNavigator?: boolean;
   contentWidthClassName?: string;
@@ -195,8 +137,6 @@ export function ChatMessageBot({
   billingDisplayUsdToCnyRate = null,
   readOnly = false,
   attachmentContentLoader,
-  onEditImageAttachment,
-  onExtendVideoAttachment,
   artifactActions,
   showBranchNavigator = true,
   contentWidthClassName = "max-w-[1080px]",
@@ -266,15 +206,6 @@ export function ChatMessageBot({
         : item.attachments ?? [],
     [inlineVideoAttachment, item.attachments],
   );
-  const extendableVideoAttachment =
-    inlineVideoAttachment && isMP4VideoAttachment(inlineVideoAttachment)
-      ? inlineVideoAttachment
-      : null;
-  const onExtendVideo = React.useCallback(() => {
-    if (extendableVideoAttachment) {
-      onExtendVideoAttachment?.(extendableVideoAttachment, item.platformModelName);
-    }
-  }, [extendableVideoAttachment, item.platformModelName, onExtendVideoAttachment]);
   const hideGeneratedVideoMarkdown = inlineVideoAttachment
     ? isGeneratedVideoMarkdownContent(item.content, item.attachments ?? [])
     : false;
@@ -302,36 +233,6 @@ export function ChatMessageBot({
   );
   const hasTraceEvents = postProcessEvents.length > 0;
   const hasTraceBlocks = hasTraceEvents || Boolean(upstreamThink) || Boolean(toolTrace);
-  const isImageGenerationLoading = item.contentType === "image" && item.isStreaming && !hasStreamdownContent;
-  const isVideoGenerationLoading = item.contentType === "video" && item.isStreaming && !hasStreamdownContent;
-  const editableImageAttachments = React.useMemo(
-    () => (item.attachments ?? []).filter(isEditableImageAttachment),
-    [item.attachments],
-  );
-  const getEditableImageAttachment = React.useCallback(
-    (src: string) => resolveEditableImageAttachment(src, editableImageAttachments, item.contentType),
-    [editableImageAttachments, item.contentType],
-  );
-  const markdownImageActions = React.useMemo(() => {
-    if (readOnly || !onEditImageAttachment || editableImageAttachments.length === 0) {
-      return undefined;
-    }
-    return {
-      canEditImage: (src: string) => Boolean(getEditableImageAttachment(src)),
-      onEditImage: (src: string) => {
-        const attachment = getEditableImageAttachment(src);
-        if (attachment) {
-          onEditImageAttachment(attachment, item.platformModelName);
-        }
-      },
-    };
-  }, [
-    editableImageAttachments.length,
-    getEditableImageAttachment,
-    item.platformModelName,
-    onEditImageAttachment,
-    readOnly,
-  ]);
   const processAutoCollapseReady = Boolean(hasTraceBlocks || hasStreamdownContent || item.inlineAlert);
 
   if (!readOnly && isEditing) {
@@ -394,14 +295,10 @@ export function ChatMessageBot({
         className="w-full min-w-0 max-w-none overflow-hidden text-[15px] leading-8 text-foreground [overflow-wrap:anywhere]"
         style={{ fontFamily: "var(--font-chat)", fontWeight: "var(--font-chat-weight)" }}
       >
-        {isImageGenerationLoading && !item.inlineAlert ? (
-          <AssistantImageGenerationSkeleton label={item.activityLabel} aspectRatio={item.imageAspectRatio} />
-        ) : isVideoGenerationLoading && !item.inlineAlert ? (
-          <AssistantVideoGenerationSkeleton label={item.activityLabel} />
-        ) : item.isStreaming && !hasStreamdownContent && !item.inlineAlert ? (
+        {item.isStreaming && !hasStreamdownContent && !item.inlineAlert ? (
           <AssistantMessageSkeleton fileProc={item.isFileProc} label={item.activityLabel} />
         ) : leadingImagePending ? (
-          <AssistantImageGenerationSkeleton label={leadingImageAlt} aspectRatio={item.imageAspectRatio} />
+          <AssistantImageLoadingPlaceholder label={leadingImageAlt} />
         ) : leadingImagePreview && leadingImageReady ? (
           <>
             <MarkdownImage alt={leadingImageAlt} src={leadingImagePreview.source} />
@@ -410,7 +307,6 @@ export function ChatMessageBot({
                 content={streamdownContent}
                 streaming={Boolean(item.isStreaming)}
                 autoExpandThinking={autoExpandThinking}
-                imageActions={markdownImageActions}
                 artifactActions={artifactActions}
               />
             ) : hasInlineContent ? (
@@ -422,7 +318,6 @@ export function ChatMessageBot({
             content={streamdownContent}
             streaming={Boolean(item.isStreaming)}
             autoExpandThinking={autoExpandThinking}
-            imageActions={markdownImageActions}
             artifactActions={artifactActions}
           />
         ) : hasStreamdownContent ? (
@@ -431,15 +326,7 @@ export function ChatMessageBot({
       </div>
 
       {inlineVideoAttachment ? (
-        <MessageInlineVideoPreview
-          attachment={inlineVideoAttachment}
-          loadContent={attachmentContentLoader}
-          onExtend={
-            onExtendVideoAttachment && extendableVideoAttachment
-              ? onExtendVideo
-              : undefined
-          }
-        />
+        <MessageInlineVideoPreview attachment={inlineVideoAttachment} loadContent={attachmentContentLoader} />
       ) : null}
 
       {item.inlineAlert ? (
@@ -660,30 +547,17 @@ export function AssistantMessageSkeleton({ fileProc, label }: { fileProc?: boole
   );
 }
 
-export function AssistantImageGenerationSkeleton({
-  label,
-  aspectRatio = "wide",
-}: {
-  label?: string;
-  aspectRatio?: ChatAreaMessage["imageAspectRatio"];
-}) {
+function AssistantImageLoadingPlaceholder({ label }: { label?: string }) {
   const t = useTranslations("chat.messages");
   const branding = useBranding();
-  const frameClassName =
-    aspectRatio === "portrait" ? "max-w-[18rem]" : aspectRatio === "square" ? "max-w-[24rem]" : "max-w-[32rem]";
-  const aspectClassName =
-    aspectRatio === "portrait" ? "aspect-[9/16]" : aspectRatio === "square" ? "aspect-square" : "aspect-video";
   return (
-    <div className={cn("my-4 w-full space-y-2.5", frameClassName)}>
+    <div className="my-4 w-full max-w-[32rem] space-y-2.5">
       <div className="flex items-center gap-2 pt-1 text-[13px] text-muted-foreground">
         <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-muted border-t-foreground/50" />
         {label?.trim() || t("processing")}
       </div>
       <div
-        className={cn(
-          "relative w-full overflow-hidden rounded-xl bg-[linear-gradient(135deg,#BAE6FD_0%,#60A5FA_52%,#A78BFA_100%)] text-primary",
-          aspectClassName,
-        )}
+        className="relative aspect-video w-full overflow-hidden rounded-xl bg-[linear-gradient(135deg,#BAE6FD_0%,#60A5FA_52%,#A78BFA_100%)] text-primary"
       >
         <GrainientBackground
           className="absolute inset-0 text-primary/75"
@@ -706,40 +580,6 @@ export function AssistantImageGenerationSkeleton({
   );
 }
 
-export function AssistantVideoGenerationSkeleton({ label }: { label?: string }) {
-  const t = useTranslations("chat.messages");
-  const branding = useBranding();
-  return (
-    <div className="my-4 w-full max-w-[32rem] space-y-2.5">
-      <div className="flex items-center gap-2 pt-1 text-[13px] text-muted-foreground">
-        <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-muted border-t-foreground/50" />
-        {label?.trim() || t("processing")}
-      </div>
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[linear-gradient(135deg,#FDE68A_0%,#FDA4AF_52%,#FB7185_100%)] text-primary">
-        <GrainientBackground
-          className="absolute inset-0 text-primary/75"
-          color1="#FDE68A"
-          color2="#FDA4AF"
-          color3="#FB7185"
-          contrast={1.48}
-          saturation={1.0}
-          timeSpeed={2.6}
-          warpAmplitude={72}
-          warpSpeed={2.1}
-        />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-5 text-white/30 mix-blend-overlay drop-shadow-sm">
-            <Film className="size-14" strokeWidth={1.4} />
-            <span className="select-none text-[clamp(1.75rem,7vw,4rem)] font-semibold tracking-[0.18em]">
-              {branding.shortName}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function InlineVideoLoadingPlaceholder() {
   return (
     <div className="my-4 flex aspect-video w-full max-w-[40rem] items-center justify-center overflow-hidden rounded-xl bg-muted/20">
@@ -751,13 +591,10 @@ function InlineVideoLoadingPlaceholder() {
 function MessageInlineVideoPreview({
   attachment,
   loadContent,
-  onExtend,
 }: {
   attachment: MessageAttachment;
   loadContent?: FileContentLoader;
-  onExtend?: () => void;
 }) {
-  const tMessages = useTranslations("chat.messages");
   const state = useChatInlineVideoSource(attachment, loadContent);
 
   if (state.status === "loading") {
@@ -782,13 +619,6 @@ function MessageInlineVideoPreview({
         contentType={state.contentType}
         inline
       />
-      {onExtend ? (
-        <MediaActionBar className="absolute right-2 top-2">
-          <MediaActionButton label={tMessages("extendVideo")} onClick={onExtend}>
-            <GalleryHorizontalEnd className="size-3.5" />
-          </MediaActionButton>
-        </MediaActionBar>
-      ) : null}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useChatBranchState } from "@/features/chat/hooks/use-chat-branch-state";
 import { useChatSubmitStream } from "@/features/chat/hooks/use-chat-submit-stream";
-import type { ChatModelOption, PendingAttachment, PendingExchangeMap } from "@/features/chat/types/chat-runtime";
+import type { PendingAttachment, PendingExchangeMap } from "@/features/chat/types/chat-runtime";
 import type {
   ConversationDTO,
   ConversationOptions,
@@ -90,7 +90,6 @@ export function useChatRuntime({
   messages,
   activeConversation,
   selectedPlatformModelName,
-  modelOptions,
   selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
@@ -125,7 +124,6 @@ export function useChatRuntime({
   messages: MessageDTO[];
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
-  modelOptions: ChatModelOption[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -202,7 +200,6 @@ export function useChatRuntime({
     conversationScopeKey,
     activeConversation,
     selectedPlatformModelName,
-    modelOptions,
     selectedSkills,
     selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,

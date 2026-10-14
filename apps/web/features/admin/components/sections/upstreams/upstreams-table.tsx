@@ -35,14 +35,7 @@ import { isRecord } from "@/shared/lib/type-guards";
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROTOCOL_DEFAULT_KIND_ORDER = [
-  "chat",
-  "audio",
-  "image_gen",
-  "image_edit",
-  "video_gen",
-  "video_extension",
-];
+const PROTOCOL_DEFAULT_KIND_ORDER = ["chat", "audio"];
 const PROTOCOL_DEFAULT_KINDS = new Set(PROTOCOL_DEFAULT_KIND_ORDER);
 
 // ---------------------------------------------------------------------------

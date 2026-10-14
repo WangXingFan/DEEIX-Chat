@@ -24,20 +24,11 @@ export const ADAPTER_LABELS: Record<string, string> = {
   openai_responses: resolveProtocolLabel("openai_responses"),
   openrouter_chat_completions: resolveProtocolLabel("openrouter_chat_completions"),
   openrouter_responses: resolveProtocolLabel("openrouter_responses"),
-  openrouter_images: resolveProtocolLabel("openrouter_images"),
   openai_chat_completions: resolveProtocolLabel("openai_chat_completions"),
-  openai_image_generations: resolveProtocolLabel("openai_image_generations"),
-  openai_image_edits: resolveProtocolLabel("openai_image_edits"),
-  openai_video_generations: resolveProtocolLabel("openai_video_generations"),
   anthropic_messages: resolveProtocolLabel("anthropic_messages"),
   google_generate_content: resolveProtocolLabel("google_generate_content"),
-  google_image_generation: resolveProtocolLabel("google_image_generation"),
   gemini_interactions: resolveProtocolLabel("gemini_interactions"),
   xai_responses: resolveProtocolLabel("xai_responses"),
-  xai_image: resolveProtocolLabel("xai_image"),
-  xai_image_edits: resolveProtocolLabel("xai_image_edits"),
-  xai_video: resolveProtocolLabel("xai_video"),
-  xai_video_extensions: resolveProtocolLabel("xai_video_extensions"),
 };
 
 // ---------------------------------------------------------------------------

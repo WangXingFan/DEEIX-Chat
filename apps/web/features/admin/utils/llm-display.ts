@@ -2,14 +2,7 @@ import type { AdminLLMAdapter } from "@/features/admin/api/llm-types";
 import { UPSTREAM_COMPATIBLE_OPTIONS } from "@/entities/model";
 
 // Model kind enum; display labels always go through i18n (kinds.* in the adminModels/adminUpstreams namespaces), so no English labels are kept here.
-export const MODEL_KINDS = [
-  "chat",
-  "audio",
-  "image_gen",
-  "image_edit",
-  "video_gen",
-  "video_extension",
-] as const;
+export const MODEL_KINDS = ["chat", "audio"] as const;
 
 // Brand names are proper nouns and are not translated; "custom" is resolved by callers via i18n (compatible.custom).
 export const COMPATIBLE_OPTIONS = UPSTREAM_COMPATIBLE_OPTIONS;
@@ -21,26 +14,17 @@ type ProtocolOption = {
 };
 
 // Protocol display order: vendors OpenAI → Anthropic → Google → xAI → OpenRouter;
-// within a vendor, Chat Completions → Responses → image generation → image editing → video.
+// within a vendor, Chat Completions → Responses.
 // This order applies to all sorted protocol displays via PROTOCOL_DISPLAY_ORDER.
 export const PROTOCOL_OPTIONS: ReadonlyArray<ProtocolOption> = [
   { value: "openai_chat_completions", label: "Chat Completions (OpenAI)", kinds: ["chat"] },
   { value: "openai_responses", label: "Responses (OpenAI)", kinds: ["chat"] },
-  { value: "openai_image_generations", label: "Images Generations (OpenAI)", kinds: ["image_gen"] },
-  { value: "openai_image_edits", label: "Images Edits (OpenAI)", kinds: ["image_edit"] },
-  { value: "openai_video_generations", label: "Video Generations (OpenAI)", kinds: ["video_gen"] },
   { value: "anthropic_messages", label: "Messages (Anthropic)", kinds: ["chat"] },
   { value: "google_generate_content", label: "Generate Content (Google)", kinds: ["chat"] },
-  { value: "google_image_generation", label: "Image Generation (Google)", kinds: ["image_gen", "image_edit"] },
-  { value: "gemini_interactions", label: "Interactions (Google)", kinds: ["chat", "image_gen", "image_edit", "video_gen"] },
+  { value: "gemini_interactions", label: "Interactions (Google)", kinds: ["chat"] },
   { value: "xai_responses", label: "Responses (xAI)", kinds: ["chat"] },
-  { value: "xai_image", label: "Images Generations (xAI)", kinds: ["image_gen"] },
-  { value: "xai_image_edits", label: "Images Edits (xAI)", kinds: ["image_edit"] },
-  { value: "xai_video", label: "Video Generations (xAI)", kinds: ["video_gen"] },
-  { value: "xai_video_extensions", label: "Video Extensions (xAI)", kinds: ["video_extension"] },
   { value: "openrouter_chat_completions", label: "Chat Completions (OpenRouter)", kinds: ["chat"] },
   { value: "openrouter_responses", label: "Responses (OpenRouter)", kinds: ["chat"] },
-  { value: "openrouter_images", label: "Images (OpenRouter)", kinds: ["image_gen", "image_edit"] },
 ] as const;
 
 const PROTOCOL_LABELS: Record<string, string> = {
@@ -54,15 +38,6 @@ const PROTOCOL_KINDS: Record<string, readonly string[]> = {
 const PROTOCOL_DISPLAY_ORDER = new Map<string, number>(
   PROTOCOL_OPTIONS.map((item, index) => [item.value, index]),
 );
-
-const IMAGE_ROUTE_PROTOCOL_PAIRS: ReadonlyArray<readonly [AdminLLMAdapter, AdminLLMAdapter]> = [
-  ["openai_image_generations", "openai_image_edits"],
-  ["xai_image", "xai_image_edits"],
-];
-
-const VIDEO_ROUTE_PROTOCOL_PAIRS: ReadonlyArray<readonly [AdminLLMAdapter, AdminLLMAdapter]> = [
-  ["xai_video", "xai_video_extensions"],
-];
 
 // Protocol names are technical terms (matching upstream API endpoints), shown in English and not translated.
 export function resolveProtocolLabel(protocol: string): string {
@@ -98,15 +73,9 @@ export function sortProtocolsForDisplay<T extends string>(protocols: readonly T[
     .map(({ protocol }) => protocol);
 }
 
+// A route binding runs exactly one protocol; selecting another replaces the current choice.
 export function isSupportedRouteProtocolSelection(protocols: readonly AdminLLMAdapter[]): boolean {
-  const uniqueProtocols = Array.from(new Set(protocols));
-  if (uniqueProtocols.length <= 1) {
-    return true;
-  }
-  return uniqueProtocols.length === 2 && [...IMAGE_ROUTE_PROTOCOL_PAIRS, ...VIDEO_ROUTE_PROTOCOL_PAIRS].some(
-    ([primaryProtocol, secondaryProtocol]) =>
-      uniqueProtocols.includes(primaryProtocol) && uniqueProtocols.includes(secondaryProtocol),
-  );
+  return new Set(protocols).size <= 1;
 }
 
 export function resolveNextRouteProtocolSelection(

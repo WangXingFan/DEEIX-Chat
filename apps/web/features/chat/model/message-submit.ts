@@ -2,8 +2,17 @@ import type { ChatAreaMessage, ChatMessageProcessTrace, MessageAttachment } from
 import type { PendingAttachment } from "@/features/chat/types/chat-runtime";
 import type {
   MessageProcessTraceDTO,
+  StreamMessageEvent,
   TraceBlockDTO,
 } from "@/shared/api/conversation-types";
+import { ApiError } from "@/shared/api/http-client";
+
+export function streamEventErrorToApiError(
+  event: Extract<StreamMessageEvent, { type: "error" }>,
+  fallback: string,
+): ApiError {
+  return new ApiError(event.message || fallback, event.status ?? 502, event.debug, event.errorCode);
+}
 
 export function toPendingAttachments(message: ChatAreaMessage | null | undefined): PendingAttachment[] {
   if (!message?.attachments || message.attachments.length === 0) {

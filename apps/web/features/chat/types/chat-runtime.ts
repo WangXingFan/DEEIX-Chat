@@ -1,7 +1,6 @@
 import type {
   ChatInlineAlert,
   ChatMessageProcessTrace,
-  ImageLoadingAspectRatio,
   MessageAttachment,
 } from "@/features/chat/types/messages";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
@@ -28,13 +27,6 @@ export type ChatModelOption = {
   optionControls: ModelOptionControl[];
   lockedOptionPaths: string[];
   pricing: PublicModelPricingDTO | null;
-  videoExtension: ModelMediaTaskConfig | null;
-};
-
-export type ModelMediaTaskConfig = {
-  enabled: boolean;
-  defaultOptions: ConversationOptions;
-  optionControls: ModelOptionControl[];
 };
 
 export const MODEL_OPTION_CONTROL_TYPES = ["boolean", "number", "select", "text"] as const;
@@ -106,7 +98,6 @@ export type PendingExchange = {
   assistantErrorMessage?: string;
   assistantFileProc?: boolean; // Active file_proc stage.
   assistantActivityLabel?: string;
-  assistantImageAspectRatio?: ImageLoadingAspectRatio;
   assistantProcessTrace?: ChatMessageProcessTrace;
   assistantInlineAlert?: ChatInlineAlert;
   assistantServerMessageID?: number;

@@ -108,7 +108,6 @@ function appendPendingExchangeMessages({
       isStreaming: pendingExchange.assistantStreaming,
       isFileProc: Boolean(pendingExchange.assistantFileProc && !pendingExchange.assistantText),
       activityLabel: pendingExchange.assistantActivityLabel,
-      imageAspectRatio: pendingExchange.assistantImageAspectRatio,
       processTrace: pendingExchange.assistantProcessTrace,
       inlineAlert: pendingExchange.assistantInlineAlert,
       inputTokens: pendingExchange.assistantInputTokens,
@@ -181,7 +180,6 @@ function mergePendingAssistantState(messages: ChatAreaMessage[], pendingExchange
       isStreaming: pendingExchange.assistantStreaming,
       isFileProc: Boolean(pendingExchange.assistantFileProc && !pendingText),
       activityLabel: pendingExchange.assistantActivityLabel ?? item.activityLabel,
-      imageAspectRatio: pendingExchange.assistantImageAspectRatio ?? item.imageAspectRatio,
       processTrace: pendingExchange.assistantProcessTrace ?? item.processTrace,
       inlineAlert: nextAlert,
       inputTokens: pendingExchange.assistantInputTokens ?? item.inputTokens,
@@ -239,7 +237,6 @@ export function useChatBranchState({
           {
             generationInterrupted: t("generationInterrupted"),
             streamInterrupted: t("streamInterrupted"),
-            imageRunning: t("imageRunning"),
             moderationBlocked: submitT("moderationBlocked"),
             moderationBlockedDescription: submitT("moderationBlockedDescription"),
             moderationEventID: (eventID: string) => submitT("moderationEventId", { id: eventID }),

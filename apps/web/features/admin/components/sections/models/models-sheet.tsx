@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Combobox,
   ComboboxContent,
@@ -96,12 +95,10 @@ import {
 } from "@/features/admin/types/llm";
 import { JsonCodeEditor } from "@/shared/components/json-code-editor";
 import {
-  imageStreamEnabledFromCapabilities,
   MODEL_CAPABILITIES_PLACEHOLDER,
   ModelCapabilitiesGuideButton,
   ModelCapabilitiesQuickConfig,
   normalizeModelCapabilitiesJSON,
-  setImageStreamEnabledInCapabilities,
 } from "@/features/admin/components/sections/models/models-capabilities-config";
 import {
   modelContextWindowOverride,
@@ -130,15 +127,6 @@ type VendorOption = {
 };
 
 const UNKNOWN_VENDOR = "unknown";
-
-const IMAGE_MEDIA_PROTOCOLS = new Set([
-  "openai_image_generations",
-  "openai_image_edits",
-  "google_image_generation",
-  "openrouter_images",
-  "xai_image",
-  "xai_image_edits",
-]);
 
 function formatCircuitUntil(until: string, locale: string): string {
   const raw = until.trim();
@@ -382,22 +370,12 @@ export function ModelSheet({ open, mode, target, models, vendors, displayGroups,
           (item) => String(item.id) === upstreamModelID,
         )
       : undefined;
-    if (selected?.suggestedProtocol === "xai_video") {
-      setForm((current) => ({
-        ...current,
-        kinds: Array.from(new Set([...current.kinds, "video_gen", "video_extension"])),
-      }));
-    }
     setBindRows((current) => {
       const currentTargetRow = current.find((row) => row.id === rowID);
       if (!currentTargetRow) {
         return current;
       }
-      const protocols: AdminLLMAdapter[] = selected?.suggestedProtocol === "xai_video"
-        ? ["xai_video", "xai_video_extensions"]
-        : selected?.suggestedProtocol
-          ? [selected.suggestedProtocol]
-          : [];
+      const protocols: AdminLLMAdapter[] = selected?.suggestedProtocol ? [selected.suggestedProtocol] : [];
       const existingProtocols = new Set(
         current
           .filter(
@@ -493,19 +471,8 @@ export function ModelSheet({ open, mode, target, models, vendors, displayGroups,
       return labelA.localeCompare(labelB);
     });
   }
-  const imageStreamEnabled = imageStreamEnabledFromCapabilities(form.capabilitiesJSON);
-  const showImageStreamControl = routeProtocols.some((protocol) => IMAGE_MEDIA_PROTOCOLS.has(protocol.trim()));
   const showPermissionGroupUnassigned =
     !permissionGroupsLoading && permissionGroupsUnassigned && effectivePermissionGroupIDs.length === 0;
-
-  function updateImageStreamEnabled(enabled: boolean) {
-    const nextValue = setImageStreamEnabledInCapabilities(form.capabilitiesJSON, enabled);
-    if (nextValue === null) {
-      toast.error(t("sheet.capabilitiesQuick.invalidJSON"));
-      return;
-    }
-    setField("capabilitiesJSON", nextValue);
-  }
 
   function handleClose() {
     onClose();
@@ -779,25 +746,6 @@ export function ModelSheet({ open, mode, target, models, vendors, displayGroups,
                     disabled={pending}
                     onChange={updateContextWindowOverride}
                   />
-                  {showImageStreamControl ? (
-                    <div className="pb-1">
-                      <label
-                        htmlFor="model-image-stream-enabled"
-                        className="flex min-w-0 items-center gap-2 text-xs font-normal text-muted-foreground"
-                      >
-                        <Checkbox
-                          id="model-image-stream-enabled"
-                          checked={imageStreamEnabled}
-                          disabled={pending}
-                          className="size-3.5"
-                          onCheckedChange={(checked) => updateImageStreamEnabled(checked === true)}
-                        />
-                        <span className="min-w-0 truncate">
-                          {t("sheet.imageStreamEnabled")}
-                        </span>
-                      </label>
-                    </div>
-                  ) : null}
                   <div className="grid min-w-0 grid-cols-2 gap-2">
                     <ModelCapabilitiesQuickConfig
                       value={form.capabilitiesJSON}

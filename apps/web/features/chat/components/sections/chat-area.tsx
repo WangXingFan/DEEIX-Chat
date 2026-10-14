@@ -34,7 +34,7 @@ import { areChatAreaMessagesRenderEqual } from "@/features/chat/model/chat-messa
 import { resolveMessageModelName } from "@/features/chat/model/chat-message-model-name";
 import { MAX_SCREENSHOT_MESSAGES } from "@/features/chat/model/conversation-screenshot";
 import type { ChatModelOption } from "@/features/chat/types/chat-runtime";
-import type { ChatAreaMessage, MessageAttachment, UserMessageEditMode } from "@/features/chat/types/messages";
+import type { ChatAreaMessage, UserMessageEditMode } from "@/features/chat/types/messages";
 import { cn } from "@/lib/utils";
 import { AppLogo, DeeixLogo } from "@/shared/components/app-logo";
 import { ConversationExportIconDropdown } from "@/entities/conversation";
@@ -106,8 +106,6 @@ type ChatAreaProps = {
   onModelChange: (platformModelName: string) => void;
   onModelCatalogRefresh?: () => void | Promise<void>;
   attachmentContentLoader?: FileContentLoader;
-  onEditImageAttachment?: (attachment: MessageAttachment, sourceModelName?: string) => void;
-  onExtendVideoAttachment?: (attachment: MessageAttachment, sourceModelName?: string) => void;
   onOpenCodeArtifact?: (message: ChatAreaMessage, artifact: OpenCodeArtifactInput) => void;
   onCycleMessageBranch: (parentPublicID: string | null, direction: "previous" | "next") => void;
   onToggleStar?: () => void | Promise<void>;
@@ -274,8 +272,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
   onModelChange,
   onModelCatalogRefresh,
   attachmentContentLoader,
-  onEditImageAttachment,
-  onExtendVideoAttachment,
   onCycleMessageBranch,
   onReactAssistantMessage,
   onOpenCodeArtifact,
@@ -310,8 +306,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
   onModelChange: (platformModelName: string) => void;
   onModelCatalogRefresh?: () => void | Promise<void>;
   attachmentContentLoader?: FileContentLoader;
-  onEditImageAttachment?: (attachment: MessageAttachment, sourceModelName?: string) => void;
-  onExtendVideoAttachment?: (attachment: MessageAttachment, sourceModelName?: string) => void;
   onCycleMessageBranch: (parentPublicID: string | null, direction: "previous" | "next") => void;
   onReactAssistantMessage: (publicID: string, reaction: AssistantReaction) => void;
   onOpenCodeArtifact?: (message: ChatAreaMessage, artifact: OpenCodeArtifactInput) => void;
@@ -357,19 +351,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
         : undefined,
     [isAssistant, item, onOpenCodeArtifact],
   );
-  const sourceSupportsVideoExtension = React.useMemo(
-    () =>
-      Boolean(
-        item.platformModelName &&
-        modelOptions.some(
-          (model) =>
-            model.platformModelName === item.platformModelName &&
-            model.videoExtension?.enabled,
-        ),
-      ),
-    [item.platformModelName, modelOptions],
-  );
-
   const copyKey = item.publicID || item.key;
   const onCopy = React.useCallback(async () => {
     await copy(item.content, { key: copyKey });
@@ -413,10 +394,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
         onCopy={() => void onCopy()}
         copySucceeded={isCopied(copyKey)}
         attachmentContentLoader={attachmentContentLoader}
-        onEditImageAttachment={onEditImageAttachment}
-        onExtendVideoAttachment={
-          sourceSupportsVideoExtension ? onExtendVideoAttachment : undefined
-        }
         artifactActions={artifactActions}
         markdownRender={markdownRender}
         autoExpandThinking={autoExpandThinking}
@@ -471,8 +448,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
   previous.onModelChange === next.onModelChange &&
   previous.onModelCatalogRefresh === next.onModelCatalogRefresh &&
   previous.attachmentContentLoader === next.attachmentContentLoader &&
-  previous.onEditImageAttachment === next.onEditImageAttachment &&
-  previous.onExtendVideoAttachment === next.onExtendVideoAttachment &&
   previous.onOpenCodeArtifact === next.onOpenCodeArtifact &&
   areChatAreaMessagesRenderEqual(previous.item, next.item)
 ));
@@ -499,8 +474,6 @@ export function ChatArea({
   onModelChange,
   onModelCatalogRefresh,
   attachmentContentLoader,
-  onEditImageAttachment,
-  onExtendVideoAttachment,
   onOpenCodeArtifact,
   onCycleMessageBranch,
   onToggleStar,
@@ -540,16 +513,8 @@ export function ChatArea({
   const stableOnDeleteMessage = useStableEvent(onDeleteMessage ?? ((): undefined => undefined));
   const stableOnModelChange = useStableEvent(onModelChange);
   const stableOnModelCatalogRefresh = useStableEvent(onModelCatalogRefresh ?? ((): undefined => undefined));
-  const stableOnEditImageAttachment = useStableEvent((attachment: MessageAttachment, sourceModelName?: string) => {
-    onEditImageAttachment?.(attachment, sourceModelName);
-  });
-  const stableOnExtendVideoAttachment = useStableEvent((attachment: MessageAttachment, sourceModelName?: string) => {
-    onExtendVideoAttachment?.(attachment, sourceModelName);
-  });
   const stableOnCycleMessageBranch = useStableEvent(onCycleMessageBranch);
   const stableOnReactAssistantMessage = useStableEvent(onReactAssistantMessage);
-  const editImageAttachmentHandler = onEditImageAttachment ? stableOnEditImageAttachment : undefined;
-  const extendVideoAttachmentHandler = onExtendVideoAttachment ? stableOnExtendVideoAttachment : undefined;
   const exportMenuLabel = t("labelMenu.exportAndScreenshot");
   const tScreenshot = useTranslations("chat.screenshot");
   const modelDisplayNames = React.useMemo(
@@ -692,8 +657,6 @@ export function ChatArea({
                       onModelChange={stableOnModelChange}
                       onModelCatalogRefresh={onModelCatalogRefresh ? stableOnModelCatalogRefresh : undefined}
                       attachmentContentLoader={attachmentContentLoader}
-                      onEditImageAttachment={editImageAttachmentHandler}
-                      onExtendVideoAttachment={extendVideoAttachmentHandler}
                       onCycleMessageBranch={stableOnCycleMessageBranch}
                       onReactAssistantMessage={stableOnReactAssistantMessage}
                       onOpenCodeArtifact={onOpenCodeArtifact}

@@ -159,34 +159,6 @@ function resolveOptionControls(raw: string): ModelOptionControl[] {
   return controls.filter((item, index) => controls.findIndex((candidate) => candidate.path === item.path) === index);
 }
 
-function resolveVideoExtensionConfig(raw: string, protocols: string[]): ChatModelOption["videoExtension"] {
-  const parsed = parseJSONObject(raw);
-  const mediaTasks = parsed?.mediaTasks;
-  const taskSource = isRecord(mediaTasks) ? mediaTasks.video_extension : undefined;
-  const task = isRecord(taskSource) ? taskSource : null;
-  const protocolSupported = protocols.includes("xai_video_extensions");
-  if (!protocolSupported || task?.enabled === false) {
-    return null;
-  }
-  const defaultOptions = isRecord(task?.defaultOptions)
-    ? sanitizeConversationOptions(task.defaultOptions)
-    : { duration: 6 };
-  const rawControls = Array.isArray(task?.optionControls) ? task.optionControls : [{ path: "duration", type: "select", label: "Duration", description: "2–10 seconds", options: ["2", "3", "4", "5", "6", "7", "8", "9", "10"] }];
-  const controls = rawControls.flatMap((source: unknown): ModelOptionControl[] => {
-    if (!isRecord(source)) return [];
-    const path = normalizeOptionControlPath(source.path);
-    if (path !== "duration") return [];
-    return [{
-      path,
-      type: normalizeOptionControlType(source.type) ?? "select",
-      label: normalizeOptionControlString(source.label),
-      description: normalizeOptionControlString(source.description),
-      options: normalizeOptionControlOptions(source.options) ?? ["2", "3", "4", "5", "6", "7", "8", "9", "10"],
-    }];
-  });
-  return { enabled: true, defaultOptions, optionControls: controls };
-}
-
 function toChatModelOption(item: PublicModelDTO): ChatModelOption {
   const protocols = parseProtocolsJSON(item.protocolsJSON);
   return {
@@ -205,7 +177,6 @@ function toChatModelOption(item: PublicModelDTO): ChatModelOption {
     optionControls: resolveOptionControls(item.capabilitiesJSON),
     lockedOptionPaths: resolveLockedOptionPaths(item.capabilitiesJSON),
     pricing: item.pricing,
-    videoExtension: resolveVideoExtensionConfig(item.capabilitiesJSON, protocols),
   };
 }
 

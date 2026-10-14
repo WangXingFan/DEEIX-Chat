@@ -4,11 +4,7 @@ import type * as React from "react";
 
 import { useChatMessageSubmit } from "@/features/chat/hooks/use-chat-message-submit";
 import { useChatStreamBuffer } from "@/features/chat/hooks/use-chat-stream-buffer";
-import type {
-  ChatModelOption,
-  PendingAttachment,
-  PendingExchangeMap,
-} from "@/features/chat/types/chat-runtime";
+import type { PendingAttachment, PendingExchangeMap } from "@/features/chat/types/chat-runtime";
 import type { ChatAreaMessage } from "@/features/chat/types/messages";
 import type {
   ConversationDTO,
@@ -22,7 +18,6 @@ export function useChatSubmitStream({
   conversationScopeKey,
   activeConversation,
   selectedPlatformModelName,
-  modelOptions,
   selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
@@ -66,7 +61,6 @@ export function useChatSubmitStream({
   conversationScopeKey: string;
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
-  modelOptions: ChatModelOption[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -115,7 +109,6 @@ export function useChatSubmitStream({
     conversationScopeKey,
     activeConversation,
     selectedPlatformModelName,
-    modelOptions,
     selectedSkills,
     selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,

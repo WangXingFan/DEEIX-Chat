@@ -29,7 +29,7 @@ import { useChatAttachments } from "@/features/chat/hooks/use-chat-attachments";
 import { useChatComposerSelection } from "@/features/chat/hooks/use-chat-composer-selection";
 import { useChatConversationActions } from "@/features/chat/hooks/use-chat-conversation-actions";
 import { useChatFileDrag } from "@/features/chat/hooks/use-chat-file-drag";
-import { useChatMediaAttachmentActions } from "@/features/chat/hooks/use-chat-media-attachment-actions";
+import { useChatAttachmentActions } from "@/features/chat/hooks/use-chat-attachment-actions";
 import { useChatModelOptionState } from "@/features/chat/hooks/use-chat-model-option-state";
 import { useChatScreenshotPreview } from "@/features/chat/hooks/use-chat-screenshot-preview";
 import {
@@ -379,7 +379,6 @@ export function AppChatArea() {
     messages,
     activeConversation: currentConversation,
     selectedPlatformModelName,
-    modelOptions,
     selectedSkills,
     selectedKnowledgeBaseIDs,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
@@ -453,19 +452,10 @@ export function AppChatArea() {
     [hasOlder, loadOlderMessages, loadingOlder],
   );
 
-  const {
-    onEditGeneratedImageAttachment,
-    onExtendGeneratedVideoAttachment,
-    onAttachExistingFile,
-  } = useChatMediaAttachmentActions({
+  const { onAttachExistingFile } = useChatAttachmentActions({
     attachments,
     maxFilesPerMessage,
-    modelOptions,
-    selectedModel,
-    selectedPlatformModelName,
     setAttachments,
-    setSelectedPlatformModelName,
-    releaseAttachments,
   });
 
   const {
@@ -729,8 +719,6 @@ export function AppChatArea() {
                   selectedPlatformModelName={selectedPlatformModelName}
                   onModelChange={setSelectedPlatformModelName}
                   onModelCatalogRefresh={refreshModelCatalogForComposer}
-                  onEditImageAttachment={onEditGeneratedImageAttachment}
-                  onExtendVideoAttachment={onExtendGeneratedVideoAttachment}
                   onOpenCodeArtifact={artifactWorkspace.openArtifact}
                   onCycleMessageBranch={onCycleMessageBranch}
                   onToggleStar={temporaryMode ? undefined : onToggleActiveConversationStar}

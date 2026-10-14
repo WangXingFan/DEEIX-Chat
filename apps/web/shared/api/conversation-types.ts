@@ -4,7 +4,6 @@ import type {
   BatchSetConversationProjectRequest as ContractBatchSetConversationProjectRequest,
   CreateConversationProjectRequest as ContractCreateConversationProjectRequest,
   CreateConversationRequest as ContractCreateConversationRequest,
-  MediaVideoExtensionRequest as ContractMediaVideoExtensionRequest,
   RenameConversationRequest as ContractRenameConversationRequest,
   ReorderConversationProjectsRequest as ContractReorderConversationProjectsRequest,
   SendMessageRequest as ContractSendMessageRequest,
@@ -184,33 +183,6 @@ export type SendMessageRequest = Omit<ContractSendMessageRequest, "options"> & {
   options?: ConversationOptions;
 };
 
-export type MediaImageRequest = {
-  prompt: string;
-  model?: string;
-  options?: ConversationOptions;
-  clientRunID?: string;
-  fileIDs?: string[];
-  maskFileID?: string;
-  parentMessagePublicID?: string;
-  sourceMessagePublicID?: string;
-  branchReason?: "default" | "retry" | "edit";
-};
-
-export type MediaVideoRequest = {
-  prompt: string;
-  model?: string;
-  options?: ConversationOptions;
-  clientRunID?: string;
-  fileIDs?: string[];
-  parentMessagePublicID?: string;
-  sourceMessagePublicID?: string;
-  branchReason?: "default" | "retry" | "edit";
-};
-
-export type MediaVideoExtensionRequest = Omit<ContractMediaVideoExtensionRequest, "options"> & {
-  options?: ConversationOptions;
-};
-
 export type SendMessageResult = Omit<SendMessageResponse, "assistantMessage" | "metadataRefreshHint" | "userMessage"> & {
   userMessage: MessageDTO;
   assistantMessage: MessageDTO;
@@ -277,21 +249,6 @@ export type StreamMessageEvent =
       cache_read_tokens: number;
       cache_write_tokens: number;
       reasoning_tokens: number;
-    }
-  | {
-      type: "media_status";
-      seq?: number;
-      status: string;
-      message: string;
-      content_type?: string;
-    }
-  | {
-      type: "media_image_delta";
-      seq?: number;
-      index?: number;
-      b64_json: string;
-      mime_type?: string;
-      revised_prompt?: string;
     }
   | {
       type: "completed";

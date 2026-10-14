@@ -43,10 +43,8 @@ import {
   createInitialPendingExchange,
   failPendingExchange,
 } from "@/features/chat/model/message-submit-exchange";
-import { resolveSubmitBlockDescription } from "@/features/chat/model/message-submit-media";
 import { planChatSubmission } from "@/features/chat/model/message-submit-plan";
 import type {
-  ChatModelOption,
   PendingAttachment,
   PendingExchange,
   PendingExchangeMap,
@@ -75,7 +73,6 @@ export function useChatMessageSubmit({
   conversationScopeKey,
   activeConversation,
   selectedPlatformModelName,
-  modelOptions,
   selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
@@ -126,7 +123,6 @@ export function useChatMessageSubmit({
   conversationScopeKey: string;
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
-  modelOptions: ChatModelOption[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -301,7 +297,6 @@ export function useChatMessageSubmit({
         attachmentFallbackContent: t("attachmentOnlyContent"),
         uploading,
         maxFilesPerMessage,
-        modelOptions,
         selectedPlatformModelName,
         options,
         selectedSkills,
@@ -322,10 +317,6 @@ export function useChatMessageSubmit({
         const { block } = planResult;
         if (block.kind === "concurrent_limit") {
           toast.error(t("concurrentGenerationLimit", { count: MAX_CONCURRENT_RUNS }));
-        } else if (block.kind === "media_unsupported") {
-          toast.error(t("mediaInputUnsupported"), {
-            description: resolveSubmitBlockDescription(block.reason, t),
-          });
         } else if (block.kind === "no_model") {
           toast.error(t("noModel"), { description: t("selectModelFirst") });
         }
@@ -530,7 +521,6 @@ export function useChatMessageSubmit({
         const completed = await runStream({
           token,
           conversationID: targetConversationID,
-          submitTask: plan.submitTask,
           exchangeKey,
           clientRunID,
           content: payloadContent,
@@ -765,7 +755,6 @@ export function useChatMessageSubmit({
       flushUpstreamThinkNow,
       htmlVisualPromptEnabled,
       maxFilesPerMessage,
-      modelOptions,
       onConversationCreated,
       onConversationRunDetached,
       onConversationRunFinished,

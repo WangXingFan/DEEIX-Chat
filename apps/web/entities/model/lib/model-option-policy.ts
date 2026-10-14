@@ -10,20 +10,12 @@ export const MODEL_OPTION_POLICY_PROTOCOLS = [
   "default",
   "openai_chat_completions",
   "openai_responses",
-  "openai_image_generations",
-  "openai_image_edits",
   "anthropic_messages",
   "gemini_generate_content",
-  "google_image_generation",
   "gemini_interactions",
   "xai_responses",
-  "xai_image",
-  "xai_image_edits",
-  "xai_video",
-  "xai_video_extensions",
   "openrouter_chat_completions",
   "openrouter_responses",
-  "openrouter_images",
 ] as const;
 
 export type ModelOptionPolicyProtocol = (typeof MODEL_OPTION_POLICY_PROTOCOLS)[number];
@@ -34,20 +26,12 @@ export const MODEL_OPTION_POLICY_PROTOCOL_LABELS: Record<ModelOptionPolicyProtoc
   default: "Default",
   openai_chat_completions: "OpenAI（Chat Completions）",
   openai_responses: "OpenAI（Responses）",
-  openai_image_generations: "OpenAI（Images Generations）",
-  openai_image_edits: "OpenAI（Images Edits）",
   anthropic_messages: "Anthropic（Messages）",
   gemini_generate_content: "Google（Generate Content）",
-  google_image_generation: "Google（Image Generation）",
   gemini_interactions: "Google（Interactions）",
   xai_responses: "xAI（Responses）",
-  xai_image: "xAI（Images Generations）",
-  xai_image_edits: "xAI（Images Edits）",
-  xai_video: "xAI（Video Generations）",
-  xai_video_extensions: "xAI（Video Extensions）",
   openrouter_chat_completions: "OpenRouter（Chat Completions）",
   openrouter_responses: "OpenRouter（Responses）",
-  openrouter_images: "OpenRouter（Images）",
 };
 
 export const HARD_DENIED_MODEL_OPTION_PATHS = [
@@ -104,14 +88,8 @@ export function resolveModelOptionPolicyProtocol(protocol: string): ModelOptionP
     case "openrouter":
     case "openrouter_responses":
       return "openrouter_responses";
-    case "openrouter_images":
-      return "openrouter_images";
     case "openai_chat_completions":
       return "openai_chat_completions";
-    case "openai_image_generations":
-      return "openai_image_generations";
-    case "openai_image_edits":
-      return "openai_image_edits";
     case "anthropic":
     case "claude":
     case "anthropic_messages":
@@ -120,21 +98,11 @@ export function resolveModelOptionPolicyProtocol(protocol: string): ModelOptionP
     case "grok":
     case "xai_responses":
       return "xai_responses";
-    case "xai_image":
-      return "xai_image";
-    case "xai_image_edits":
-      return "xai_image_edits";
-    case "xai_video":
-      return "xai_video";
-    case "xai_video_extensions":
-      return "xai_video_extensions";
     case "google":
     case "gemini":
     case "google_generate_content":
     case "gemini_generate_content":
       return "gemini_generate_content";
-    case "google_image_generation":
-      return "google_image_generation";
     case "gemini_interactions":
       return "gemini_interactions";
     default:

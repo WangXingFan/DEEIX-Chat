@@ -36,8 +36,6 @@ import {
   MarkdownArtifactActionsContext,
   MarkdownCodePre,
   MarkdownImage,
-  type MarkdownImageActions,
-  MarkdownImageActionsContext,
   MarkdownLink,
   MarkdownOrderedList,
   MarkdownParagraph,
@@ -89,7 +87,6 @@ type StreamdownRenderProps = {
   variant?: "default" | "thinking" | "user";
   sourcePositions?: boolean;
   autoExpandThinking?: boolean;
-  imageActions?: MarkdownImageActions;
   artifactActions?: MarkdownArtifactActions;
 };
 
@@ -701,7 +698,6 @@ export const StreamdownRender = React.memo(function StreamdownRender({
   variant = "default",
   sourcePositions = false,
   autoExpandThinking = true,
-  imageActions,
   artifactActions,
 }: StreamdownRenderProps) {
   const normalizedContent = React.useMemo(() => {
@@ -785,36 +781,34 @@ export const StreamdownRender = React.memo(function StreamdownRender({
         ) : null}
       {markdownSegments.map((segment, index) => (
         <MarkdownArtifactActionsContext.Provider key={`markdown-${index}`} value={artifactActions ?? null}>
-          <MarkdownImageActionsContext.Provider value={imageActions ?? null}>
-            <HTMLInlineMarkdownProvider
+          <HTMLInlineMarkdownProvider
+            className={activeMarkdownClassName}
+            components={components}
+            plugins={plugins}
+          >
+            <Streamdown
               className={activeMarkdownClassName}
+              codeBlockMaxHeight={STREAMDOWN_CODE_BLOCK_MAX_HEIGHT}
               components={components}
+              controls={STREAMDOWN_CONTROLS}
+              icons={icons}
               plugins={plugins}
+              rehypePlugins={rehypePlugins}
+              remend={STREAMDOWN_REMEND}
+              linkSafety={STREAMDOWN_LINK_SAFETY}
+              caret={streaming ? STREAMDOWN_CARET : undefined}
+              // Keep assistant blocks mounted when generation ends; isAnimating controls live behavior.
+              mode={sourcePositions || variant === "user" ? "static" : "streaming"}
+              normalizeHtmlIndentation
+              parseIncompleteMarkdown={streaming}
+              shikiTheme={["github-light", "github-dark"]}
+              animated={false}
+              isAnimating={streaming}
+              translations={translations}
             >
-              <Streamdown
-                className={activeMarkdownClassName}
-                codeBlockMaxHeight={STREAMDOWN_CODE_BLOCK_MAX_HEIGHT}
-                components={components}
-                controls={STREAMDOWN_CONTROLS}
-                icons={icons}
-                plugins={plugins}
-                rehypePlugins={rehypePlugins}
-                remend={STREAMDOWN_REMEND}
-                linkSafety={STREAMDOWN_LINK_SAFETY}
-                caret={streaming ? STREAMDOWN_CARET : undefined}
-                // Keep assistant blocks mounted when generation ends; isAnimating controls live behavior.
-                mode={sourcePositions || variant === "user" ? "static" : "streaming"}
-                normalizeHtmlIndentation
-                parseIncompleteMarkdown={streaming}
-                shikiTheme={["github-light", "github-dark"]}
-                animated={false}
-                isAnimating={streaming}
-                translations={translations}
-              >
-                {segment.content}
-              </Streamdown>
-            </HTMLInlineMarkdownProvider>
-          </MarkdownImageActionsContext.Provider>
+              {segment.content}
+            </Streamdown>
+          </HTMLInlineMarkdownProvider>
         </MarkdownArtifactActionsContext.Provider>
         ))}
       </MarkdownTableStreamingContext.Provider>

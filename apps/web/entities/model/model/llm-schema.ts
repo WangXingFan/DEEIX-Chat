@@ -1,10 +1,3 @@
-export type LLMKind =
-  | "chat"
-  | "audio"
-  | "image_gen"
-  | "image_edit"
-  | "video_gen";
-
 function normalizeKinds(kinds: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];

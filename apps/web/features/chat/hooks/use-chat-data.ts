@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import * as React from "react";
-import { buildMediaImagePreviewMarkdown } from "@/features/chat/model/media-image-preview";
 import { mergeProcessTraceSnapshot } from "@/features/chat/model/message-submit";
 import { upsertLiveUpstreamThinkTrace } from "@/features/chat/model/upstream-think-store";
 import { cancelMessageGeneration, listMessagesPage, resumeMessageGenerationStream } from "@/shared/api/conversation";
@@ -351,49 +350,6 @@ export function useChatData(
               return;
             }
             resumeSeqByRunRef.current[pendingRunID] = Math.max(resumeSeqByRunRef.current[pendingRunID] ?? 0, seq);
-          },
-          onMediaStatus: (event) => {
-            if (isResumeInactive()) {
-              return;
-            }
-            const status = event.status.trim();
-            const contentType = event.content_type === "video" ? "video" : "image";
-            const activityLabel =
-              status === "queued"
-                ? tSubmit(contentType === "video" ? "mediaStatus.videoQueued" : "mediaStatus.queued")
-                : status === "running"
-                  ? tSubmit(contentType === "video" ? "mediaStatus.videoRunning" : "mediaStatus.running")
-                  : status === "saving_artifact"
-                    ? tSubmit(contentType === "video" ? "mediaStatus.videoSavingArtifact" : "mediaStatus.savingArtifact")
-                    : event.message.trim() || status;
-            setResumingActivityLabel(activityLabel);
-            updateResumeState((prev) => ({
-              ...prev,
-              messages: prev.messages.map((message) =>
-                message.runID === pendingRunID && message.role === "assistant" && message.status === "pending"
-                  ? { ...message, contentType }
-                  : message,
-              ),
-            }));
-          },
-          onMediaImageDelta: (event) => {
-            if (isResumeInactive()) {
-              return;
-            }
-            clearResumedText();
-            const previewMarkdown = buildMediaImagePreviewMarkdown(event, tSubmit("imagePreviewAlt"));
-            if (!previewMarkdown) {
-              return;
-            }
-            setResumingActivityLabel("");
-            updateResumeState((prev) => ({
-              ...prev,
-              messages: prev.messages.map((message) =>
-                message.runID === pendingRunID && message.role === "assistant" && message.status === "pending"
-                  ? { ...message, content: previewMarkdown, contentType: "image" }
-                  : message,
-              ),
-            }));
           },
           onTextSnapshot: (content) => {
             if (isResumeInactive()) {

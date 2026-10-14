@@ -35,18 +35,18 @@ export const MODEL_CAPABILITIES_PLACEHOLDER = `{
   "defaultOptions": {},
   "optionControls": [
     {
-      "path": "size",
-      "label": "Size",
-      "description": "Image output size.",
+      "path": "reasoning_effort",
+      "label": "Reasoning Effort",
+      "description": "Constrains reasoning effort for supported models.",
       "type": "select",
-      "options": ["1024x1024", "1024x1536", "1536x1024"]
+      "options": ["none", "low", "medium", "high"]
     },
     {
-      "path": "quality",
-      "label": "Quality",
-      "description": "Image render quality.",
+      "path": "verbosity",
+      "label": "Verbosity",
+      "description": "Controls how verbose the response is.",
       "type": "select",
-      "options": ["standard", "hd"]
+      "options": ["low", "medium", "high"]
     }
   ]
 }`;
@@ -151,40 +151,6 @@ function applyPromptCacheConfig(payload: Record<string, unknown>, config: Prompt
   } else {
     delete payload.promptCache;
   }
-}
-
-export function imageStreamEnabledFromCapabilities(raw: string): boolean {
-  const payload = parseCapabilitiesObject(raw);
-  if (!payload) {
-    return true;
-  }
-  const image = payload.image;
-  if (!isRecord(image)) {
-    return true;
-  }
-  return image.stream !== false;
-}
-
-export function setImageStreamEnabledInCapabilities(raw: string, enabled: boolean): string | null {
-  const payload = parseCapabilitiesObject(raw);
-  if (!payload) {
-    return null;
-  }
-  if (enabled) {
-    const image = payload.image;
-    if (isRecord(image)) {
-      delete image.stream;
-      if (Object.keys(image).length === 0) {
-        delete payload.image;
-      }
-    }
-  } else {
-    payload.image = {
-      ...(isRecord(payload.image) ? payload.image : {}),
-      stream: false,
-    };
-  }
-  return Object.keys(payload).length > 0 ? JSON.stringify(payload, null, 2) : "";
 }
 
 function optionPathSegments(path: string): string[] {
@@ -541,22 +507,15 @@ export function ModelCapabilitiesGuideButton({ t }: { t: (key: string) => string
     "defaultOptions": {},
     "optionControls": [
       {
-        "path": "size",
-        "label": "Size",
-        "description": "Image output size.",
+        "path": "reasoning_effort",
+        "label": "Reasoning Effort",
+        "description": "Constrains reasoning effort for supported models.",
         "type": "select",
-        "options": ["1024x1024", "1024x1536", "1536x1024"]
+        "options": ["none", "low", "medium", "high"]
       },
       {
-        "path": "quality",
-        "label": "Quality",
-        "description": "Image render quality.",
-        "type": "select",
-        "options": ["standard", "hd"]
-      },
-      {
-        "path": "n",
-        "label": "Count",
+        "path": "temperature",
+        "label": "Temperature",
         "type": "number",
         "placeholder": "1"
       }
@@ -570,15 +529,13 @@ export function ModelCapabilitiesGuideButton({ t }: { t: (key: string) => string
               <p className="text-xs">{t("sheet.capabilitiesGuide.policyDescription")}</p>
               <pre className="max-h-72 overflow-auto rounded-md bg-muted/50 p-3 text-xs text-foreground">
   {`{
-    "openai_image_generations": [
-      "size",
-      "quality",
-      "n"
+    "openai_chat_completions": [
+      "reasoning_effort",
+      "verbosity"
     ],
-    "openai_image_edits": [
-      "size",
-      "quality",
-      "n"
+    "xai_responses": [
+      "reasoning.effort",
+      "top_k"
     ]
   }`}
               </pre>
