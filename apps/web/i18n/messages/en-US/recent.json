@@ -89,15 +89,6 @@
   "loadMoreFailed": "Failed to load more",
   "loadingMore": "Loading more...",
   "retry": "Retry",
-  "exported": "Conversation JSON exported",
-  "exportFailed": "Failed to export conversation",
-  "exportAll": "Export all conversations",
-  "toast": {
-    "exportAllSuccess": "Exported {count} conversations",
-    "exportAllPartial": "Exported {exported} conversations, {failed} failed",
-    "exportAllDownloaded": "Conversation export downloaded",
-    "exportAllFailed": "Failed to export conversations"
-  },
   "conversationCount": "{count}",
   "deleteConversationLabel": "\"{title}\"",
   "selectedConversationCountLabel": "{count} conversations selected",
@@ -109,11 +100,9 @@
     "rename": "Rename",
     "autoRename": "Auto rename",
     "menu": "Conversation menu",
-    "exportAndScreenshot": "Export & Screenshot",
     "moveToProject": "Move",
     "unarchive": "Unarchive",
     "archive": "Archive",
-    "exportJSON": "Export JSON",
     "delete": "Delete"
   },
   "emptyState": {

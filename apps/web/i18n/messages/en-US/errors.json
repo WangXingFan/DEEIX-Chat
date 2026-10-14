@@ -268,9 +268,6 @@
   "messageGenerationRun": {
     "alreadyExists": "This message generation has already been submitted."
   },
-  "temporaryChat": {
-    "contextTooLarge": "The temporary chat context is too large. Start a new temporary chat or shorten the conversation."
-  },
   "payment": {
     "checkoutFailed": "Failed to create checkout.",
     "epayGatewayInvalid": "The EPay redirect gateway URL is invalid.",
@@ -324,7 +321,6 @@
     "invalidRunIds": "Invalid run IDs.",
     "invalidSkill": "Invalid skill.",
     "invalidSkillUse": "Invalid skill configuration.",
-    "invalidTemporaryChatMessages": "Invalid temporary chat messages.",
     "invalidTwoFactorChallenge": "Invalid two-factor challenge.",
     "invalidUpstreamBaseUrl": "Invalid upstream base URL.",
     "invalidUserid": "Invalid user ID."

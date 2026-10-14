@@ -8,25 +8,10 @@
   "projectModeTooltip": "在此模式下，新会话会创建到当前项目。项目提示词仅对聊天模型请求生效；图像生成、图像编辑等非聊天能力不会应用。",
   "send": "发送",
   "stop": "停止",
-  "exportJSONSuccess": "已导出对话 JSON",
-  "exportJSONFailed": "导出对话失败",
   "model": "模型",
   "time": "时间",
   "tokens": "Token",
   "details": "详情",
-  "temporary": {
-    "title": "临时对话",
-    "historyChat": "正常对话",
-    "notice": "此对话不会出现在你的历史记录中，离开页面后数据将被清除。",
-    "exitTitle": "退出临时对话",
-    "exitDescription": "离开后，此临时对话中的所有消息和生成内容都将被清除，且无法恢复。",
-    "continue": "取消",
-    "exitAction": "退出",
-    "stopped": "生成已停止",
-    "blocked": "内容因安全策略已撤回",
-    "failed": "临时消息生成失败，请重试",
-    "sessionExpired": "登录状态已失效，请重新登录"
-  },
   "greeting": {
     "morning": "上午好",
     "afternoon": "下午好",
@@ -96,8 +81,7 @@
     "autoRenameFailed": "自动命名失败",
     "moveToProject": "移至项目",
     "unassignedProject": "默认",
-    "exportAndScreenshot": "导出与截图",
-    "exportJSON": "导出 JSON",
+    "screenshotMenu": "截图",
     "delete": "删除"
   },
   "screenshot": {
@@ -322,7 +306,6 @@
     "dropTitle": "松开以添加附件",
     "duplicateReused": "检测到文件重复，已复用",
     "partialUploadFailed": "部分文件上传失败",
-    "temporaryVideoUnsupported": "临时对话当前支持图片和文档附件，不支持视频附件",
     "retryFailedFiles": "请重试失败的文件。",
     "retryLater": "请稍后重试。",
     "screenshotUnsupported": "当前浏览器不支持屏幕截图",
