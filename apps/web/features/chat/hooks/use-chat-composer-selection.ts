@@ -12,7 +12,6 @@ const COMPOSER_SELECTION_MAX_ENTRIES = 50;
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
 type ComposerSelection = {
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
 };
@@ -25,7 +24,6 @@ type PersistedComposerSelectionStore = Record<string, PersistedComposerSelection
 
 function emptySelection(): ComposerSelection {
   return {
-    selectedToolIDs: [],
     selectedSkills: [],
     selectedKnowledgeBaseIDs: [],
   };
@@ -33,14 +31,13 @@ function emptySelection(): ComposerSelection {
 
 function cloneSelection(selection: ComposerSelection): ComposerSelection {
   return {
-    selectedToolIDs: selection.selectedToolIDs.slice(),
     selectedSkills: selection.selectedSkills.slice(),
     selectedKnowledgeBaseIDs: selection.selectedKnowledgeBaseIDs.slice(),
   };
 }
 
 function hasSelection(selection: ComposerSelection): boolean {
-  return selection.selectedToolIDs.length > 0 || selection.selectedSkills.length > 0 || selection.selectedKnowledgeBaseIDs.length > 0;
+  return selection.selectedSkills.length > 0 || selection.selectedKnowledgeBaseIDs.length > 0;
 }
 
 function isSkillSummary(value: unknown): value is SkillSummaryDTO {
@@ -58,17 +55,6 @@ function isSkillSummary(value: unknown): value is SkillSummaryDTO {
     typeof item.sortOrder === "number" &&
     typeof item.createdAt === "string" &&
     typeof item.updatedAt === "string"
-  );
-}
-
-function normalizeToolIDs(value: unknown): number[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return Array.from(
-    new Set(
-      value.filter((item): item is number => Number.isInteger(item) && item > 0),
-    ),
   );
 }
 
@@ -124,7 +110,6 @@ function readSelectionStore(storageKey: string): PersistedComposerSelectionStore
         continue;
       }
       const selection = {
-        selectedToolIDs: normalizeToolIDs(entry.selectedToolIDs),
         selectedSkills: normalizeSkills(entry.selectedSkills),
         selectedKnowledgeBaseIDs: normalizeKnowledgeBaseIDs(entry.selectedKnowledgeBaseIDs),
       };
@@ -212,14 +197,12 @@ export function useChatComposerSelection({
   storageScope?: string;
 }) {
   const storageKey = React.useMemo(() => resolveSelectionStorageKey(storageScope), [storageScope]);
-  const [selectedToolIDs, setSelectedToolIDs] = React.useState<number[]>([]);
   const [selectedSkills, setSelectedSkills] = React.useState<SkillSummaryDTO[]>([]);
   const [selectedKnowledgeBaseIDs, setSelectedKnowledgeBaseIDs] = React.useState<string[]>([]);
   const [hydratedKey, setHydratedKey] = React.useState<string | null>(null);
   const cacheRef = React.useRef(new Map<string, ComposerSelection>());
   const activeKeyRef = React.useRef(conversationKey);
   const activeStorageKeyRef = React.useRef(storageKey);
-  const selectedToolIDsRef = React.useRef(selectedToolIDs);
   const selectedSkillsRef = React.useRef(selectedSkills);
   const selectedKnowledgeBaseIDsRef = React.useRef(selectedKnowledgeBaseIDs);
   const resetTokenRef = React.useRef(resetToken);
@@ -231,10 +214,8 @@ export function useChatComposerSelection({
       if (!cacheRef.current.has(conversationKey)) {
         const nextSelection = readSelectionEntry(storageKey, conversationKey);
         cacheRef.current.set(conversationKey, cloneSelection(nextSelection));
-        selectedToolIDsRef.current = nextSelection.selectedToolIDs;
         selectedSkillsRef.current = nextSelection.selectedSkills;
         selectedKnowledgeBaseIDsRef.current = nextSelection.selectedKnowledgeBaseIDs;
-        setSelectedToolIDs(nextSelection.selectedToolIDs);
         setSelectedSkills(nextSelection.selectedSkills);
         setSelectedKnowledgeBaseIDs(nextSelection.selectedKnowledgeBaseIDs);
         setHydratedKey(`${storageKey}\u0000${conversationKey}`);
@@ -243,7 +224,6 @@ export function useChatComposerSelection({
     }
 
     const previousSelection: ComposerSelection = {
-      selectedToolIDs: selectedToolIDsRef.current,
       selectedSkills: selectedSkillsRef.current,
       selectedKnowledgeBaseIDs: selectedKnowledgeBaseIDsRef.current,
     };
@@ -274,10 +254,8 @@ export function useChatComposerSelection({
 
     activeStorageKeyRef.current = storageKey;
     activeKeyRef.current = conversationKey;
-    selectedToolIDsRef.current = nextSelection.selectedToolIDs;
     selectedSkillsRef.current = nextSelection.selectedSkills;
     selectedKnowledgeBaseIDsRef.current = nextSelection.selectedKnowledgeBaseIDs;
-    setSelectedToolIDs(nextSelection.selectedToolIDs);
     setSelectedSkills(nextSelection.selectedSkills);
     setSelectedKnowledgeBaseIDs(nextSelection.selectedKnowledgeBaseIDs);
     setHydratedKey(`${storageKey}\u0000${conversationKey}`);
@@ -293,10 +271,8 @@ export function useChatComposerSelection({
     cacheRef.current.delete(conversationKey);
     removeSelectionEntry(storageKey, conversationKey);
     activeKeyRef.current = conversationKey;
-    selectedToolIDsRef.current = nextSelection.selectedToolIDs;
     selectedSkillsRef.current = nextSelection.selectedSkills;
     selectedKnowledgeBaseIDsRef.current = nextSelection.selectedKnowledgeBaseIDs;
-    setSelectedToolIDs(nextSelection.selectedToolIDs);
     setSelectedSkills(nextSelection.selectedSkills);
     setSelectedKnowledgeBaseIDs(nextSelection.selectedKnowledgeBaseIDs);
     setHydratedKey(`${storageKey}\u0000${conversationKey}`);
@@ -307,22 +283,18 @@ export function useChatComposerSelection({
       return;
     }
     const selection: ComposerSelection = {
-      selectedToolIDs,
       selectedSkills,
       selectedKnowledgeBaseIDs,
     };
-    selectedToolIDsRef.current = selectedToolIDs;
     selectedSkillsRef.current = selectedSkills;
     selectedKnowledgeBaseIDsRef.current = selectedKnowledgeBaseIDs;
     cacheRef.current.set(activeKeyRef.current, cloneSelection(selection));
     writeSelectionEntry(activeStorageKeyRef.current, activeKeyRef.current, selection);
-  }, [hydratedKey, selectedKnowledgeBaseIDs, selectedToolIDs, selectedSkills]);
+  }, [hydratedKey, selectedKnowledgeBaseIDs, selectedSkills]);
 
   return {
-    selectedToolIDs,
     selectedSkills,
     selectedKnowledgeBaseIDs,
-    setSelectedToolIDs,
     setSelectedSkills,
     setSelectedKnowledgeBaseIDs,
   };

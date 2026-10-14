@@ -121,7 +121,6 @@ type ChatAreaProps = {
   markdownRender?: boolean;
   autoExpandThinking?: boolean;
   autoExpandToolCalls?: boolean;
-  allowFullToolResults?: boolean;
   showModelInfo?: boolean;
   showLatency?: boolean;
   showTokenUsage?: boolean;
@@ -283,7 +282,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
   markdownRender,
   autoExpandThinking,
   autoExpandToolCalls,
-  allowFullToolResults,
   showModelInfo,
   showLatency,
   showTokenUsage,
@@ -320,7 +318,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
   markdownRender: boolean;
   autoExpandThinking: boolean;
   autoExpandToolCalls: boolean;
-  allowFullToolResults: boolean;
   showModelInfo: boolean;
   showLatency: boolean;
   showTokenUsage: boolean;
@@ -424,7 +421,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
         markdownRender={markdownRender}
         autoExpandThinking={autoExpandThinking}
         autoExpandToolCalls={autoExpandToolCalls}
-        allowFullToolResults={allowFullToolResults}
         showModelInfo={showModelInfo}
         showLatency={showLatency}
         showTokenUsage={showTokenUsage}
@@ -459,7 +455,6 @@ const ChatMessageRow = React.memo(function ChatMessageRow({
   previous.markdownRender === next.markdownRender &&
   previous.autoExpandThinking === next.autoExpandThinking &&
   previous.autoExpandToolCalls === next.autoExpandToolCalls &&
-  previous.allowFullToolResults === next.allowFullToolResults &&
   previous.showModelInfo === next.showModelInfo &&
   previous.showLatency === next.showLatency &&
   previous.showTokenUsage === next.showTokenUsage &&
@@ -519,7 +514,6 @@ export function ChatArea({
   markdownRender = true,
   autoExpandThinking = true,
   autoExpandToolCalls = true,
-  allowFullToolResults = false,
   showModelInfo = true,
   showLatency = true,
   showTokenUsage = true,
@@ -706,7 +700,6 @@ export function ChatArea({
                       markdownRender={markdownRender}
                       autoExpandThinking={autoExpandThinking}
                       autoExpandToolCalls={autoExpandToolCalls}
-                      allowFullToolResults={allowFullToolResults}
                       showModelInfo={showModelInfo}
                       showLatency={showLatency}
                       showTokenUsage={showTokenUsage}

@@ -29,7 +29,6 @@ import { useChatAttachments } from "@/features/chat/hooks/use-chat-attachments";
 import { useChatComposerSelection } from "@/features/chat/hooks/use-chat-composer-selection";
 import { useChatConversationActions } from "@/features/chat/hooks/use-chat-conversation-actions";
 import { useChatFileDrag } from "@/features/chat/hooks/use-chat-file-drag";
-import { useChatMCPTools } from "@/features/chat/hooks/use-chat-mcp-tools";
 import { useChatMediaAttachmentActions } from "@/features/chat/hooks/use-chat-media-attachment-actions";
 import { useChatModelOptionState } from "@/features/chat/hooks/use-chat-model-option-state";
 import { useChatScreenshotPreview } from "@/features/chat/hooks/use-chat-screenshot-preview";
@@ -46,14 +45,13 @@ import { useChatViewerProfile } from "@/features/chat/hooks/use-chat-viewer-prof
 import { useChatVisualPrompt } from "@/features/chat/hooks/use-chat-visual-prompt";
 import { useChatConversationDefaults } from "@/features/chat/hooks/use-chat-conversation-defaults";
 import { useChatTemporaryRuntime } from "@/features/chat/hooks/use-chat-temporary-runtime";
-import { filterAvailableMCPToolIDs } from "@/features/chat/model/chat-mcp-tool-defaults";
 import type { ChatAreaMessage, } from "@/features/chat/types/messages";
 import { useSettingsChatPreferences } from "@/features/settings";
 import { cn } from "@/lib/utils";
 import type { ConversationDTO, ConversationOptions } from "@/shared/api/conversation-types";
 import { useAuthSession } from "@/shared/auth/auth-session-context";
 import { DeleteFilesOption } from "@/entities/file";
-import { hasMultipleImageAttachmentProcessors, normalizeImageAttachmentProcessorSelection } from "@/entities/mcp";
+import { MAX_SELECTED_SKILLS } from "@/entities/skill";
 import { resolveChatContentWidthClassName } from "@/entities/user-settings";
 
 const EMPTY_CONVERSATION_OPTIONS: ConversationOptions = {};
@@ -226,7 +224,6 @@ export function AppChatArea() {
     billingDisplayCurrency,
     billingDisplayUsdToCnyRate,
     modelOptionPolicy,
-    mcpMaxSelectedTools,
     selectedPlatformModelName,
     setSelectedPlatformModelName,
   } = useChatModelOptions({
@@ -270,10 +267,8 @@ export function AppChatArea() {
     refreshModelOption,
   });
   const {
-    selectedToolIDs,
     selectedSkills,
     selectedKnowledgeBaseIDs,
-    setSelectedToolIDs,
     setSelectedSkills,
     setSelectedKnowledgeBaseIDs,
   } = useChatComposerSelection({
@@ -282,17 +277,6 @@ export function AppChatArea() {
     resetToken: newConversationRevision,
     hasConversation: Boolean(conversationID),
     storageScope: user?.publicID ?? "",
-  });
-  const {
-    availableTools,
-    toolsLoading,
-    defaultToolIDs,
-    defaultToolsReady,
-    onDefaultToolIDsChange,
-  } = useChatMCPTools({
-    mcpMaxSelectedTools,
-    selectedToolIDs,
-    setSelectedToolIDs,
   });
   const newConversationSelectionKey = `${newConversationRevision}:${newConversationProjectID || "unassigned"}`;
   const warnedUnavailableProjectModelRef = React.useRef("");
@@ -324,48 +308,23 @@ export function AppChatArea() {
     newConversationSelectionKey,
     t,
   ]);
-  const newConversationDefaultMCPToolIDs = React.useMemo(
-    () => normalizeImageAttachmentProcessorSelection(
-      filterAvailableMCPToolIDs(
-        newConversationProject?.mcpDefaultMode === "custom"
-          ? newConversationProject.defaultMCPToolIDs
-          : defaultToolIDs,
-        availableTools,
-        mcpMaxSelectedTools,
-      ),
-      availableTools,
-    ),
-    [availableTools, defaultToolIDs, mcpMaxSelectedTools, newConversationProject],
-  );
   const newConversationDefaultSkillIDs = React.useMemo(
-    () => (newConversationProject?.defaultSkillIDs ?? []).slice(0, mcpMaxSelectedTools),
-    [mcpMaxSelectedTools, newConversationProject],
+    () => (newConversationProject?.defaultSkillIDs ?? []).slice(0, MAX_SELECTED_SKILLS),
+    [newConversationProject],
   );
   const newConversationDefaultKnowledgeBaseIDs = React.useMemo(
     () => (newConversationProject?.defaultKnowledgeBaseIDs ?? []).slice(0, 8),
     [newConversationProject],
   );
-  const { onSelectedKnowledgeBasesChange, onSelectedSkillsChange, onSelectedToolsChange: applySelectedToolsChange } = useChatConversationDefaults({
+  const { onSelectedKnowledgeBasesChange, onSelectedSkillsChange } = useChatConversationDefaults({
     conversationID,
     contextKey: newConversationSelectionKey,
     defaultsPending: newConversationDefaultsPending,
-    defaultMCPToolIDs: newConversationDefaultMCPToolIDs,
     defaultSkillIDs: newConversationDefaultSkillIDs,
     defaultKnowledgeBaseIDs: newConversationDefaultKnowledgeBaseIDs,
-    mcpDefaultsPending: toolsLoading || !defaultToolsReady,
-    setSelectedToolIDs,
     setSelectedSkills,
     setSelectedKnowledgeBaseIDs,
   });
-  const onSelectedToolsChange = React.useCallback((nextToolIDs: number[]) => {
-    if (hasMultipleImageAttachmentProcessors(nextToolIDs, availableTools)) {
-      toast.error(t("composer.mcpImageProcessorLimitTitle"), {
-        description: t("composer.mcpImageProcessorLimitDescription"),
-      });
-      return;
-    }
-    applySelectedToolsChange(nextToolIDs);
-  }, [applySelectedToolsChange, availableTools, t]);
   const htmlVisualPrompt = useChatVisualPrompt();
 
   const {
@@ -421,7 +380,6 @@ export function AppChatArea() {
     activeConversation: currentConversation,
     selectedPlatformModelName,
     modelOptions,
-    selectedToolIDs,
     selectedSkills,
     selectedKnowledgeBaseIDs,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
@@ -596,14 +554,6 @@ export function AppChatArea() {
   }, [conversationID, modelsErrorMsg, t, visibleMessages]);
 
   const effectiveOptions = modelOptionPolicyDisabled ? EMPTY_CONVERSATION_OPTIONS : options;
-  const temporaryAvailableTools = React.useMemo(
-    () => availableTools.filter((tool) => tool.attachmentInputMode !== "image"),
-    [availableTools],
-  );
-  const temporarySelectedToolIDs = React.useMemo(() => {
-    const supportedIDs = new Set(temporaryAvailableTools.map((tool) => tool.id));
-    return selectedToolIDs.filter((id) => supportedIDs.has(id));
-  }, [selectedToolIDs, temporaryAvailableTools]);
   const temporarySelectedSkillIDs = React.useMemo(
     () => selectedSkills.map((skill) => skill.id),
     [selectedSkills],
@@ -613,7 +563,6 @@ export function AppChatArea() {
     draft,
     model: selectedPlatformModelName,
     options: effectiveOptions,
-    selectedToolIDs: temporarySelectedToolIDs,
     selectedSkillIDs: temporarySelectedSkillIDs,
     selectedKnowledgeBaseIDs,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
@@ -671,15 +620,10 @@ export function AppChatArea() {
     billingDisplayCurrency,
     billingDisplayUsdToCnyRate,
     selectedPlatformModelName,
-    availableTools: temporaryMode ? temporaryAvailableTools : availableTools,
-    selectedToolIDs: temporaryMode ? temporarySelectedToolIDs : selectedToolIDs,
     selectedSkills,
     selectedKnowledgeBaseIDs,
-    defaultToolIDs,
     queuedMessages: temporaryMode ? EMPTY_LIST : queuedMessages,
     htmlVisualPromptEnabled: htmlVisualPrompt.enabled,
-    maxSelectedTools: mcpMaxSelectedTools,
-    toolsLoading,
     options: effectiveOptions,
     defaultOptions: selectedModelDefaultOptions,
     modelOptionPolicy,
@@ -690,11 +634,9 @@ export function AppChatArea() {
     onDraftChange: setDraft,
     onModelChange: setSelectedPlatformModelName,
     onModelCatalogRefresh: refreshModelCatalogForComposer,
-    onSelectedToolsChange,
-    maxSelectedSkills: mcpMaxSelectedTools,
+    maxSelectedSkills: MAX_SELECTED_SKILLS,
     onSelectedSkillsChange,
     onSelectedKnowledgeBasesChange,
-    onDefaultToolsChange: onDefaultToolIDsChange,
     onHTMLVisualPromptChange: htmlVisualPrompt.setEnabled,
     onOptionsChange: setModelOptions,
     onOptionsReset: resetModelOptions,
@@ -773,7 +715,6 @@ export function AppChatArea() {
                   messages={displayMessages}
                   attachmentContentLoader={temporaryMode ? temporaryRuntime.loadAttachmentContent : undefined}
                   persistMessageFeedback={!temporaryMode}
-                  allowFullToolResults={!temporaryMode}
                   busy={composerSending}
                   messageContentRef={messageContentRef}
                   onScroll={onScroll}

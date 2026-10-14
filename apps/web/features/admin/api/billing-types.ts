@@ -13,8 +13,6 @@ import type {
   CreateRedemptionCodeRequest,
   ModelPricingDataResponse,
   ModelPricingResponse,
-  NativeToolPricingResponse,
-  NativeToolPricingRequest,
   OpenRouterOfficialPricingDataResponse,
   OpenRouterOfficialPricingItemResponse,
   PatchRedemptionCodeRequestDoc,
@@ -59,18 +57,13 @@ export type AdminBillingPlanData = Omit<BillingPlanDataResponse, "plan"> & {
 
 export type AdminBillingMode = "self" | "period" | "usage";
 
-export type NativeToolPricingDTO = NativeToolPricingResponse;
-export type AdminNativeToolPricingPayload = NativeToolPricingRequest;
-
-export type AdminBillingConfigDTO = Omit<BillingConfigResponse, "epayTypes" | "mode" | "nativeToolPricing"> & {
+export type AdminBillingConfigDTO = Omit<BillingConfigResponse, "epayTypes" | "mode"> & {
   mode: AdminBillingMode;
-  nativeToolPricing: NativeToolPricingDTO[];
   epayTypes: Array<{ name: string; type: string }>;
 };
 
-export type UpdateAdminBillingConfigRequest = Omit<BillingConfigRequest, "mode" | "nativeToolPricing"> & {
+export type UpdateAdminBillingConfigRequest = Omit<BillingConfigRequest, "mode"> & {
   mode: AdminBillingMode;
-  nativeToolPricing?: AdminNativeToolPricingPayload[];
 };
 
 export type AdminBillingConfigData = Omit<BillingConfigDataResponse, "config"> & {

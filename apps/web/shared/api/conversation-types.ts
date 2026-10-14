@@ -25,7 +25,6 @@ import type {
   ConversationResponse,
   ConversationSearchPageResponse,
   ConversationSearchResultResponse,
-  ConversationToolCallDetailResponse,
   MessageBillingCostResponse,
   MessageDeleteResponse,
   MessageFeedbackResponse,
@@ -70,11 +69,7 @@ export type ConversationStatusFilter = "active" | "archived" | "all";
 export type ConversationStarredFilter = "all" | "starred" | "unstarred";
 export type ConversationProjectFilter = "all" | "unassigned" | string;
 export type ConversationProjectStatusFilter = "active" | "archived" | "all";
-export type ConversationProjectMCPDefaultMode = "inherit" | "custom";
-
-export type ConversationProjectDTO = Omit<ConversationProjectResponse, "mcpDefaultMode"> & {
-  mcpDefaultMode: ConversationProjectMCPDefaultMode;
-};
+export type ConversationProjectDTO = ConversationProjectResponse;
 
 export type MessageDTO = Omit<
   MessageResponse,
@@ -121,8 +116,6 @@ export type PromptTraceSourceDTO = MessagePromptTraceSourceResponse;
 
 export type ContextArtifactDTO = ContextArtifactResponse;
 
-export type ConversationToolCallDetailDTO = ConversationToolCallDetailResponse;
-
 export type PromptTraceDTO = Omit<MessagePromptTraceResponse, "blocks"> & {
   blocks: PromptTraceBlockDTO[];
 };
@@ -151,13 +144,9 @@ export type TraceEventDTO = MessageTraceEventResponse;
 
 export type CreateConversationRequest = ContractCreateConversationRequest;
 
-export type CreateConversationProjectRequest = Omit<ContractCreateConversationProjectRequest, "mcpDefaultMode"> & {
-  mcpDefaultMode?: ConversationProjectMCPDefaultMode;
-};
+export type CreateConversationProjectRequest = ContractCreateConversationProjectRequest;
 
-export type UpdateConversationProjectRequest = Omit<ContractUpdateConversationProjectRequest, "mcpDefaultMode"> & {
-  mcpDefaultMode?: ConversationProjectMCPDefaultMode;
-};
+export type UpdateConversationProjectRequest = ContractUpdateConversationProjectRequest;
 
 export type ReorderConversationProjectsRequest = ContractReorderConversationProjectsRequest;
 

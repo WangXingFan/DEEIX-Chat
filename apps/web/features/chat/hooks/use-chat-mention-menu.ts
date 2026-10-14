@@ -14,18 +14,17 @@ import {
 } from "@/features/chat/model/mention-file-search";
 import type { ChatModelOption, PendingAttachment } from "@/features/chat/types/chat-runtime";
 import type { FileObjectDTO } from "@/shared/api/file-types";
-import type { MCPToolDTO } from "@/shared/api/mcp-types";
 import { listVisibleSkills } from "@/shared/api/skills";
 import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
 import { readSessionRevision } from "@/shared/auth/session";
 import { resolveModelOptionLabel, resolveModelPresentationGroup } from "@/entities/model";
 
-const DEFAULT_MENTION_MENU_KINDS: readonly ChatMentionMenuKind[] = ["model", "file", "tool", "skill"];
-const MENTION_TRIGGER_KINDS: readonly ChatMentionMenuKind[] = ["model", "file", "tool"];
+const DEFAULT_MENTION_MENU_KINDS: readonly ChatMentionMenuKind[] = ["model", "file", "skill"];
+const MENTION_TRIGGER_KINDS: readonly ChatMentionMenuKind[] = ["model", "file"];
 const PROMPT_TRIGGER_KINDS: readonly ChatMentionMenuKind[] = ["skill"];
 
-export type ChatMentionMenuKind = "file" | "tool" | "model" | "skill";
+export type ChatMentionMenuKind = "file" | "model" | "skill";
 export type ChatMentionMenuTab = "all" | ChatMentionMenuKind;
 
 type ChatMentionFileMenuItem = {
@@ -34,15 +33,6 @@ type ChatMentionFileMenuItem = {
   label: string;
   description: string;
   file: FileObjectDTO;
-  selected: boolean;
-};
-
-type ChatMentionToolMenuItem = {
-  id: string;
-  kind: "tool";
-  label: string;
-  description: string;
-  tool: MCPToolDTO;
   selected: boolean;
 };
 
@@ -66,7 +56,6 @@ type ChatMentionSkillMenuItem = {
 
 export type ChatMentionMenuItem =
   | ChatMentionFileMenuItem
-  | ChatMentionToolMenuItem
   | ChatMentionModelMenuItem
   | ChatMentionSkillMenuItem;
 
@@ -95,20 +84,16 @@ type ChatMentionMenuPlacementAnchor = "caret" | "container";
 type ChatMentionTriggerKind = "mention" | "prompt";
 
 type ChatMentionMenuControllerArgs = {
-  availableTools: MCPToolDTO[];
   attachments: PendingAttachment[];
   defaultFileLabel: string;
   disabled: boolean;
   draft: string;
-  maxSelectedTools: number;
   maxSelectedSkills: number;
   modelOptions: ChatModelOption[];
   selectedSkills?: SkillSummaryDTO[];
   selectedPlatformModelName: string;
-  selectedToolIDs: number[];
   anchorRef: React.RefObject<HTMLElement | null>;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  toolsDisabled: boolean;
   onDraftChange: (value: string) => void;
   enabledKinds?: readonly ChatMentionMenuKind[];
   onFileSelect: (file: FileObjectDTO) => void | Promise<void>;
@@ -117,9 +102,7 @@ type ChatMentionMenuControllerArgs = {
   placementAnchor?: ChatMentionMenuPlacementAnchor;
   placementPreference?: ChatMentionMenuPlacementPreference;
   onModelCatalogRefresh?: () => void | Promise<void>;
-  onSelectedToolsChange: (toolIDs: number[]) => void;
   onSkillLimitReached?: () => void;
-  onToolLimitReached?: () => void;
 };
 
 type ChatMentionTriggerQuery = {
@@ -290,18 +273,6 @@ function itemMatchesQuery(values: Array<string | undefined>, query: string): boo
   return values.join(" ").toLowerCase().includes(normalizedQuery);
 }
 
-function resolveToolLabel(tool: MCPToolDTO): string {
-  const displayName = typeof tool.displayName === "string" ? tool.displayName.trim() : "";
-  const name = typeof tool.name === "string" ? tool.name.trim() : "";
-  return displayName || name || String(tool.id);
-}
-
-function resolveToolDescription(tool: MCPToolDTO): string {
-  const serverName = tool.serverName?.trim() ?? "";
-  const description = tool.description?.trim() ?? "";
-  return [serverName, description].filter(Boolean).join(" - ");
-}
-
 function filterModels(
   modelOptions: ChatModelOption[],
   query: string,
@@ -342,26 +313,6 @@ function skillsToItems(skills: SkillSummaryDTO[], selectedSkills: SkillSummaryDT
   }));
 }
 
-function filterTools(
-  availableTools: MCPToolDTO[],
-  query: string,
-  selectedToolIDs: number[],
-): ChatMentionToolMenuItem[] {
-  const selectedIDs = new Set(selectedToolIDs);
-  return availableTools
-    .filter((tool) =>
-      itemMatchesQuery([resolveToolLabel(tool), tool.name, tool.serverName, tool.description], query),
-    )
-    .map((tool) => ({
-      id: `tool:${tool.id}`,
-      kind: "tool" as const,
-      label: resolveToolLabel(tool),
-      description: resolveToolDescription(tool),
-      tool,
-      selected: selectedIDs.has(tool.id),
-    }));
-}
-
 function filesToItems(
   files: FileObjectDTO[],
   attachments: PendingAttachment[],
@@ -384,8 +335,6 @@ function mentionItemRecentsID(item: ChatMentionMenuItem): string {
       return item.model.platformModelName;
     case "file":
       return item.file.fileID;
-    case "tool":
-      return String(item.tool.id);
     case "skill":
       return String(item.skill.id);
   }
@@ -510,34 +459,6 @@ function buildKindTabRows(
     }
     for (const [key, group] of groups) {
       rows.push({ type: "header", key: `header:${key}`, label: group.label });
-      for (const item of group.items) {
-        rows.push({ type: "item", key: `tab:${item.id}`, item });
-      }
-    }
-    return rows;
-  }
-
-  if (kind === "tool") {
-    const groups = new Map<string, { label: string; items: ChatMentionMenuItem[] }>();
-    for (const item of data.items) {
-      if (item.kind !== "tool") {
-        continue;
-      }
-      const serverName = item.tool.serverName?.trim() ?? "";
-      const key = Number.isFinite(item.tool.serverID) && item.tool.serverID > 0
-        ? `server:${item.tool.serverID}`
-        : `server-name:${serverName || "unknown"}`;
-      const group = groups.get(key);
-      if (group) {
-        group.items.push(item);
-      } else {
-        groups.set(key, { label: serverName, items: [item] });
-      }
-    }
-    for (const [key, group] of groups) {
-      if (group.label) {
-        rows.push({ type: "header", key: `header:${key}`, label: group.label });
-      }
       for (const item of group.items) {
         rows.push({ type: "item", key: `tab:${item.id}`, item });
       }
@@ -721,19 +642,15 @@ function mentionMenuLayoutsEqual(
 
 export function useChatMentionMenu({
   attachments,
-  availableTools,
   defaultFileLabel,
   disabled,
   draft,
-  maxSelectedTools,
   maxSelectedSkills,
   modelOptions,
   selectedSkills = [],
   selectedPlatformModelName,
-  selectedToolIDs,
   anchorRef,
   textareaRef,
-  toolsDisabled,
   onDraftChange,
   onSelectedSkillsChange,
   enabledKinds = DEFAULT_MENTION_MENU_KINDS,
@@ -742,9 +659,7 @@ export function useChatMentionMenu({
   placementAnchor = "caret",
   placementPreference = "auto",
   onModelCatalogRefresh,
-  onSelectedToolsChange,
   onSkillLimitReached,
-  onToolLimitReached,
 }: ChatMentionMenuControllerArgs) {
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuID = React.useId();
@@ -783,15 +698,13 @@ export function useChatMentionMenu({
 
   const sessionKinds = React.useMemo<ChatMentionMenuKind[]>(() => {
     if (sessionKind === "mention") {
-      return MENTION_TRIGGER_KINDS.filter(
-        (kind) => enabledKindSet.has(kind) && (kind !== "tool" || !toolsDisabled),
-      );
+      return MENTION_TRIGGER_KINDS.filter((kind) => enabledKindSet.has(kind));
     }
     if (sessionKind === "prompt") {
       return PROMPT_TRIGGER_KINDS.filter((kind) => enabledKindSet.has(kind));
     }
     return [];
-  }, [enabledKindSet, sessionKind, toolsDisabled]);
+  }, [enabledKindSet, sessionKind]);
   const showTabBar = sessionKinds.length > 1;
   const tabIDs = React.useMemo<ChatMentionMenuTab[]>(
     () => (showTabBar ? ["all", ...sessionKinds] : sessionKinds),
@@ -833,7 +746,6 @@ export function useChatMentionMenu({
     setRecentsSnapshot({
       model: readCommandRecents("model"),
       file: readCommandRecents("file"),
-      tool: readCommandRecents("tool"),
       skill: readCommandRecents("skill"),
     });
   }, [sessionActive]);
@@ -1022,11 +934,6 @@ export function useChatMentionMenu({
         data.model = { items, total: items.length, loading: false };
         continue;
       }
-      if (kind === "tool") {
-        const items = filterTools(availableTools, normalizedQuery, selectedToolIDs);
-        data.tool = { items, total: items.length, loading: false };
-        continue;
-      }
       if (kind === "file") {
         const ready = filesQueryKey === normalizedQuery;
         const items = ready ? filesToItems(files, attachments, defaultFileLabel) : [];
@@ -1045,7 +952,6 @@ export function useChatMentionMenu({
     return data;
   }, [
     attachments,
-    availableTools,
     defaultFileLabel,
     fileSearchKey,
     files,
@@ -1057,7 +963,6 @@ export function useChatMentionMenu({
     query,
     selectedPlatformModelName,
     selectedSkills,
-    selectedToolIDs,
     sessionKinds,
     skills,
     skillsLoading,
@@ -1259,26 +1164,6 @@ export function useChatMentionMenu({
         return;
       }
 
-      if (item.kind === "tool") {
-        const alreadySelected = selectedToolIDs.includes(item.tool.id);
-        if (!alreadySelected && selectedToolIDs.length >= maxSelectedTools) {
-          onToolLimitReached?.();
-          return;
-        }
-        if (!alreadySelected) {
-          recordCommandRecentUsage("tool", String(item.tool.id));
-        }
-        onSelectedToolsChange(
-          alreadySelected
-            ? selectedToolIDs.filter((toolID) => toolID !== item.tool.id)
-            : [...selectedToolIDs, item.tool.id],
-        );
-        if (triggerQuery) {
-          enterBrowseMode();
-        }
-        return;
-      }
-
       recordCommandRecentUsage("file", item.file.fileID);
       void onFileSelect(item.file);
       closeSession();
@@ -1289,17 +1174,13 @@ export function useChatMentionMenu({
       enterBrowseMode,
       focusTextarea,
       maxSelectedSkills,
-      maxSelectedTools,
       onDraftChange,
       onFileSelect,
       onModelChange,
       onSelectedSkillsChange,
-      onSelectedToolsChange,
       onSkillLimitReached,
-      onToolLimitReached,
       selectTab,
       selectedSkills,
-      selectedToolIDs,
       textareaRef,
       triggerQuery,
     ],

@@ -17,7 +17,6 @@ import {
   type ChatMentionMenuKind,
 } from "@/features/chat/hooks/use-chat-mention-menu";
 import type { ChatModelOption, PendingAttachment } from "@/features/chat/types/chat-runtime";
-import type { MCPToolDTO } from "@/shared/api/mcp-types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { FileContentLoader } from "@/entities/file";
@@ -27,8 +26,6 @@ import { StreamdownRender } from "@/shared/components/markdown/streamdown-render
 const USER_MESSAGE_COLLAPSED_LINES = 6;
 const EDIT_MESSAGE_MENTION_KINDS: readonly ChatMentionMenuKind[] = ["model"];
 const EDIT_MESSAGE_EMPTY_ATTACHMENTS: PendingAttachment[] = [];
-const EDIT_MESSAGE_EMPTY_TOOLS: MCPToolDTO[] = [];
-const EDIT_MESSAGE_EMPTY_TOOL_IDS: number[] = [];
 
 type ChatMessageUserProps = {
   item: ChatAreaMessage;
@@ -169,26 +166,21 @@ export function ChatMessageUser({
     tabs: mentionTabs,
   } = useChatMentionMenu({
     attachments: EDIT_MESSAGE_EMPTY_ATTACHMENTS,
-    availableTools: EDIT_MESSAGE_EMPTY_TOOLS,
     defaultFileLabel: "",
     disabled: readOnly || !isEditing,
     draft: editingValue,
     enabledKinds: EDIT_MESSAGE_MENTION_KINDS,
     maxSelectedSkills: 0,
-    maxSelectedTools: 0,
     modelOptions,
     selectedSkills: [],
     selectedPlatformModelName,
-    selectedToolIDs: EDIT_MESSAGE_EMPTY_TOOL_IDS,
     anchorRef: editInputGroupRef,
     textareaRef: editTextareaRef,
-    toolsDisabled: true,
     onDraftChange: setEditingValue,
     onFileSelect: () => undefined,
     onModelCatalogRefresh,
     onModelChange,
     placementPreference: "bottom",
-    onSelectedToolsChange: () => undefined,
   });
   if (!readOnly && isEditing) {
     const nextContent = editingValue.trim();

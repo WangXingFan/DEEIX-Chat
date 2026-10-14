@@ -5,7 +5,6 @@ import type * as React from "react";
 import { ArrowUpRight, Check, Copy, Wrench } from "lucide-react";
 
 import { AgentTraceStep } from "@/features/chat/components/message/message-agent-trace-step";
-import { MessageToolResultDialog } from "@/features/chat/components/message/message-tool-result-dialog";
 import { useCopyAction } from "@/shared/components/copy-action";
 import { useAutoExpandDisclosure } from "@/shared/hooks/use-auto-expand-disclosure";
 import { useChatElapsedDurationMS } from "@/features/chat/hooks/use-chat-elapsed-duration";
@@ -35,7 +34,6 @@ type ToolTraceCall = {
   tool_call_id?: string;
   id?: string;
   call_id?: string;
-  detail_run_id?: string;
   name?: string;
   type?: string;
   status?: string;
@@ -65,7 +63,6 @@ function parseToolTraceCalls(payloadJson: string | undefined): ToolTraceCall[] {
           tool_call_id: readToolPayloadString(value.tool_call_id) || undefined,
           id: readToolPayloadString(value.id) || undefined,
           call_id: readToolPayloadString(value.call_id) || undefined,
-          detail_run_id: readToolPayloadString(value.detail_run_id) || undefined,
           name: readToolPayloadString(value.name) || undefined,
           type: readToolPayloadString(value.type) || undefined,
           status: readToolPayloadString(value.status) || undefined,
@@ -776,33 +773,19 @@ function ToolResultCard({
 function ToolCallDetailCard({
   step,
   labels,
-  runID,
-  allowFullResult,
 }: {
   step: ToolChainStep;
   labels: ProcessTraceLabels;
-  runID?: string;
-  allowFullResult: boolean;
 }) {
   const call = step.toolCall;
   const hasArguments = Boolean(call && hasToolArguments(call));
   const toolName = step.toolName?.trim() || step.label;
-  const toolCallID = call ? toolTraceCallID(call) : "";
-  const detailRunID = call?.detail_run_id?.trim() || runID?.trim() || "";
-  const canViewFullResult = Boolean(allowFullResult && detailRunID && toolCallID);
   return (
     <div className="w-full max-w-[48rem]">
       <div className="flex min-h-6 min-w-0 items-center gap-2 px-0.5">
         <span className="min-w-0 flex-1 truncate text-[12px] leading-5 text-muted-foreground/78" title={toolName}>
           {labels.tool.detail.nameLabel} · {toolName}
         </span>
-        {canViewFullResult ? (
-          <MessageToolResultDialog
-            runID={detailRunID}
-            toolCallID={toolCallID}
-            toolName={toolName}
-          />
-        ) : null}
       </div>
       <div className="min-w-0 px-0.5">
         {call ? (
@@ -827,14 +810,10 @@ export function AgentToolStepRow({
   step,
   labels,
   autoExpand,
-  runID,
-  allowFullResult = false,
 }: {
   step: ToolChainStep;
   labels: ProcessTraceLabels;
   autoExpand: boolean;
-  runID?: string;
-  allowFullResult?: boolean;
 }) {
   const active = isToolChainStepActive(step);
   const { open, onOpenChange } = useAutoExpandDisclosure({ active, autoExpand });
@@ -857,12 +836,7 @@ export function AgentToolStepRow({
         loading={active}
         onOpenChange={onOpenChange}
       >
-        <ToolCallDetailCard
-          step={step}
-          labels={labels}
-          runID={runID}
-          allowFullResult={allowFullResult}
-        />
+        <ToolCallDetailCard step={step} labels={labels} />
       </AgentTraceStep>
     </li>
   );

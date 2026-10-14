@@ -24,22 +24,4 @@ export type ModelOptionPolicy = {
   mode: ModelOptionPolicyMode;
   allowedPathsJSON: string;
   deniedPathsJSON: string;
-  nativeTools: NativeToolDefinition[];
-};
-
-export type NativeToolDefinition = {
-  protocol: string;
-  provider: string;
-  type: string;
-  toolKey: string;
-  label: string;
-  description: string;
-  payload: Record<string, unknown>;
-  defaultEnabled: boolean;
-  billable: boolean;
-  billingUnit: string;
-  priceNanousd: number;
-  priceLabel: string;
-  riskLevel: string;
-  usageAliases: string[];
 };

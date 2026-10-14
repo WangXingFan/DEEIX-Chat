@@ -91,7 +91,6 @@ export function useChatRuntime({
   activeConversation,
   selectedPlatformModelName,
   modelOptions,
-  selectedToolIDs,
   selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
@@ -127,7 +126,6 @@ export function useChatRuntime({
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
   modelOptions: ChatModelOption[];
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -205,7 +203,6 @@ export function useChatRuntime({
     activeConversation,
     selectedPlatformModelName,
     modelOptions,
-    selectedToolIDs,
     selectedSkills,
     selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,

@@ -11,45 +11,23 @@ export function useChatConversationDefaults({
   conversationID,
   contextKey,
   defaultsPending,
-  defaultMCPToolIDs,
   defaultSkillIDs,
   defaultKnowledgeBaseIDs,
-  mcpDefaultsPending,
-  setSelectedToolIDs,
   setSelectedSkills,
   setSelectedKnowledgeBaseIDs,
 }: {
   conversationID: string | null;
   contextKey: string;
   defaultsPending: boolean;
-  defaultMCPToolIDs: number[];
   defaultSkillIDs: number[];
   defaultKnowledgeBaseIDs: string[];
-  mcpDefaultsPending: boolean;
-  setSelectedToolIDs: React.Dispatch<React.SetStateAction<number[]>>;
   setSelectedSkills: React.Dispatch<React.SetStateAction<SkillSummaryDTO[]>>;
   setSelectedKnowledgeBaseIDs: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
-  const appliedMCPDefaultsKeyRef = React.useRef("");
   const appliedSkillDefaultsKeyRef = React.useRef("");
-  const manuallyChangedMCPKeyRef = React.useRef("");
   const manuallyChangedSkillKeyRef = React.useRef("");
   const appliedKnowledgeBaseDefaultsKeyRef = React.useRef("");
   const manuallyChangedKnowledgeBaseKeyRef = React.useRef("");
-
-  React.useEffect(() => {
-    if (conversationID || mcpDefaultsPending || defaultsPending) {
-      return;
-    }
-    if (
-      appliedMCPDefaultsKeyRef.current === contextKey ||
-      manuallyChangedMCPKeyRef.current === contextKey
-    ) {
-      return;
-    }
-    appliedMCPDefaultsKeyRef.current = contextKey;
-    setSelectedToolIDs(defaultMCPToolIDs);
-  }, [conversationID, contextKey, defaultMCPToolIDs, defaultsPending, mcpDefaultsPending, setSelectedToolIDs]);
 
   React.useEffect(() => {
     if (conversationID || defaultsPending) {
@@ -138,13 +116,6 @@ export function useChatConversationDefaults({
     };
   }, [conversationID, contextKey, defaultKnowledgeBaseIDs, defaultsPending, setSelectedKnowledgeBaseIDs]);
 
-  const onSelectedToolsChange = React.useCallback((toolIDs: number[]) => {
-    if (!conversationID) {
-      manuallyChangedMCPKeyRef.current = contextKey;
-    }
-    setSelectedToolIDs(toolIDs);
-  }, [conversationID, contextKey, setSelectedToolIDs]);
-
   const onSelectedSkillsChange = React.useCallback((skills: SkillSummaryDTO[]) => {
     if (!conversationID) {
       manuallyChangedSkillKeyRef.current = contextKey;
@@ -159,7 +130,7 @@ export function useChatConversationDefaults({
     setSelectedKnowledgeBaseIDs(ids.slice(0, 8));
   }, [conversationID, contextKey, setSelectedKnowledgeBaseIDs]);
 
-  return { onSelectedKnowledgeBasesChange, onSelectedSkillsChange, onSelectedToolsChange };
+  return { onSelectedKnowledgeBasesChange, onSelectedSkillsChange };
 }
 
 async function listVisibleSkillsByIDs(accessToken: string, skillIDs: number[]): Promise<SkillSummaryDTO[]> {

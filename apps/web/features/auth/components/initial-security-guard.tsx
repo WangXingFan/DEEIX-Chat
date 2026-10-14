@@ -30,7 +30,6 @@ import { cn } from "@/lib/utils";
 
 const ADMIN_ONBOARDING_TIPS = [
   "adminTips.upstreams",
-  "adminTips.mcp",
   "adminTips.files",
   "adminTips.context",
   "adminTips.trace",

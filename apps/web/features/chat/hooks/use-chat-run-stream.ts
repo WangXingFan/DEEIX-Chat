@@ -70,7 +70,6 @@ export function useChatRunStream({
       options,
       effectiveAttachments,
       platformModelName,
-      selectedToolIDs,
       selectedSkills,
       selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
@@ -89,7 +88,6 @@ export function useChatRunStream({
       options: ConversationOptions;
       effectiveAttachments: PendingAttachment[];
       platformModelName: string;
-      selectedToolIDs: number[];
       selectedSkills: SkillSummaryDTO[];
       selectedKnowledgeBaseIDs: string[];
       htmlVisualPromptEnabled: boolean;
@@ -247,7 +245,6 @@ export function useChatRunStream({
           ...commonStreamPayload,
           contentType: effectiveAttachments.length > 0 ? "mixed" : "text",
           content,
-          selectedToolIDs: selectedToolIDs.length > 0 ? selectedToolIDs : undefined,
           skillIDs: selectedSkills.length > 0 ? selectedSkills.map((skill) => skill.id) : undefined,
           knowledgeBaseIDs: selectedKnowledgeBaseIDs,
           htmlVisualPrompt: htmlVisualPromptEnabled || undefined,

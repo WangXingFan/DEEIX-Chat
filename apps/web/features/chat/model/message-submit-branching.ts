@@ -33,7 +33,6 @@ export type QueuedChatSubmission = BranchScope & {
   attachments: PendingAttachment[];
   platformModelName: string;
   options: ConversationOptions;
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;

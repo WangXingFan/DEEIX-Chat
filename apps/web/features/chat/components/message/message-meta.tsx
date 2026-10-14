@@ -713,7 +713,7 @@ type BillingServiceItemEntry = {
   billedNanousd: number;
 };
 
-// billingServiceItemEntries extracts service items from the snapshot (e.g. per-call MCP tool billing) so line items add up to the total.
+// billingServiceItemEntries extracts service items from the snapshot (e.g. per-call tool billing) so line items add up to the total.
 function billingServiceItemEntries(snapshot: BillingSnapshot): BillingServiceItemEntry[] {
   const items = Array.isArray(snapshot.service_items) ? snapshot.service_items : [];
   const entries: BillingServiceItemEntry[] = [];
@@ -754,7 +754,7 @@ function billingTooltipLines(item: ChatMetaMessage, labels: BillingMetaLabels, b
   const serviceLines = billingServiceItemLines(serviceEntries, labels, billingDisplay);
   // Separate tool service items from model billing with a divider.
   const serviceSection: BillingTooltipLine[] = serviceLines.length > 0 ? [{ type: "divider" }, ...serviceLines] : [];
-  // Free models can still incur charges from service items like MCP; only show as free when the whole bill is 0.
+  // Free models can still incur charges from extra service items; only show as free when the whole bill is 0.
   const freeOfCharge = snapshot.is_free_model === true && !(cost.billedNanousd > 0);
   const totalLine = freeOfCharge
     ? formatTotalLine(`${formatTooltipBillingCost(0, billingDisplay)} (${labels.freeModelNoBilling})`, labels)

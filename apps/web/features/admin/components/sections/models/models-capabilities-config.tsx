@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDownIcon, CircleHelp, CopyPlus, Plus, Trash2 } from "lucide-react";
+import { CircleHelp, CopyPlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -18,7 +17,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -26,36 +24,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { AdminLLMModelDTO } from "@/features/admin/api/llm-types";
 import { ModelCapabilitiesPresetDialog } from "@/features/admin/components/sections/models/models-capabilities-presets";
-import {
-  MODEL_OPTION_POLICY_PROTOCOL_LABELS,
-  MODEL_OPTION_POLICY_PROTOCOLS,
-  type NativeToolDefinition,
-  nativeToolPayloadMatchesShape,
-  nativeToolPayloadSignature,
-  resolveModelOptionPolicyProtocol,
-} from "@/entities/model";
+import { resolveModelOptionPolicyProtocol } from "@/entities/model";
 import { isOneOf, isRecord } from "@/shared/lib/type-guards";
 
 export const MODEL_CAPABILITIES_PLACEHOLDER = `{
   "defaultOptions": {},
-  "nativeTools": [
-    {
-      "key": "openai.web_search_preview",
-      "protocols": ["openai_chat_completions", "openai_responses"],
-      "type": "web_search_preview",
-      "label": "Web Search Preview",
-      "enabled": true,
-      "defaultEnabled": false,
-      "payload": {
-        "type": "web_search_preview"
-      }
-    }
-  ],
   "optionControls": [
     {
       "path": "size",
@@ -83,12 +60,6 @@ const isPromptCacheAvailability = isOneOf(PROMPT_CACHE_AVAILABILITIES);
 const PROMPT_CACHE_MODES = ["implicit", "explicit"] as const;
 const isPromptCacheMode = isOneOf(PROMPT_CACHE_MODES);
 
-const CAPABILITY_EDITOR_TABS = ["parameters", "tools"] as const;
-type CapabilityEditorTab = (typeof CAPABILITY_EDITOR_TABS)[number];
-const isCapabilityEditorTab = isOneOf(CAPABILITY_EDITOR_TABS);
-
-const isModelOptionPolicyProtocol = isOneOf(MODEL_OPTION_POLICY_PROTOCOLS);
-
 type PromptCacheConfig = {
   availability: (typeof PROMPT_CACHE_AVAILABILITIES)[number];
   mode: (typeof PROMPT_CACHE_MODES)[number];
@@ -105,34 +76,7 @@ type ParameterRow = {
   locked: boolean;
 };
 
-type NativeToolOption = {
-  id: string;
-  toolKey: string;
-  provider: string;
-  label: string;
-  description: string;
-  type: string;
-  payload: Record<string, unknown>;
-  protocols: string[];
-};
-
 type CapabilityRowErrors = Record<string, Partial<Record<"path" | "type" | "options" | "defaultValue", string>>>;
-
-type NativeToolRow = {
-  id: string;
-  key: string;
-  provider: string;
-  protocols: string;
-  type: string;
-  label: string;
-  description: string;
-  enabled: boolean;
-  defaultEnabled: boolean;
-  payload: string;
-  catalog: boolean;
-};
-
-type NativeToolRowErrors = Record<string, Partial<Record<"key" | "protocols" | "type" | "payload", string>>>;
 
 const OPENAI_PROMPT_CACHE_PROTOCOLS = new Set(["openai_chat_completions", "openai_responses"]);
 const DEFAULT_PROMPT_CACHE_CONFIG: PromptCacheConfig = {
@@ -140,25 +84,8 @@ const DEFAULT_PROMPT_CACHE_CONFIG: PromptCacheConfig = {
   mode: "implicit",
 };
 
-function nativeToolDisplayName(row: NativeToolRow): { name: string; specificName: string } {
-  const specificName = row.type.trim() || row.key.trim().split(".").pop() || row.label.trim();
-  const name = specificName.replace(/_\d{8}$/, "");
-  const fallback = row.label || row.key || "Tool";
-  return {
-    name: name || fallback,
-    specificName: specificName || fallback,
-  };
-}
-
 function createCapabilityRowID(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-// Syntax errors still throw so callers keep their existing error handling;
-// valid JSON that is not an object falls back to an empty payload.
-function parseJSONObjectOrEmpty(raw: string): Record<string, unknown> {
-  const parsed: unknown = JSON.parse(raw);
-  return isRecord(parsed) ? parsed : {};
 }
 
 function parseCapabilitiesObject(raw: string): Record<string, unknown> | null {
@@ -517,169 +444,7 @@ function hasCapabilityErrors(errors: CapabilityRowErrors): boolean {
   return Object.values(errors).some((rowErrors) => Object.keys(rowErrors).length > 0);
 }
 
-function nativeToolMatchesRouteProtocols(protocols: string[], routeProtocolSet: Set<string>): boolean {
-  return routeProtocolSet.size === 0 || protocols.some((protocol) => routeProtocolSet.has(resolveModelOptionPolicyProtocol(protocol)));
-}
-
-function sortNativeToolOptionsByRoute(
-  options: NativeToolOption[],
-  routeProtocolSet: Set<string>,
-): NativeToolOption[] {
-  return [...options].sort((left, right) => {
-    const leftMatched = nativeToolMatchesRouteProtocols(left.protocols, routeProtocolSet);
-    const rightMatched = nativeToolMatchesRouteProtocols(right.protocols, routeProtocolSet);
-    if (leftMatched !== rightMatched) {
-      return leftMatched ? -1 : 1;
-    }
-    const providerOrder = left.provider.localeCompare(right.provider);
-    return providerOrder
-      || left.label.localeCompare(right.label)
-      || left.toolKey.localeCompare(right.toolKey)
-      || left.type.localeCompare(right.type)
-      || left.protocols.join(",").localeCompare(right.protocols.join(","));
-  });
-}
-
-function nativeToolOptionsFromCatalog(
-  nativeTools: NativeToolDefinition[],
-  routeProtocols: string[] = [],
-): NativeToolOption[] {
-  const options = new Map<string, NativeToolOption>();
-  const routeProtocolSet = new Set(routeProtocols.map((protocol) => resolveModelOptionPolicyProtocol(protocol)).filter(Boolean));
-  nativeTools.forEach((tool) => {
-    const toolKey = tool.toolKey.trim();
-    const type = tool.type.trim();
-    const protocol = canonicalNativeToolProtocol(tool.protocol);
-    const payload = tool.payload ?? {};
-    const payloadSignature = nativeToolPayloadSignature(payload);
-    const existing = Array.from(options.values()).find((option) =>
-      option.toolKey === toolKey
-      && option.type === type
-      && nativeToolPayloadSignature(option.payload) === payloadSignature,
-    );
-    if (existing) {
-      const existingMatchesRoute = existing.protocols.some((protocol) =>
-        routeProtocolSet.has(resolveModelOptionPolicyProtocol(protocol)),
-      );
-      const toolMatchesRoute = routeProtocolSet.has(resolveModelOptionPolicyProtocol(protocol));
-      if (toolMatchesRoute && !existingMatchesRoute) {
-        existing.provider = tool.provider || "Provider";
-        existing.label = tool.label || tool.type || tool.toolKey;
-        existing.description = tool.description || tool.type || tool.toolKey;
-        existing.payload = payload;
-      }
-      existing.protocols = Array.from(new Set([...existing.protocols, protocol].filter(Boolean)));
-      return;
-    }
-    const id = `${nativeToolOptionID(toolKey, type, [protocol])}:${payloadSignature}`;
-    options.set(id, {
-      id,
-      toolKey,
-      provider: tool.provider || "Provider",
-      label: tool.label || tool.type || tool.toolKey,
-      description: tool.description || tool.type || tool.toolKey,
-      type,
-      payload,
-      protocols: [protocol].filter(Boolean),
-    });
-  });
-  return sortNativeToolOptionsByRoute(Array.from(options.values()), routeProtocolSet);
-}
-
-function nativeToolOptionID(key: string, type: string, protocols: string[] = []): string {
-  return [
-    key.trim(),
-    type.trim(),
-    ...protocols.map((protocol) => protocol.trim()).filter(Boolean).sort(),
-  ].filter(Boolean).join(":");
-}
-
-function nativeToolMatchesRawTool(rawTool: Record<string, unknown>, tool: NativeToolDefinition): boolean {
-  const rawType = typeof rawTool.type === "string" ? rawTool.type.trim() : "";
-  if (rawType && rawType === tool.type) {
-    return true;
-  }
-  return Boolean(
-    tool.payload &&
-      Object.keys(tool.payload).some((key) => key !== "type" && Object.hasOwn(rawTool, key)),
-  );
-}
-
-function nativeToolDefinitionMatchesRouteProtocols(tool: NativeToolDefinition, routeProtocolSet: Set<string>): boolean {
-  if (routeProtocolSet.size === 0) {
-    return true;
-  }
-  return routeProtocolSet.has(resolveModelOptionPolicyProtocol(tool.protocol));
-}
-
-function collectNativeToolKeysFromDefaultOptions(
-  value: unknown,
-  nativeTools: NativeToolDefinition[],
-  routeProtocols: string[],
-): { derivedKeys: string[]; matchingKeys: Set<string> } {
-  const matchingKeys = new Set<string>();
-  if (!isRecord(value)) {
-    return { derivedKeys: [], matchingKeys };
-  }
-  const routeProtocolSet = new Set(routeProtocols.map((protocol) => resolveModelOptionPolicyProtocol(protocol)).filter(Boolean));
-  const tools = Array.isArray(value.tools) ? value.tools : [];
-  const derivedKeys: string[] = [];
-  for (const rawTool of tools) {
-    if (!isRecord(rawTool)) {
-      continue;
-    }
-    const matchingTools = nativeTools.filter((tool) => nativeToolMatchesRawTool(rawTool, tool));
-    matchingTools.forEach((tool) => {
-      if (tool.toolKey) {
-        matchingKeys.add(tool.toolKey);
-      }
-    });
-    const selected = routeProtocolSet.size > 0
-      ? matchingTools.find((tool) => nativeToolDefinitionMatchesRouteProtocols(tool, routeProtocolSet))
-      : matchingTools[0];
-    if (selected?.toolKey) {
-      derivedKeys.push(selected.toolKey);
-    }
-  }
-  return { derivedKeys: Array.from(new Set(derivedKeys)), matchingKeys };
-}
-
-function parseNativeToolKeys(value: unknown, nativeTools: NativeToolDefinition[]): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const known = new Set(nativeTools.map((tool) => tool.toolKey.trim()).filter(Boolean));
-  return Array.from(
-    new Set(
-      value
-        .map((item) => (typeof item === "string" ? item.trim() : ""))
-        .filter((key) => key && known.has(key)),
-    ),
-  );
-}
-
-function resolveNativeToolKeysFromCapabilities(
-  nativeToolKeys: unknown,
-  defaultOptions: unknown,
-  nativeTools: NativeToolDefinition[],
-  routeProtocols: string[],
-): string[] {
-  const explicitKeys = parseNativeToolKeys(nativeToolKeys, nativeTools);
-  const { derivedKeys, matchingKeys } = collectNativeToolKeysFromDefaultOptions(defaultOptions, nativeTools, routeProtocols);
-  return Array.from(
-    new Set(
-      explicitKeys
-        .filter((key) => !matchingKeys.has(key) || derivedKeys.includes(key))
-        .concat(derivedKeys),
-    ),
-  );
-}
-
-export function normalizeModelCapabilitiesJSON(
-  value: string | null | undefined,
-  nativeTools: NativeToolDefinition[],
-  routeProtocols: string[],
-): string {
+export function normalizeModelCapabilitiesJSON(value: string | null | undefined): string {
   const trimmed = value?.trim() ?? "";
   if (!trimmed || trimmed === "{}") {
     return "";
@@ -688,348 +453,14 @@ export function normalizeModelCapabilitiesJSON(
   if (!payload) {
     return trimmed;
   }
-  const nativeToolRows = parseNativeToolRows(payload, nativeTools, routeProtocols);
-  const nextNativeTools = buildNativeTools(nativeToolRows);
-  if (nextNativeTools.length > 0) {
-    payload.nativeTools = nextNativeTools;
-  } else {
-    delete payload.nativeTools;
-  }
+  delete payload.nativeTools;
   delete payload.nativeToolKeys;
   return Object.keys(payload).length > 0 ? JSON.stringify(payload, null, 2) : "";
-}
-
-function canonicalNativeToolProtocol(protocol: string): string {
-  const value = protocol.trim();
-  return value.toLowerCase() === "google_generate_content" ? "gemini_generate_content" : value;
-}
-
-function formatNativeToolProtocols(protocols: string[]): string {
-  return Array.from(new Set(protocols.map(canonicalNativeToolProtocol).filter(Boolean)))
-    .map((protocol) => (isModelOptionPolicyProtocol(protocol) ? MODEL_OPTION_POLICY_PROTOCOL_LABELS[protocol] : protocol))
-    .join(" / ");
-}
-
-function parseNativeToolProtocolsInput(value: string): string[] {
-  return Array.from(
-    new Set(
-      value
-        .split(",")
-        .map(canonicalNativeToolProtocol)
-        .filter(Boolean),
-    ),
-  );
-}
-
-function formatNativeToolProtocolsInput(protocols: string[]): string {
-  return Array.from(new Set(protocols.map(canonicalNativeToolProtocol).filter(Boolean))).join(", ");
-}
-
-function nativeToolProtocolSelectOptions(
-  routeProtocols: string[],
-  currentProtocols: string,
-): { value: string; label: string }[] {
-  const protocols = [
-    ...routeProtocols,
-    ...Object.keys(MODEL_OPTION_POLICY_PROTOCOL_LABELS),
-    ...parseNativeToolProtocolsInput(currentProtocols),
-  ];
-  const seen = new Set<string>();
-  return protocols.flatMap((protocol) => {
-    const normalized = resolveModelOptionPolicyProtocol(protocol.trim());
-    if (!normalized || seen.has(normalized)) {
-      return [];
-    }
-    seen.add(normalized);
-    return [{
-      value: normalized,
-      label: MODEL_OPTION_POLICY_PROTOCOL_LABELS[normalized] ?? normalized,
-    }];
-  });
-}
-
-function NativeToolProtocolsSelect({
-  id,
-  value,
-  options,
-  invalid,
-  placeholder,
-  onChange,
-}: {
-  id?: string;
-  value: string;
-  options: { value: string; label: string }[];
-  invalid?: boolean;
-  placeholder: string;
-  onChange: (value: string) => void;
-}) {
-  const selected = parseNativeToolProtocolsInput(value);
-  const selectedSet = new Set(selected);
-  const selectedLabel = options
-    .filter((option) => selectedSet.has(option.value))
-    .map((option) => option.label)
-    .join(", ");
-
-  function toggle(protocol: string) {
-    const next = new Set(selected);
-    if (next.has(protocol)) {
-      next.delete(protocol);
-    } else {
-      next.add(protocol);
-    }
-    onChange(formatNativeToolProtocolsInput(Array.from(next)));
-  }
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          size="sm"
-          role="combobox"
-          className={cn(
-            "h-8 min-w-0 w-full justify-between gap-2 border-input/40 bg-transparent px-3 py-1 text-xs font-normal text-muted-foreground shadow-none hover:bg-transparent focus-visible:border-ring/60 focus-visible:ring-[1px] focus-visible:ring-ring/40 has-[>svg]:px-3",
-            invalid && "border-destructive focus-visible:ring-destructive/30",
-          )}
-        >
-          <span className={cn("min-w-0 flex-1 truncate text-left", selectedLabel && "text-foreground/75")}>
-            {selectedLabel || placeholder}
-          </span>
-          <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 p-1">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => toggle(option.value)}
-            className="relative flex w-full items-center rounded-sm py-1.5 pr-8 pl-2 text-xs font-normal hover:bg-accent"
-          >
-            <span className="min-w-0 flex-1 truncate text-left">{option.label}</span>
-            <Check
-              className={cn(
-                "absolute right-2 size-4 shrink-0 text-muted-foreground",
-                selectedSet.has(option.value) ? "opacity-100" : "opacity-0",
-              )}
-            />
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function nativeToolProtocolsFromConfig(value: Record<string, unknown>): string[] {
-  if (Array.isArray(value.protocols)) {
-    return Array.from(
-      new Set(
-        value.protocols
-          .map((item) => (typeof item === "string" ? item.trim() : ""))
-          .filter(Boolean),
-      ),
-    );
-  }
-  return typeof value.protocol === "string" && value.protocol.trim() ? [value.protocol.trim()] : [];
-}
-
-function nativeToolPayloadType(payload: Record<string, unknown>): string {
-  return typeof payload.type === "string" ? payload.type.trim() : "";
-}
-
-function nativeToolRowFromOption(option: NativeToolOption, enabled: boolean): NativeToolRow {
-  return {
-    id: option.id,
-    key: option.toolKey,
-    provider: option.provider,
-    protocols: formatNativeToolProtocolsInput(option.protocols),
-    type: option.type,
-    label: option.label,
-    description: option.description,
-    enabled,
-    defaultEnabled: false,
-    payload: JSON.stringify(option.payload, null, 2),
-    catalog: true,
-  };
-}
-
-function nativeToolRowFromConfig(value: Record<string, unknown>, index: number): NativeToolRow | null {
-  const payload = isRecord(value.payload) ? value.payload : {};
-  const key = typeof (value.key ?? value.toolKey) === "string" ? String(value.key ?? value.toolKey).trim() : "";
-  const protocols = nativeToolProtocolsFromConfig(value);
-  const type = typeof value.type === "string" ? value.type.trim() : nativeToolPayloadType(payload);
-  const id = typeof value.id === "string" && value.id.trim()
-    ? value.id.trim()
-    : nativeToolOptionID(key, type, protocols) || createCapabilityRowID();
-  if (!key && protocols.length === 0 && !type && Object.keys(payload).length === 0) {
-    return null;
-  }
-  return {
-    id,
-    key,
-    provider: typeof value.provider === "string" ? value.provider.trim() : "",
-    protocols: formatNativeToolProtocolsInput(protocols),
-    type,
-    label: typeof value.label === "string" ? value.label.trim() : type || key || `Tool ${index + 1}`,
-    description: typeof value.description === "string" ? value.description.trim() : "",
-    enabled: value.enabled !== false,
-    defaultEnabled: value.defaultEnabled === true,
-    payload: JSON.stringify(payload, null, 2),
-    catalog: false,
-  };
-}
-
-function parseNativeToolRows(
-  payload: Record<string, unknown>,
-  nativeTools: NativeToolDefinition[],
-  routeProtocols: string[],
-): NativeToolRow[] {
-  const options = nativeToolOptionsFromCatalog(nativeTools, routeProtocols);
-  const routeProtocolSet = new Set(routeProtocols.map((protocol) => resolveModelOptionPolicyProtocol(protocol)).filter(Boolean));
-  const rows = options.map((option) => nativeToolRowFromOption(option, false));
-  const applyRow = (row: NativeToolRow) => {
-    const configuredProtocols = new Set(
-      parseNativeToolProtocolsInput(row.protocols)
-        .map((protocol) => resolveModelOptionPolicyProtocol(protocol))
-        .filter(Boolean),
-    );
-    const matchingIndexes = rows.flatMap((item, index) => {
-      if (item.key !== row.key || item.type !== row.type) {
-        return [];
-      }
-      const protocolMatched = configuredProtocols.size === 0
-        || parseNativeToolProtocolsInput(item.protocols)
-          .some((protocol) => configuredProtocols.has(resolveModelOptionPolicyProtocol(protocol)));
-      return protocolMatched ? [index] : [];
-    });
-    if (matchingIndexes.length === 0) {
-      rows.unshift({ ...row, id: row.id || createCapabilityRowID() });
-      return;
-    }
-    const configuredPayload = parseJSONObjectOrEmpty(row.payload || "{}");
-    for (const index of matchingIndexes) {
-      const catalogRow = rows[index];
-      if (!catalogRow) {
-        continue;
-      }
-      const matchedProtocols = parseNativeToolProtocolsInput(catalogRow.protocols)
-        .filter((protocol) => configuredProtocols.size === 0 || configuredProtocols.has(resolveModelOptionPolicyProtocol(protocol)));
-      const catalogPayload = parseJSONObjectOrEmpty(catalogRow.payload || "{}");
-      rows[index] = {
-        ...catalogRow,
-        ...row,
-        id: catalogRow.id,
-        provider: row.provider || catalogRow.provider,
-        description: row.description || catalogRow.description,
-        protocols: formatNativeToolProtocolsInput(matchedProtocols),
-        payload: matchingIndexes.length === 1 || nativeToolPayloadMatchesShape(configuredPayload, catalogPayload)
-          ? row.payload
-          : catalogRow.payload,
-        catalog: true,
-      };
-    }
-  };
-
-  if (Array.isArray(payload.nativeTools)) {
-    payload.nativeTools.forEach((item, index) => {
-      if (!isRecord(item)) {
-        return;
-      }
-      const row = nativeToolRowFromConfig(item, index);
-      if (row) {
-        applyRow(row);
-      }
-    });
-    return rows;
-  }
-
-  resolveNativeToolKeysFromCapabilities(payload.nativeToolKeys, payload.defaultOptions, nativeTools, routeProtocols).forEach((key) => {
-    const matched = options.find((option) => option.toolKey === key && option.protocols.some((protocol) => routeProtocolSet.has(resolveModelOptionPolicyProtocol(protocol))))
-      ?? options.find((option) => option.toolKey === key);
-    if (matched) {
-      applyRow(nativeToolRowFromOption(matched, true));
-    }
-  });
-
-  return rows;
-}
-
-function buildNativeTools(rows: NativeToolRow[]): Record<string, unknown>[] {
-  return rows.flatMap((row): Record<string, unknown>[] => {
-    if (!row.enabled) {
-      return [];
-    }
-    let payload: unknown;
-    try {
-      payload = JSON.parse(row.payload.trim() || "{}");
-    } catch {
-      return [];
-    }
-    if (!isRecord(payload)) {
-      return [];
-    }
-    const item: Record<string, unknown> = {
-      key: row.key.trim(),
-      protocols: parseNativeToolProtocolsInput(row.protocols),
-      label: row.label.trim() || row.type.trim() || row.key.trim(),
-      enabled: true,
-      defaultEnabled: row.defaultEnabled,
-      payload,
-    };
-    const provider = row.provider.trim();
-    const type = row.type.trim() || nativeToolPayloadType(payload);
-    const description = row.description.trim();
-    if (provider) {
-      item.provider = provider;
-    }
-    if (type) {
-      item.type = type;
-    }
-    if (description) {
-      item.description = description;
-    }
-    return [item];
-  });
-}
-
-function validateNativeToolRows(rows: NativeToolRow[], t: (key: string) => string): NativeToolRowErrors {
-  const errors: NativeToolRowErrors = {};
-  rows.forEach((row) => {
-    if (!row.enabled) {
-      return;
-    }
-    const rowErrors: Partial<Record<"key" | "protocols" | "type" | "payload", string>> = {};
-    if (!row.key.trim()) {
-      rowErrors.key = t("sheet.capabilitiesQuick.nativeToolKeyRequired");
-    }
-    if (parseNativeToolProtocolsInput(row.protocols).length === 0) {
-      rowErrors.protocols = t("sheet.capabilitiesQuick.nativeToolProtocolRequired");
-    }
-    let payload: unknown;
-    try {
-      payload = JSON.parse(row.payload.trim() || "{}");
-    } catch {
-      rowErrors.payload = t("sheet.capabilitiesQuick.nativeToolPayloadInvalid");
-    }
-    if (payload !== undefined && !isRecord(payload)) {
-      rowErrors.payload = t("sheet.capabilitiesQuick.nativeToolPayloadInvalid");
-    }
-    if (!row.type.trim() && isRecord(payload) && !nativeToolPayloadType(payload)) {
-      rowErrors.type = t("sheet.capabilitiesQuick.nativeToolTypeRequired");
-    }
-    if (Object.keys(rowErrors).length > 0) {
-      errors[row.id] = rowErrors;
-    }
-  });
-  return errors;
 }
 
 function buildCapabilitiesJSON(
   currentJSON: string,
   parameterRows: ParameterRow[],
-  nativeToolRows: NativeToolRow[],
   promptCacheConfig: PromptCacheConfig,
   promptCacheSupported: boolean,
 ): string | null {
@@ -1055,15 +486,10 @@ function buildCapabilitiesJSON(
   } else {
     delete payload.lockedOptionPaths;
   }
-  const nativeTools = buildNativeTools(nativeToolRows);
-  if (nativeTools.length > 0) {
-    payload.nativeTools = nativeTools;
-  } else {
-    delete payload.nativeTools;
-  }
   if (promptCacheSupported) {
     applyPromptCacheConfig(payload, promptCacheConfig);
   }
+  delete payload.nativeTools;
   delete payload.nativeToolKeys;
   return Object.keys(payload).length > 0 ? JSON.stringify(payload, null, 2) : "";
 }
@@ -1088,7 +514,6 @@ export function ModelCapabilitiesGuideButton({ t }: { t: (key: string) => string
             <TabsList className="shrink-0">
               <TabsTrigger value="defaults">{t("sheet.capabilitiesGuide.defaultsTab")}</TabsTrigger>
               <TabsTrigger value="controls">{t("sheet.capabilitiesGuide.controlsTab")}</TabsTrigger>
-              <TabsTrigger value="tools">{t("sheet.capabilitiesGuide.toolsTab")}</TabsTrigger>
               <TabsTrigger value="policy">{t("sheet.capabilitiesGuide.policyTab")}</TabsTrigger>
             </TabsList>
 
@@ -1141,59 +566,6 @@ export function ModelCapabilitiesGuideButton({ t }: { t: (key: string) => string
               <p className="text-xs">{t("sheet.capabilitiesGuide.controlTypes")}</p>
             </TabsContent>
 
-            <TabsContent value="tools" className="min-h-0 flex-1 space-y-3 overflow-y-auto text-sm text-muted-foreground">
-              <p className="text-xs">{t("sheet.capabilitiesGuide.toolsDescription")}</p>
-              <pre className="max-h-72 overflow-auto rounded-md bg-muted/50 p-3 text-xs text-foreground">
-  {`{
-    "nativeTools": [
-      {
-        "key": "xai.x_search",
-        "protocols": ["xai_responses"],
-        "type": "x_search",
-        "label": "X Search",
-        "enabled": true,
-        "defaultEnabled": true,
-        "payload": {
-          "type": "x_search",
-          "enable_image_understanding": true
-        }
-      },
-      {
-        "key": "xai.web_search",
-        "protocols": ["xai_responses"],
-        "type": "web_search",
-        "label": "Web Search",
-        "enabled": true,
-        "defaultEnabled": true,
-        "payload": {
-          "type": "web_search",
-          "enable_image_understanding": true,
-          "enable_image_search": true
-        }
-      },
-      {
-        "key": "xai.code_interpreter",
-        "protocols": ["xai_responses"],
-        "type": "code_interpreter",
-        "label": "Code Interpreter",
-        "enabled": true,
-        "defaultEnabled": false,
-        "payload": {
-          "type": "code_interpreter",
-          "container": {
-            "type": "auto"
-          }
-        }
-      }
-    ],
-    "defaultOptions": {
-      "store": false
-    }
-  }`}
-              </pre>
-              <p className="text-xs">{t("sheet.capabilitiesGuide.toolsAutoDescription")}</p>
-            </TabsContent>
-
             <TabsContent value="policy" className="min-h-0 flex-1 space-y-3 overflow-y-auto text-sm text-muted-foreground">
               <p className="text-xs">{t("sheet.capabilitiesGuide.policyDescription")}</p>
               <pre className="max-h-72 overflow-auto rounded-md bg-muted/50 p-3 text-xs text-foreground">
@@ -1223,7 +595,6 @@ export function ModelCapabilitiesQuickConfig({
   disabled,
   presetModels = [],
   currentModelID,
-  nativeTools,
   routeProtocols,
   t,
   commonT,
@@ -1236,7 +607,6 @@ export function ModelCapabilitiesQuickConfig({
   disabled: boolean;
   presetModels?: AdminLLMModelDTO[];
   currentModelID?: number | null;
-  nativeTools: NativeToolDefinition[];
   routeProtocols: string[];
   t: (key: string, values?: Record<string, string | number>) => string;
   commonT: (key: string) => string;
@@ -1247,15 +617,10 @@ export function ModelCapabilitiesQuickConfig({
 }) {
   const [open, setOpen] = useState(false);
   const [presetOpen, setPresetOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<CapabilityEditorTab>("parameters");
   const [draftBaseJSON, setDraftBaseJSON] = useState("");
   const [parameterRows, setParameterRows] = useState<ParameterRow[]>([]);
   const [promptCacheConfig, setPromptCacheConfig] = useState<PromptCacheConfig>(DEFAULT_PROMPT_CACHE_CONFIG);
-  const [nativeToolRows, setNativeToolRows] = useState<NativeToolRow[]>([]);
-  const [expandedNativeToolID, setExpandedNativeToolID] = useState("");
   const [parameterErrors, setParameterErrors] = useState<CapabilityRowErrors>({});
-  const [nativeToolErrors, setNativeToolErrors] = useState<NativeToolRowErrors>({});
-  const routeProtocolSet = new Set(routeProtocols.map((protocol) => resolveModelOptionPolicyProtocol(protocol)).filter(Boolean));
   const promptCacheSupported = supportsPromptCacheProtocols(routeProtocols);
 
   function loadDraft() {
@@ -1266,12 +631,7 @@ export function ModelCapabilitiesQuickConfig({
     }
     setParameterRows(parseParameterRows(payload.defaultOptions, payload.optionControls, payload.lockedOptionPaths));
     setPromptCacheConfig(parsePromptCacheConfig(payload.promptCache));
-    const nextNativeToolRows = parseNativeToolRows(payload, nativeTools, routeProtocols);
-    setNativeToolRows(nextNativeToolRows);
-    setExpandedNativeToolID("");
     setParameterErrors({});
-    setNativeToolErrors({});
-    setActiveTab("parameters");
     setDraftBaseJSON(value);
     return true;
   }
@@ -1301,43 +661,6 @@ export function ModelCapabilitiesQuickConfig({
     )));
   }
 
-  function updateNativeToolRow(id: string, patch: Partial<NativeToolRow>) {
-    setNativeToolErrors((prev) => {
-      const { [id]: _rowErrors, ...rest } = prev;
-      return rest;
-    });
-    setNativeToolRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
-  }
-
-  function addNativeToolRow() {
-    const protocol = routeProtocols[0]?.trim() || "openai_responses";
-    const id = createCapabilityRowID();
-    setNativeToolRows((prev) => [{
-      id,
-      key: "",
-      provider: "",
-      protocols: protocol,
-      type: "",
-      label: "",
-      description: "",
-      enabled: true,
-      defaultEnabled: true,
-      payload: "{\n  \"type\": \"\"\n}",
-      catalog: false,
-    }, ...prev]);
-    setExpandedNativeToolID(id);
-  }
-
-  function removeNativeToolRow(id: string) {
-    const nextRows = nativeToolRows.filter((item) => item.id !== id);
-    setNativeToolRows(nextRows);
-    setExpandedNativeToolID((current) => (current === id ? "" : current));
-    setNativeToolErrors((prev) => {
-      const { [id]: _rowErrors, ...rest } = prev;
-      return rest;
-    });
-  }
-
   function addParameterRow() {
     setParameterRows((prev) => [{
       id: createCapabilityRowID(),
@@ -1353,18 +676,14 @@ export function ModelCapabilitiesQuickConfig({
 
   function applyDraft() {
     const nextParameterErrors = validateParameterRows(parameterRows, t);
-    const nextNativeToolErrors = validateNativeToolRows(nativeToolRows, t);
     setParameterErrors(nextParameterErrors);
-    setNativeToolErrors(nextNativeToolErrors);
-    if (hasCapabilityErrors(nextParameterErrors) || Object.keys(nextNativeToolErrors).length > 0) {
-      setActiveTab(hasCapabilityErrors(nextParameterErrors) ? "parameters" : "tools");
+    if (hasCapabilityErrors(nextParameterErrors)) {
       toast.error(t("sheet.capabilitiesQuick.validationFailed"));
       return;
     }
     const nextValue = buildCapabilitiesJSON(
       draftBaseJSON,
       parameterRows,
-      nativeToolRows,
       promptCacheConfig,
       promptCacheSupported,
     );
@@ -1392,11 +711,7 @@ export function ModelCapabilitiesQuickConfig({
     const sanitizedValue = Object.keys(payload).length > 0 ? JSON.stringify(payload, null, 2) : "";
     setParameterRows(parseParameterRows(payload.defaultOptions, payload.optionControls, payload.lockedOptionPaths));
     setPromptCacheConfig(parsePromptCacheConfig(payload.promptCache));
-    setNativeToolRows(parseNativeToolRows(payload, nativeTools, routeProtocols));
-    setExpandedNativeToolID("");
     setParameterErrors({});
-    setNativeToolErrors({});
-    setActiveTab("parameters");
     setDraftBaseJSON(sanitizedValue);
   }
 
@@ -1445,25 +760,8 @@ export function ModelCapabilitiesQuickConfig({
           />
 
           <div className="min-h-0 min-w-0 flex flex-1 flex-col overflow-hidden px-4 py-2">
-            <Tabs
-              value={activeTab}
-              onValueChange={(value) => {
-                if (isCapabilityEditorTab(value)) setActiveTab(value);
-              }}
-              className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden"
-            >
-              <div className="min-w-0 shrink-0">
-                <TabsList className="grid h-8 w-full min-w-0 grid-cols-2">
-                  <TabsTrigger value="parameters" className="min-w-0">
-                    <span className="min-w-0 truncate">{t("sheet.capabilitiesQuick.parametersTab")}</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="tools" className="min-w-0">
-                    <span className="min-w-0 truncate">{t("sheet.capabilitiesGuide.toolsTab")}</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="parameters" className="min-h-0 flex flex-1 flex-col gap-3 overflow-hidden pr-1">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+              <div className="min-h-0 flex flex-1 flex-col gap-3 overflow-hidden pr-1">
                 <div className="flex min-w-0 shrink-0 items-start justify-between gap-3">
                   <p className="min-w-0 flex-1 text-xs leading-5 text-muted-foreground">
                     {t("sheet.capabilitiesQuick.parametersIntro")}
@@ -1686,204 +984,8 @@ export function ModelCapabilitiesQuickConfig({
                     </div>
                   </div>
                 )}
-              </TabsContent>
-
-              <TabsContent value="tools" className="min-h-0 flex flex-1 flex-col gap-3 overflow-hidden pr-1">
-                <div className="flex min-w-0 shrink-0 items-start justify-between gap-3">
-                  <p className="min-w-0 flex-1 text-xs leading-5 text-muted-foreground">
-                    {t("sheet.capabilitiesQuick.toolsIntro")}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="h-7 shrink-0 whitespace-nowrap px-2 text-xs"
-                    onClick={addNativeToolRow}
-                  >
-                    <Plus className="size-3.5" />
-                    {t("sheet.capabilitiesQuick.addNativeTool")}
-                  </Button>
-                </div>
-                {nativeToolRows.length === 0 ? (
-                  <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-md border border-dashed px-3 py-8 text-center">
-                    <p className="text-xs text-muted-foreground">{t("sheet.capabilitiesQuick.emptyTools")}</p>
-                  </div>
-                ) : (
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-dashed p-3">
-                    <div className="min-w-0 space-y-2">
-                      {nativeToolRows.map((row) => {
-                        const rowErrors = nativeToolErrors[row.id] ?? {};
-                        const protocols = parseNativeToolProtocolsInput(row.protocols);
-                        const protocolText = formatNativeToolProtocols(protocols);
-                        const protocolMatched = nativeToolMatchesRouteProtocols(protocols, routeProtocolSet);
-                        const protocolOptions = nativeToolProtocolSelectOptions(routeProtocols, row.protocols);
-                        const displayName = nativeToolDisplayName(row);
-                        const expanded = expandedNativeToolID === row.id;
-                        return (
-                          <div
-                            key={row.id}
-                            className={cn(
-                              "min-w-0 rounded-md border border-l-2 px-2 py-2",
-                              protocolMatched ? "border-l-muted-foreground/30 bg-muted/40" : "border-l-transparent bg-muted/20",
-                              expanded ? "border-y-border/70 border-r-border/70" : "border-y-transparent border-r-transparent",
-                              expanded && "space-y-3",
-                              !row.enabled && "text-muted-foreground",
-                            )}
-                          >
-                            <div className="flex min-h-9 min-w-0 items-center justify-between gap-2">
-                              <label className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
-                                <Checkbox
-                                  checked={row.enabled}
-                                  onCheckedChange={(checked) => updateNativeToolRow(row.id, { enabled: checked === true })}
-                                />
-                                <span className="min-w-0 space-y-0.5">
-                                  <span className="flex min-w-0 items-center gap-1.5">
-                                    <span className="min-w-0 truncate text-xs text-foreground/85">
-                                      {displayName.name}
-                                    </span>
-                                    {row.catalog ? (
-                                      <Badge variant="secondary" className="h-5 shrink-0 rounded-md px-1.5 text-[10px] font-normal">
-                                        {row.provider || row.key}
-                                      </Badge>
-                                    ) : null}
-                                    {!protocolMatched ? (
-                                      <Badge variant="outline" className="h-5 shrink-0 rounded-md px-1.5 text-[10px] font-normal text-amber-700">
-                                        {t("sheet.capabilitiesQuick.nativeToolMayNotApply")}
-                                      </Badge>
-                                    ) : null}
-                                    {Object.keys(rowErrors).length > 0 ? (
-                                      <span className="size-1.5 shrink-0 rounded-full bg-destructive" aria-hidden="true" />
-                                    ) : null}
-                                  </span>
-                                  <span className="block min-w-0 truncate font-mono text-[10px] text-muted-foreground">
-                                    {displayName.specificName} · {protocolText || "-"}
-                                  </span>
-                                </span>
-                              </label>
-
-                              <div className="flex shrink-0 items-center gap-2">
-                                <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                  <Switch
-                                    size="sm"
-                                    checked={row.defaultEnabled}
-                                    disabled={!row.enabled}
-                                    onCheckedChange={(checked) => updateNativeToolRow(row.id, { defaultEnabled: checked === true })}
-                                  />
-                                  {t("sheet.capabilitiesQuick.nativeToolDefaultEnabled")}
-                                </label>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 px-2 text-xs"
-                                  onClick={() => setExpandedNativeToolID((current) => (current === row.id ? "" : row.id))}
-                                >
-                                  {expanded ? t("sheet.capabilitiesQuick.nativeToolCollapse") : t("sheet.capabilitiesQuick.nativeToolConfigure")}
-                                </Button>
-                                {!row.catalog ? (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 text-muted-foreground hover:text-destructive"
-                                    onClick={() => removeNativeToolRow(row.id)}
-                                    aria-label={commonT("actions.delete")}
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </Button>
-                                ) : null}
-                              </div>
-                            </div>
-
-                            {expanded ? (
-                            <div className="grid min-w-0 grid-cols-1 gap-2 border-t pt-3 sm:grid-cols-3">
-                              <label className="min-w-0 space-y-1">
-                                <span className="block truncate px-1 text-[11px] text-muted-foreground">
-                                  {t("sheet.capabilitiesQuick.nativeToolKey")} *
-                                </span>
-                                <Input
-                                  className={cn("h-8 bg-transparent", rowErrors.key && "border-destructive focus-visible:ring-destructive/30")}
-                                  value={row.key}
-                                  disabled={row.catalog}
-                                  placeholder="anthropic.web_search_20260209"
-                                  onChange={(event) => updateNativeToolRow(row.id, { key: event.target.value })}
-                                />
-                                {rowErrors.key ? <p className="truncate px-1 text-[10px] text-destructive">{rowErrors.key}</p> : null}
-                              </label>
-                              <label className="min-w-0 space-y-1">
-                                <span className="block truncate px-1 text-[11px] text-muted-foreground">
-                                  {t("sheet.capabilitiesQuick.nativeToolType")} *
-                                </span>
-                                <Input
-                                  className={cn("h-8 bg-transparent", rowErrors.type && "border-destructive focus-visible:ring-destructive/30")}
-                                  value={row.type}
-                                  disabled={row.catalog}
-                                  placeholder="web_search_20260209"
-                                  onChange={(event) => updateNativeToolRow(row.id, { type: event.target.value })}
-                                />
-                                {rowErrors.type ? <p className="truncate px-1 text-[10px] text-destructive">{rowErrors.type}</p> : null}
-                              </label>
-                              <label className="min-w-0 space-y-1" htmlFor={`native-tool-protocols-${row.id}`}>
-                                <span className="block truncate px-1 text-[11px] text-muted-foreground">
-                                  {t("sheet.capabilitiesQuick.nativeToolProtocols")} *
-                                </span>
-                                <NativeToolProtocolsSelect
-                                  id={`native-tool-protocols-${row.id}`}
-                                  value={row.protocols}
-                                  options={protocolOptions}
-                                  invalid={Boolean(rowErrors.protocols)}
-                                  placeholder={t("sheet.capabilitiesQuick.nativeToolProtocolsPlaceholder")}
-                                  onChange={(protocols) => updateNativeToolRow(row.id, { protocols })}
-                                />
-                                {rowErrors.protocols ? <p className="truncate px-1 text-[10px] text-destructive">{rowErrors.protocols}</p> : null}
-                              </label>
-                              <label className="min-w-0 space-y-1">
-                                <span className="block truncate px-1 text-[11px] text-muted-foreground">
-                                  {t("sheet.capabilitiesQuick.labelColumn")}
-                                </span>
-                                <Input
-                                  className="h-8 bg-transparent"
-                                  value={row.label}
-                                  placeholder={t("sheet.capabilitiesQuick.labelPlaceholder")}
-                                  onChange={(event) => updateNativeToolRow(row.id, { label: event.target.value })}
-                                />
-                              </label>
-                              <label className="min-w-0 space-y-1">
-                                <span className="block truncate px-1 text-[11px] text-muted-foreground">
-                                  {t("sheet.capabilitiesQuick.descriptionColumn")}
-                                </span>
-                                <Input
-                                  className="h-8 bg-transparent"
-                                  value={row.description}
-                                  placeholder={t("sheet.capabilitiesQuick.descriptionPlaceholder")}
-                                  onChange={(event) => updateNativeToolRow(row.id, { description: event.target.value })}
-                                />
-                              </label>
-                              <label className="min-w-0 space-y-1 sm:col-span-3">
-                                <span className="block truncate px-1 text-[11px] text-muted-foreground">
-                                  {t("sheet.capabilitiesQuick.nativeToolPayload")} *
-                                </span>
-                                <textarea
-                                  className={cn(
-                                    "min-h-20 w-full resize-y rounded-md border bg-transparent px-2 py-2 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-                                    rowErrors.payload && "border-destructive focus-visible:ring-destructive/30",
-                                  )}
-                                  value={row.payload}
-                                  spellCheck={false}
-                                  onChange={(event) => updateNativeToolRow(row.id, { payload: event.target.value })}
-                                />
-                                {rowErrors.payload ? <p className="truncate px-1 text-[10px] text-destructive">{rowErrors.payload}</p> : null}
-                              </label>
-                            </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="shrink-0 px-4 py-3">

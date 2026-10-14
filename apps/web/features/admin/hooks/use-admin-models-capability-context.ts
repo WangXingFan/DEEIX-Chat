@@ -4,26 +4,22 @@ import * as React from "react";
 
 import { getAdminReferenceData, listAdminSettingsByNamespace } from "@/features/admin/api";
 import type { AdminLLMModelDTO } from "@/features/admin/api/llm-types";
-import { getModelOptionPolicy } from "@/shared/api/settings";
 import { resolveAccessToken } from "@/shared/auth/resolve-access-token";
-import type { NativeToolDefinition } from "@/entities/model";
 
 type UseAdminModelsCapabilityContextOptions = {
   open: boolean;
   models: AdminLLMModelDTO[];
 };
 
-// Read-only context the model sheet's capability editor needs: native tools,
-// the full model list for presets, and the global context-window fallback.
-// Every failure keeps the previous/default value on purpose.
+// Read-only context the model sheet's capability editor needs: the full model
+// list for presets and the global context-window fallback. Every failure keeps
+// the previous/default value on purpose.
 export function useAdminModelsCapabilityContext({ open, models }: UseAdminModelsCapabilityContextOptions) {
-  const [nativeTools, setNativeTools] = React.useState<NativeToolDefinition[]>([]);
   const [capabilitySourceModels, setCapabilitySourceModels] = React.useState<AdminLLMModelDTO[]>(models);
   const [contextWindowFallbackTokens, setContextWindowFallbackTokens] = React.useState(128_000);
 
   React.useEffect(() => {
     if (!open) {
-      setNativeTools([]);
       setCapabilitySourceModels(models);
       return;
     }
@@ -34,17 +30,12 @@ export function useAdminModelsCapabilityContext({ open, models }: UseAdminModels
         if (!token) {
           return;
         }
-        const policy = await getModelOptionPolicy(token);
-        if (!cancelled) {
-          setNativeTools(policy.nativeTools);
-        }
         const referenceData = await getAdminReferenceData(token);
         if (!cancelled) {
           setCapabilitySourceModels(referenceData.models);
         }
       } catch {
         if (!cancelled) {
-          setNativeTools([]);
           setCapabilitySourceModels(models);
         }
       }
@@ -78,5 +69,5 @@ export function useAdminModelsCapabilityContext({ open, models }: UseAdminModels
     };
   }, [open]);
 
-  return { nativeTools, capabilitySourceModels, contextWindowFallbackTokens };
+  return { capabilitySourceModels, contextWindowFallbackTokens };
 }

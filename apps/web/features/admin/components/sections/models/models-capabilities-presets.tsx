@@ -39,20 +39,6 @@ type CapabilityPreset = {
   payload: Record<string, unknown>;
 };
 
-const OPENAI_WEB_SEARCH_NATIVE_TOOL = {
-  key: "openai.web_search",
-  protocols: ["openai_chat_completions", "openai_responses"],
-  label: "Web Search",
-  enabled: true,
-  defaultEnabled: true,
-  payload: {
-    type: "web_search",
-  },
-  provider: "OpenAI",
-  type: "web_search",
-  description: "OpenAI hosted web search.",
-};
-
 const OPENAI_REASONING_EFFORT_OPTIONS = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 const XAI_IMAGE_ASPECT_RATIOS = [
@@ -193,7 +179,6 @@ const MODEL_CAPABILITY_PRESETS: CapabilityPreset[] = [
           options: ["low", "medium", "high"],
         },
       ],
-      nativeTools: [OPENAI_WEB_SEARCH_NATIVE_TOOL],
     },
   },
   {
@@ -237,25 +222,6 @@ const MODEL_CAPABILITY_PRESETS: CapabilityPreset[] = [
           type: "boolean",
           label: "Store",
         },
-      ],
-      nativeTools: [
-        {
-          key: "openai.code_interpreter",
-          protocols: ["openai_responses"],
-          label: "Code Interpreter",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            container: {
-              type: "auto",
-            },
-            type: "code_interpreter",
-          },
-          provider: "OpenAI",
-          type: "code_interpreter",
-          description: "OpenAI hosted code interpreter with an automatic container.",
-        },
-        OPENAI_WEB_SEARCH_NATIVE_TOOL,
       ],
     },
   },
@@ -314,38 +280,6 @@ const MODEL_CAPABILITY_PRESETS: CapabilityPreset[] = [
           options: ["5m", "1h"],
         },
       ],
-      nativeTools: [
-        {
-          key: "anthropic.web_fetch_20260209",
-          protocols: ["anthropic_messages"],
-          label: "Web Fetch",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            allowed_callers: ["direct"],
-            name: "web_fetch",
-            type: "web_fetch_20260209",
-          },
-          provider: "Anthropic",
-          type: "web_fetch_20260209",
-          description: "Anthropic hosted web fetch tool.",
-        },
-        {
-          key: "anthropic.web_search_20260209",
-          protocols: ["anthropic_messages"],
-          label: "Web Search",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            allowed_callers: ["direct"],
-            name: "web_search",
-            type: "web_search_20260209",
-          },
-          provider: "Anthropic",
-          type: "web_search_20260209",
-          description: "Anthropic hosted web search tool.",
-        },
-      ],
     },
   },
   {
@@ -370,47 +304,6 @@ const MODEL_CAPABILITY_PRESETS: CapabilityPreset[] = [
           type: "select",
           label: "Thinking Level",
           options: ["low", "medium", "high"],
-        },
-      ],
-      nativeTools: [
-        {
-          key: "google.code_execution",
-          protocols: ["gemini_generate_content"],
-          label: "Code Execution",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            code_execution: {},
-          },
-          provider: "Google",
-          type: "code_execution",
-          description: "Google hosted code execution tool.",
-        },
-        {
-          key: "google.google_search",
-          protocols: ["gemini_generate_content"],
-          label: "Google Search",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            google_search: {},
-          },
-          provider: "Google",
-          type: "google_search",
-          description: "Google hosted search grounding tool.",
-        },
-        {
-          key: "google.url_context",
-          protocols: ["gemini_generate_content"],
-          label: "URL Context",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            url_context: {},
-          },
-          provider: "Google",
-          type: "url_context",
-          description: "Google hosted URL context tool.",
         },
       ],
     },
@@ -445,47 +338,6 @@ const MODEL_CAPABILITY_PRESETS: CapabilityPreset[] = [
           type: "number",
           label: "Max Output Tokens",
           description: "Maximum number of tokens to include in the response.",
-        },
-      ],
-      nativeTools: [
-        {
-          key: "google.code_execution",
-          protocols: ["gemini_interactions"],
-          label: "Code Execution",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            type: "code_execution",
-          },
-          provider: "Google",
-          type: "code_execution",
-          description: "Google hosted code execution tool.",
-        },
-        {
-          key: "google.google_search",
-          protocols: ["gemini_interactions"],
-          label: "Google Search",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            type: "google_search",
-          },
-          provider: "Google",
-          type: "google_search",
-          description: "Google hosted search grounding tool.",
-        },
-        {
-          key: "google.url_context",
-          protocols: ["gemini_interactions"],
-          label: "URL Context",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            type: "url_context",
-          },
-          provider: "Google",
-          type: "url_context",
-          description: "Google hosted URL context tool.",
         },
       ],
     },
@@ -552,49 +404,6 @@ const MODEL_CAPABILITY_PRESETS: CapabilityPreset[] = [
           type: "boolean",
           label: "Store",
           description: "Stores the input and response for later retrieval.",
-        },
-      ],
-      nativeTools: [
-        {
-          key: "xai.code_interpreter",
-          protocols: ["xai_responses"],
-          label: "Code Interpreter",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            type: "code_interpreter",
-          },
-          provider: "xAI",
-          type: "code_interpreter",
-          description: "xAI hosted code interpreter.",
-        },
-        {
-          key: "xai.web_search",
-          protocols: ["xai_responses"],
-          label: "Web Search",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            type: "web_search",
-            enable_image_understanding: true,
-          },
-          provider: "xAI",
-          type: "web_search",
-          description: "xAI hosted web search.",
-        },
-        {
-          key: "xai.x_search",
-          protocols: ["xai_responses"],
-          label: "X Search",
-          enabled: true,
-          defaultEnabled: true,
-          payload: {
-            type: "x_search",
-            enable_image_understanding: true,
-          },
-          provider: "xAI",
-          type: "x_search",
-          description: "xAI hosted X search.",
         },
       ],
     },
@@ -729,14 +538,12 @@ function hasModelCapabilities(value: string | null | undefined): boolean {
   return Boolean(normalized && normalized !== "{}");
 }
 
-function capabilityPresetSummary(preset: CapabilityPreset): { defaults: number; controls: number; tools: number } {
+function capabilityPresetSummary(preset: CapabilityPreset): { defaults: number; controls: number } {
   const defaultOptions = preset.payload.defaultOptions;
   const optionControls = preset.payload.optionControls;
-  const nativeTools = preset.payload.nativeTools;
   return {
     defaults: flattenDefaultOptions(defaultOptions).length,
     controls: Array.isArray(optionControls) ? optionControls.length : 0,
-    tools: Array.isArray(nativeTools) ? nativeTools.length : 0,
   };
 }
 
@@ -900,7 +707,6 @@ export function ModelCapabilitiesPresetDialog({
                             {t("sheet.capabilitiesPreset.presetSummary", {
                               defaults: summary.defaults,
                               controls: summary.controls,
-                              tools: summary.tools,
                             })}
                           </span>
                           <span className="flex h-5 w-[76px] shrink-0 items-center justify-end">
@@ -920,7 +726,6 @@ export function ModelCapabilitiesPresetDialog({
                             {t("sheet.capabilitiesPreset.presetSummary", {
                               defaults: summary.defaults,
                               controls: summary.controls,
-                              tools: summary.tools,
                             })}
                           </span>
                         </button>

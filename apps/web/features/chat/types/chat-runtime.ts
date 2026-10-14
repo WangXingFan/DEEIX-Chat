@@ -6,7 +6,6 @@ import type {
 } from "@/features/chat/types/messages";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
 import type { PublicModelPricingDTO } from "@/shared/api/model-types";
-import type { ModelNativeToolConfig } from "@/entities/model";
 
 export type ViewerProfile = {
   name: string;
@@ -28,8 +27,6 @@ export type ChatModelOption = {
   defaultOptions: ConversationOptions;
   optionControls: ModelOptionControl[];
   lockedOptionPaths: string[];
-  nativeToolKeys: string[];
-  nativeTools: ModelNativeToolConfig[];
   pricing: PublicModelPricingDTO | null;
   videoExtension: ModelMediaTaskConfig | null;
 };

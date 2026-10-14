@@ -10,7 +10,6 @@ import type {
   CheckoutDataResponse,
   CheckoutResponse,
   CreateCheckoutRequest as ContractCreateCheckoutRequest,
-  NativeToolPricingResponse,
   RedeemCodeRequest,
   RedemptionApplyDataResponse,
   RedemptionResponse,
@@ -39,15 +38,9 @@ export type CheckoutData = Omit<CheckoutDataResponse, "checkout"> & {
 
 export type BillingMode = "self" | "period" | "usage";
 
-export type NativeToolPricingDTO = Pick<
-  NativeToolPricingResponse,
-  "billable" | "priceLabel" | "priceNanousd" | "provider" | "toolKey" | "unit"
->;
-
 export type BillingConfigData = Omit<BillingConfigDataResponse, "config"> & {
-  config: Pick<BillingConfigResponse, "nativeToolBillingEnabled" | "usdToCNYRate"> & {
+  config: Pick<BillingConfigResponse, "usdToCNYRate"> & {
     mode: BillingMode;
-    nativeToolPricing: NativeToolPricingDTO[];
     paymentProviders: Array<"stripe" | "epay" | string>;
     displayCurrency: "USD" | "CNY" | string;
     epayTypes: Array<{ name: string; type: string }>;

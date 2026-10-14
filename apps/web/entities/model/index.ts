@@ -13,10 +13,8 @@ export {
   HARD_DENIED_MODEL_OPTION_PATHS,
   MODEL_OPTION_POLICY_PROTOCOLS,
   MODEL_OPTION_POLICY_PROTOCOL_LABELS,
-  type ModelNativeToolConfig,
   type ModelOptionPolicy,
   type ModelOptionRuleMap,
-  type NativeToolDefinition,
   isModelOptionPathFiltered,
   parseModelOptionRuleMap,
   resolveModelOptionPolicyProtocol,
@@ -24,12 +22,6 @@ export {
 } from "@/entities/model/lib/model-option-policy";
 export { resolveModelPresentationGroup } from "@/entities/model/lib/model-presentation";
 export { parseProtocolsJSON } from "@/entities/model/lib/model-protocols";
-export { localizedNativeToolText } from "@/entities/model/lib/native-tool-i18n";
-export {
-  nativeToolDefinitionVariantsFromConfig,
-  nativeToolPayloadMatchesShape,
-  nativeToolPayloadSignature,
-} from "@/entities/model/lib/native-tool-payload";
 export { parseKindsJSON, stringifyKinds } from "@/entities/model/model/llm-schema";
 export { UPSTREAM_COMPATIBLE_OPTIONS } from "@/entities/model/model/upstream-compatible";
 export type { ModelSelectOption } from "@/entities/model/types/model-select";

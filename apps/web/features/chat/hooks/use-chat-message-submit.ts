@@ -76,7 +76,6 @@ export function useChatMessageSubmit({
   activeConversation,
   selectedPlatformModelName,
   modelOptions,
-  selectedToolIDs,
   selectedSkills,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
@@ -128,7 +127,6 @@ export function useChatMessageSubmit({
   activeConversation: ConversationDTO | null;
   selectedPlatformModelName: string;
   modelOptions: ChatModelOption[];
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -306,7 +304,6 @@ export function useChatMessageSubmit({
         modelOptions,
         selectedPlatformModelName,
         options,
-        selectedToolIDs,
         selectedSkills,
         selectedKnowledgeBaseIDs,
         htmlVisualPromptEnabled,
@@ -540,7 +537,6 @@ export function useChatMessageSubmit({
           options: plan.sanitizedOptions,
           effectiveAttachments,
           platformModelName,
-          selectedToolIDs: plan.selectedToolIDs,
           selectedSkills: plan.selectedSkills,
           selectedKnowledgeBaseIDs: plan.selectedKnowledgeBaseIDs,
           htmlVisualPromptEnabled: plan.htmlVisualPromptEnabled,
@@ -784,7 +780,6 @@ export function useChatMessageSubmit({
       selectedKnowledgeBaseIDs,
       selectedPlatformModelName,
       selectedSkills,
-      selectedToolIDs,
       sendQueuedAfterCurrentRef,
       setAttachments,
       setBranchSelections,
@@ -872,7 +867,6 @@ export function useChatMessageSubmit({
           attachments: currentAttachments,
           platformModelName: selectedPlatformModelName,
           options: sanitizeConversationOptions(options),
-          selectedToolIDs: selectedToolIDs.slice(),
           selectedSkills: selectedSkills.slice(),
           selectedKnowledgeBaseIDs: selectedKnowledgeBaseIDs.slice(),
           htmlVisualPromptEnabled,
@@ -896,7 +890,6 @@ export function useChatMessageSubmit({
     selectedPlatformModelName,
     selectedSkills,
     selectedKnowledgeBaseIDs,
-    selectedToolIDs,
     setAttachments,
     setDraft,
     transferAttachments,

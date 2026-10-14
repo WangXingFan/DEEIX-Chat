@@ -2,6 +2,7 @@
 // Unused re-exports are tree-shaken (package.json "sideEffects"), so UI and logic share one entry.
 export {
   EMPTY_SKILL_FORM,
+  MAX_SELECTED_SKILLS,
   SKILL_LIMITS,
   type SkillFormValue,
   skillFormFromDTO,

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Box, ChevronDown, Globe2, type LucideIcon, Search, Wrench } from "lucide-react";
+import { BookOpen, Box, ChevronDown, type LucideIcon, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import * as React from "react";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ import {
 } from "@/entities/model";
 import { useDialogSnapshot } from "@/shared/hooks/use-dialog-snapshot";
 import { useFeaturePolicy } from "@/shared/hooks/use-feature-policy";
-import { hasMultipleImageAttachmentProcessors } from "@/entities/mcp";
+import { MAX_SELECTED_SKILLS } from "@/entities/skill";
 
 const PROJECT_DEFAULT_MODEL_INHERIT_VALUE = "__inherit_global_model__";
 
@@ -71,11 +71,8 @@ export function ProjectDialog({
   }, [draft]);
 
   const {
-    catalogLoading,
     modelCatalogLoading,
-    mcpTools,
     models,
-    selectionLimit,
     skillCatalog,
     knowledgeBaseCatalog,
   } = useShellProjectDialogDefaults({ open, draft, setDraft, knowledgeBaseEnabled });
@@ -121,8 +118,6 @@ export function ProjectDialog({
     },
     [draft?.name, onSubmit, submitting],
   );
-
-  const inheritGlobalMCPDefaults = (stableDraft?.mcpDefaultMode ?? "inherit") === "inherit";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,48 +203,6 @@ export function ProjectDialog({
                   )}
                 </div>
 
-                <ProjectDefaultSelector
-                  icon={Wrench}
-                  label={t("mcpDefaultsLabel")}
-                  emptyLabel={t("mcpDefaultsEmpty")}
-                  searchPlaceholder={t("searchMCPTools")}
-                  options={mcpTools.map((tool) => ({
-                    id: tool.id,
-                    label: tool.displayName || tool.name,
-                    detail: tool.serverName,
-                  }))}
-                  selectedIDs={inheritGlobalMCPDefaults ? [] : (stableDraft?.defaultMCPToolIDs ?? [])}
-                  selectionLimit={selectionLimit}
-                  loading={catalogLoading}
-                  disabled={submitting}
-                  exclusiveOption={{
-                    active: inheritGlobalMCPDefaults,
-                    icon: Globe2,
-                    label: t("inheritGlobalMCPDefaults"),
-                    detail: t("inheritGlobalMCPDefaultsDescription"),
-                    onChange: (active) => {
-                      setDraft((current) => current
-                        ? {
-                            ...current,
-                            mcpDefaultMode: active ? "inherit" : "custom",
-                            defaultMCPToolIDs: [],
-                          }
-                        : current);
-                    },
-                  }}
-                  onChange={(defaultMCPToolIDs) => {
-                    if (hasMultipleImageAttachmentProcessors(defaultMCPToolIDs, mcpTools)) {
-                      toast.error(t("imageProcessorLimitTitle"), {
-                        description: t("imageProcessorLimitDescription"),
-                      });
-                      return;
-                    }
-                    setDraft((current) => current
-                      ? { ...current, mcpDefaultMode: "custom", defaultMCPToolIDs }
-                      : current);
-                  }}
-                />
-
                 {knowledgeBaseEnabled ? (
                   <ProjectDefaultSelector
                     icon={BookOpen}
@@ -288,12 +241,12 @@ export function ProjectDialog({
                     detail: skill.description.trim() || (skill.trigger ? `/${skill.trigger}` : ""),
                   }))}
                   selectedIDs={stableDraft?.defaultSkillIDs ?? []}
-                  selectionLimit={selectionLimit}
+                  selectionLimit={MAX_SELECTED_SKILLS}
                   loading={skillCatalog.loading && skillCatalog.items.length === 0}
                   searching={skillCatalog.loading}
                   loadingMore={skillCatalog.loadingMore}
                   hasMore={skillCatalog.hasMore}
-                  disabled={submitting || catalogLoading}
+                  disabled={submitting}
                   onQueryChange={skillCatalog.setQuery}
                   onLoadMore={skillCatalog.loadMore}
                   onChange={(defaultSkillIDs) => {

@@ -603,8 +603,6 @@ export function NavProjects() {
         name,
         systemPrompt: draft.systemPrompt.trim(),
         defaultModel: draft.defaultModel.trim(),
-        mcpDefaultMode: draft.mcpDefaultMode,
-        defaultMCPToolIDs: draft.mcpDefaultMode === "custom" ? draft.defaultMCPToolIDs : [],
         defaultSkillIDs: draft.defaultSkillIDs,
         defaultKnowledgeBaseIDs: draft.defaultKnowledgeBaseIDs,
       });
@@ -613,8 +611,6 @@ export function NavProjects() {
         name,
         systemPrompt: draft.systemPrompt.trim(),
         defaultModel: draft.defaultModel.trim(),
-        mcpDefaultMode: draft.mcpDefaultMode,
-        defaultMCPToolIDs: draft.mcpDefaultMode === "custom" ? draft.defaultMCPToolIDs : [],
         defaultSkillIDs: draft.defaultSkillIDs,
         defaultKnowledgeBaseIDs: draft.defaultKnowledgeBaseIDs,
       });
@@ -698,8 +694,6 @@ export function NavProjects() {
                 name: "",
                 systemPrompt: "",
                 defaultModel: "",
-                mcpDefaultMode: "inherit",
-                defaultMCPToolIDs: [],
                 defaultSkillIDs: [],
                 defaultKnowledgeBaseIDs: [],
               })}
@@ -825,8 +819,6 @@ export function NavProjects() {
                                               name: project.name,
                                               systemPrompt: project.systemPrompt ?? "",
                                               defaultModel: project.defaultModel ?? "",
-                                              mcpDefaultMode: project.mcpDefaultMode ?? "inherit",
-                                              defaultMCPToolIDs: project.defaultMCPToolIDs ?? [],
                                               defaultSkillIDs: project.defaultSkillIDs ?? [],
                                               defaultKnowledgeBaseIDs: project.defaultKnowledgeBaseIDs ?? [],
                                             });

@@ -314,15 +314,11 @@ function AgentTraceTimeline({
   labels,
   autoExpandThinking,
   autoExpandToolCalls,
-  runID,
-  allowFullToolResults,
 }: {
   items: TraceTimelineItem[];
   labels: ProcessTraceLabels;
   autoExpandThinking: boolean;
   autoExpandToolCalls: boolean;
-  runID?: string;
-  allowFullToolResults: boolean;
 }) {
   return (
     <div className="relative">
@@ -344,8 +340,6 @@ function AgentTraceTimeline({
               step={item.step}
               labels={labels}
               autoExpand={autoExpandToolCalls}
-              runID={runID}
-              allowFullResult={allowFullToolResults}
             />
           ),
         )}
@@ -362,8 +356,6 @@ export function MessageAgentTrace({
   autoCollapseReady,
   autoExpandThinking = true,
   autoExpandToolCalls = true,
-  runID,
-  allowFullToolResults = false,
 }: {
   events: ChatTraceEvent[];
   activeToolBlock?: ChatTraceBlock;
@@ -372,8 +364,6 @@ export function MessageAgentTrace({
   autoCollapseReady: boolean;
   autoExpandThinking?: boolean;
   autoExpandToolCalls?: boolean;
-  runID?: string;
-  allowFullToolResults?: boolean;
 }) {
   const labels = useChatTraceLabels();
   const displayEvents = React.useMemo(() => buildTraceDisplayEvents(traceEvents), [traceEvents]);
@@ -490,8 +480,6 @@ export function MessageAgentTrace({
               labels={labels}
               autoExpandThinking={autoExpandThinking}
               autoExpandToolCalls={autoExpandToolCalls}
-              runID={runID}
-              allowFullToolResults={allowFullToolResults}
             />
           </AccordionContent>
         </AccordionItem>

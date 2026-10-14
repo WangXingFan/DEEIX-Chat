@@ -56,7 +56,6 @@ type TemporaryChatRuntimeInput = {
   draft: string;
   model: string;
   options: ConversationOptions;
-  selectedToolIDs: number[];
   selectedSkillIDs: number[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -165,7 +164,6 @@ export function useChatTemporaryRuntime({
   draft,
   model,
   options,
-  selectedToolIDs,
   selectedSkillIDs,
   selectedKnowledgeBaseIDs,
   htmlVisualPromptEnabled,
@@ -402,7 +400,6 @@ export function useChatTemporaryRuntime({
           clientRunID,
           model: selectedModel,
           options,
-          selectedToolIDs: selectedToolIDs.length > 0 ? selectedToolIDs : undefined,
           skillIDs: selectedSkillIDs.length > 0 ? selectedSkillIDs : undefined,
           knowledgeBaseIDs: selectedKnowledgeBaseIDs.length > 0 ? selectedKnowledgeBaseIDs : undefined,
           htmlVisualPrompt: htmlVisualPromptEnabled || undefined,
@@ -537,7 +534,6 @@ export function useChatTemporaryRuntime({
     replaceMessages,
     selectedKnowledgeBaseIDs,
     selectedSkillIDs,
-    selectedToolIDs,
     t,
     tSubmit,
     updateMessage,

@@ -257,7 +257,7 @@ export function ModelSheet({ open, mode, target, models, vendors, displayGroups,
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [showCapabilitiesJSONAdvanced, setShowCapabilitiesJSONAdvanced] = useState(false);
   const sheetContentRef = useRef<HTMLDivElement | null>(null);
-  const { nativeTools, capabilitySourceModels, contextWindowFallbackTokens } = useAdminModelsCapabilityContext({ open, models });
+  const { capabilitySourceModels, contextWindowFallbackTokens } = useAdminModelsCapabilityContext({ open, models });
   const { openRouterCatalog, loadOpenRouterCatalog } = useAdminModelsOpenrouterCatalog(open);
   const [bindRows, setBindRows] = useState<ModelSourceBindDraftRow[]>(() => [createModelSourceBindDraftRow()]);
   const {
@@ -550,7 +550,7 @@ export function ModelSheet({ open, mode, target, models, vendors, displayGroups,
       form,
       contextWindowOverride,
       bindRows,
-      normalizeCapabilities: (capabilitiesJSON) => normalizeModelCapabilitiesJSON(capabilitiesJSON, nativeTools, routeProtocols),
+      normalizeCapabilities: (capabilitiesJSON) => normalizeModelCapabilitiesJSON(capabilitiesJSON),
       onCreated: (model) => {
         setForm(buildInitialState(model));
         setBindRows([createModelSourceBindDraftRow()]);
@@ -804,7 +804,6 @@ export function ModelSheet({ open, mode, target, models, vendors, displayGroups,
                       disabled={pending}
                       presetModels={capabilitySourceModels}
                       currentModelID={target?.id ?? null}
-                      nativeTools={nativeTools}
                       routeProtocols={routeProtocols}
                       t={t}
                       commonT={commonT}

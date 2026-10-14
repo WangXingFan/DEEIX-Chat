@@ -1,16 +1,11 @@
 import { authedRequest } from "@/shared/api/authed-client";
-import type { ModelOptionPolicy, NativeToolDefinition } from "@/shared/api/settings-types";
+import type { ModelOptionPolicy } from "@/shared/api/settings-types";
 import { isRecord, isStringArray, readBoolean, readString } from "@/shared/lib/type-guards";
 
 type ModelOptionPolicyResponse = {
   mode: string;
   allowedPathsJSON: string;
   deniedPathsJSON: string;
-  nativeTools?: NativeToolDefinition[];
-};
-
-export type MCPPolicy = {
-  maxSelectedToolsPerMessage: number;
 };
 
 export type ChatContextPolicy = {
@@ -41,18 +36,6 @@ export async function getModelOptionPolicy(accessToken: string): Promise<ModelOp
     mode: data.mode,
     allowedPathsJSON: data.allowedPathsJSON,
     deniedPathsJSON: data.deniedPathsJSON,
-    nativeTools: data.nativeTools ?? [],
-  };
-}
-
-export async function getMCPPolicy(accessToken: string): Promise<MCPPolicy> {
-  const data = await authedRequest<MCPPolicy>(
-    "/api/v1/settings/mcp-policy",
-    { accessToken },
-    true,
-  );
-  return {
-    maxSelectedToolsPerMessage: data.maxSelectedToolsPerMessage,
   };
 }
 

@@ -1,9 +1,9 @@
-import type { ModelOptionPolicy, ModelOptionPolicyMode, NativeToolDefinition } from "@/shared/api/settings-types";
+import type { ModelOptionPolicy, ModelOptionPolicyMode } from "@/shared/api/settings-types";
 import { isRecord } from "@/shared/lib/type-guards";
 
 // The policy payload is a transport contract owned by shared/api; re-exported so model
 // consumers read the whole policy vocabulary from the model entity.
-export type { ModelOptionPolicy, ModelOptionPolicyMode, NativeToolDefinition };
+export type { ModelOptionPolicy, ModelOptionPolicyMode };
 
 // Protocol display order is always by vendor: OpenAI → Anthropic → Google → xAI → OpenRouter.
 export const MODEL_OPTION_POLICY_PROTOCOLS = [
@@ -29,20 +29,6 @@ export const MODEL_OPTION_POLICY_PROTOCOLS = [
 export type ModelOptionPolicyProtocol = (typeof MODEL_OPTION_POLICY_PROTOCOLS)[number];
 
 export type ModelOptionRuleMap = Partial<Record<ModelOptionPolicyProtocol | string, string[]>>;
-
-export type ModelNativeToolConfig = {
-  id: string;
-  key: string;
-  protocol: string;
-  protocols: string[];
-  provider?: string;
-  type: string;
-  label: string;
-  description?: string;
-  enabled: boolean;
-  defaultEnabled: boolean;
-  payload: Record<string, unknown>;
-};
 
 export const MODEL_OPTION_POLICY_PROTOCOL_LABELS: Record<ModelOptionPolicyProtocol, string> = {
   default: "Default",

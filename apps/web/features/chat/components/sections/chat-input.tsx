@@ -38,7 +38,6 @@ import {
 import { PlusIcon } from "@/components/ui/plus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChatKnowledgeBases } from "@/features/chat/components/sections/chat-knowledge-bases";
-import { ChatMCP } from "@/features/chat/components/sections/chat-mcp";
 import { ChatOutputOptions } from "@/features/chat/components/sections/chat-output-options";
 import { ChatModelConfig } from "@/features/chat/components/sections/chat-model-config";
 import { ChatModelPicker } from "@/features/chat/components/sections/chat-model-picker";
@@ -64,7 +63,6 @@ import type { SendShortcut } from "@/features/settings";
 import { cn } from "@/lib/utils";
 import type { ConversationOptions } from "@/shared/api/conversation-types";
 import type { FileObjectDTO } from "@/shared/api/file-types";
-import type { MCPToolDTO } from "@/shared/api/mcp-types";
 import type { SkillSummaryDTO } from "@/shared/api/skills-types";
 import { StreamdownRender } from "@/shared/components/markdown/streamdown-render";
 import { useDialogSnapshot } from "@/shared/hooks/use-dialog-snapshot";
@@ -85,7 +83,7 @@ const TEMPORARY_NOTICE_TRANSITION = {
   duration: 0.22,
   ease: [0.16, 1, 0.3, 1] as const,
 };
-const TEMPORARY_MENTION_KINDS = ["model", "tool", "skill"] as const;
+const TEMPORARY_MENTION_KINDS = ["model", "skill"] as const;
 
 type QueuedComposerMessage = {
   id: string;
@@ -110,16 +108,11 @@ type ChatInputProps = {
   billingDisplayCurrency: BillingDisplayCurrency;
   billingDisplayUsdToCnyRate: number | null;
   selectedPlatformModelName: string;
-  availableTools: MCPToolDTO[];
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
-  defaultToolIDs: number[];
   queuedMessages: QueuedComposerMessage[];
   htmlVisualPromptEnabled: boolean;
-  maxSelectedTools: number;
   maxSelectedSkills: number;
-  toolsLoading: boolean;
   options: ConversationOptions;
   defaultOptions: ConversationOptions;
   modelOptionPolicy: ModelOptionPolicy | null;
@@ -131,10 +124,8 @@ type ChatInputProps = {
   onDraftChange: (value: string) => void;
   onModelChange: (platformModelName: string) => void;
   onModelCatalogRefresh?: () => void | Promise<void>;
-  onSelectedToolsChange: (toolIDs: number[]) => void;
   onSelectedSkillsChange: (skills: SkillSummaryDTO[]) => void;
   onSelectedKnowledgeBasesChange: (ids: string[]) => void;
-  onDefaultToolsChange: (toolIDs: number[]) => void | Promise<void>;
   onHTMLVisualPromptChange: (enabled: boolean) => void;
   onOptionsChange: React.Dispatch<React.SetStateAction<ConversationOptions>>;
   onOptionsReset: (defaults?: ConversationOptions) => void;
@@ -267,16 +258,11 @@ function ChatInputComponent({
   billingDisplayCurrency,
   billingDisplayUsdToCnyRate,
   selectedPlatformModelName,
-  availableTools,
-  selectedToolIDs,
   selectedSkills,
   selectedKnowledgeBaseIDs,
-  defaultToolIDs,
   queuedMessages,
   htmlVisualPromptEnabled,
-  maxSelectedTools,
   maxSelectedSkills,
-  toolsLoading,
   options,
   defaultOptions,
   modelOptionPolicy,
@@ -288,10 +274,8 @@ function ChatInputComponent({
   onDraftChange,
   onModelChange,
   onModelCatalogRefresh,
-  onSelectedToolsChange,
   onSelectedSkillsChange,
   onSelectedKnowledgeBasesChange,
-  onDefaultToolsChange,
   onHTMLVisualPromptChange,
   onOptionsChange,
   onOptionsReset,
@@ -474,7 +458,6 @@ function ChatInputComponent({
     };
   }, [options, taskOptionConfig]);
   const modelOptionPolicyDisabled = modelOptionPolicy?.mode?.trim() === "disabled";
-  const showMCPToolsButton = availableTools.length > 0 && !isMediaMode;
   const showHTMLVisualPromptButton = !isMediaMode;
   const hasComposerAttachments = attachments.length > 0 || uploadingAttachments.length > 0;
   const showSelectedSkills = selectedSkills.length > 0 && !isMediaMode;
@@ -499,19 +482,15 @@ function ChatInputComponent({
     tabs: mentionTabs,
   } = useChatMentionMenu({
     attachments,
-    availableTools,
     defaultFileLabel: tComposer("mention.fileFallback"),
     disabled: loading || uploading || modelLoading || modelDisabled,
     draft,
-    maxSelectedTools,
     maxSelectedSkills,
     modelOptions,
     selectedSkills,
     selectedPlatformModelName,
-    selectedToolIDs,
     anchorRef: inputGroupRef,
     textareaRef,
-    toolsDisabled: isMediaMode,
     enabledKinds: temporaryMode ? TEMPORARY_MENTION_KINDS : undefined,
     onDraftChange,
     onFileSelect: onAttachExistingFile,
@@ -520,15 +499,9 @@ function ChatInputComponent({
     onSelectedSkillsChange,
     placementAnchor: "container",
     placementPreference: isConversationMode ? "top" : "bottom",
-    onSelectedToolsChange,
     onSkillLimitReached: () => {
       toast.error(tComposer("skillLimitTitle"), {
         description: tComposer("skillLimitDescription", { limit: maxSelectedSkills }),
-      });
-    },
-    onToolLimitReached: () => {
-      toast.error(tComposer("mcpToolLimitTitle"), {
-        description: tComposer("mcpToolLimitDescription", { limit: maxSelectedTools }),
       });
     },
   });
@@ -1030,27 +1003,12 @@ function ChatInputComponent({
                   defaultOptions={taskOptionConfig?.defaultOptions ?? defaultOptions}
                   optionControls={taskOptionConfig?.optionControls ?? selectedModel?.optionControls ?? []}
                   lockedOptionPaths={taskOptionConfig ? [] : selectedModel?.lockedOptionPaths ?? []}
-                  nativeToolKeys={selectedModel?.nativeToolKeys ?? []}
-                  nativeTools={selectedModel?.nativeTools ?? []}
                   modelOptionPolicy={modelOptionPolicy}
                   selectedProtocols={selectedProtocols}
                   selectedModelName={selectedModelName}
                   onOptionsChange={onOptionsChange}
                   onOptionsReset={onOptionsReset}
                   onDefaultOptionsRestore={onOptionsDefaultRestore}
-                />
-              ) : null}
-
-              {showMCPToolsButton ? (
-                <ChatMCP
-                  availableTools={availableTools}
-                  selectedToolIDs={selectedToolIDs}
-                  defaultToolIDs={defaultToolIDs}
-                  maxSelectedTools={maxSelectedTools}
-                  placementPreference={isConversationMode ? "top" : "bottom"}
-                  disabled={loading || uploading || toolsLoading}
-                  onSelectedToolsChange={onSelectedToolsChange}
-                  onDefaultToolsChange={onDefaultToolsChange}
                 />
               ) : null}
 

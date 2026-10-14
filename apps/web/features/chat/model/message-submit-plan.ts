@@ -33,7 +33,6 @@ export type ChatSubmissionBlock =
 export type ChatSubmissionPlan = {
   payloadContent: string;
   platformModelName: string;
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -74,7 +73,6 @@ export function planChatSubmission(input: {
   modelOptions: ChatModelOption[];
   selectedPlatformModelName: string;
   options: ConversationOptions;
-  selectedToolIDs: number[];
   selectedSkills: SkillSummaryDTO[];
   selectedKnowledgeBaseIDs: string[];
   htmlVisualPromptEnabled: boolean;
@@ -88,7 +86,6 @@ export function planChatSubmission(input: {
   const payloadContent = content || input.attachmentFallbackContent;
   const platformModelName = (queuedSubmission?.platformModelName ?? input.selectedPlatformModelName).trim();
   const requestOptions = queuedSubmission?.options ?? input.options;
-  const selectedToolIDs = queuedSubmission?.selectedToolIDs ?? input.selectedToolIDs;
   const selectedSkills = queuedSubmission?.selectedSkills ?? input.selectedSkills;
   const selectedKnowledgeBaseIDs = queuedSubmission?.selectedKnowledgeBaseIDs ?? input.selectedKnowledgeBaseIDs;
   const htmlVisualPromptEnabled = queuedSubmission?.htmlVisualPromptEnabled ?? input.htmlVisualPromptEnabled;
@@ -202,7 +199,6 @@ export function planChatSubmission(input: {
     plan: {
       payloadContent,
       platformModelName,
-      selectedToolIDs,
       selectedSkills,
       selectedKnowledgeBaseIDs,
       htmlVisualPromptEnabled,
