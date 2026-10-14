@@ -37,11 +37,7 @@
   },
   "kinds": {
     "chat": "对话",
-    "audio": "语音",
-    "image_gen": "图像生成",
-    "image_edit": "图像编辑",
-    "video_gen": "视频生成",
-    "video_extension": "视频扩展"
+    "audio": "语音"
   },
   "table": {
     "searchPlaceholder": "搜索模型、厂商、分组或描述",
@@ -421,7 +417,6 @@
     },
     "capabilitiesVisualButton": "可视化配置（推荐）",
     "capabilitiesAdvancedJSON": "高级 JSON",
-    "imageStreamEnabled": "图像流式调用",
     "capabilitiesQuick": {
       "button": "快速配置",
       "title": "模型能力配置",

@@ -10,11 +10,7 @@
   },
   "kinds": {
     "chat": "Chat",
-    "audio": "Audio",
-    "image_gen": "Image generation",
-    "image_edit": "Image editing",
-    "video_gen": "Video generation",
-    "video_extension": "Video extension"
+    "audio": "Audio"
   },
   "status": {
     "active": "Active",

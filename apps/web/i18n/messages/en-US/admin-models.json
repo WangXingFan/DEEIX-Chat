@@ -37,11 +37,7 @@
   },
   "kinds": {
     "chat": "Chat",
-    "audio": "Audio",
-    "image_gen": "Image generation",
-    "image_edit": "Image editing",
-    "video_gen": "Video generation",
-    "video_extension": "Video extension"
+    "audio": "Audio"
   },
   "table": {
     "searchPlaceholder": "Search model, vendor, group, or description",
@@ -421,7 +417,6 @@
     },
     "capabilitiesVisualButton": "Visual config (Recommended)",
     "capabilitiesAdvancedJSON": "Advanced JSON",
-    "imageStreamEnabled": "Image streaming calls",
     "capabilitiesQuick": {
       "button": "Quick config",
       "title": "Model capabilities config",

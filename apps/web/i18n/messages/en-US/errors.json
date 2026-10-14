@@ -225,7 +225,7 @@
     "invalidKinds": "Invalid model kinds.",
     "invalidModelCapabilities": "The context window must be between 4,096 and 16,000,000 tokens, and the output token limit must be smaller than the context window.",
     "invalidPlatformModelName": "Invalid platform model name.",
-    "invalidRouteProtocolCombination": "This protocol combination is not available. A binding can use one protocol, or image generation and image editing protocols from the same provider.",
+    "invalidRouteProtocolCombination": "This protocol combination is not available. Each binding accepts a single protocol only.",
     "systemPromptTooLong": "System prompt must be at most 20000 characters.",
     "invalidProtocolDefaultsConfig": "Invalid protocol defaults configuration.",
     "modelAccessDenied": "You do not have access to this model.",
@@ -250,20 +250,6 @@
     "upstreamSourceUnavailable": "The upstream model source is unavailable.",
     "routeConflict": "This upstream model already has a binding for the same platform model and protocol. Remove the duplicate binding before saving.",
     "routesUnavailable": "All model routes are unavailable."
-  },
-  "media": {
-    "imagePromptRequired": "Enter an image prompt.",
-    "imageGenerationRejectsInputs": "Image generation does not accept input images. Remove attachments or choose image editing.",
-    "imageEditInputRequired": "Image editing requires at least one input image.",
-    "imageEditTooManyInputs": "Too many input images for image editing.",
-    "imageEditInputInvalid": "Image editing only supports valid image files.",
-    "artifactUnavailable": "The generated result is temporarily unavailable. Try again, or contact an administrator if the issue persists.",
-    "imageStreamUnsupported": "Tips: The upstream may not support streaming responses. Ask an administrator to disable \"Image streaming call\" in model capabilities (set image.stream=false), then try again.",
-    "routeProtocolMismatch": "The current model route protocol does not match this image task. Check the model binding.",
-    "invalidTask": "Invalid image task parameters.",
-    "videoInputInvalid": "Video generation input is invalid.",
-    "videoPromptRequired": "Enter a video prompt.",
-    "videoTooManyInputs": "Too many input images for video generation."
   },
   "message": {
     "feedbackTargetInvalid": "Invalid message feedback target.",

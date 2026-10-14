@@ -225,7 +225,7 @@
     "invalidKinds": "模型类型无效。",
     "invalidModelCapabilities": "模型上下文窗口必须在 4096 到 16000000 之间，输出 Token 上限必须小于上下文窗口。",
     "invalidPlatformModelName": "平台模型名称无效。",
-    "invalidRouteProtocolCombination": "当前协议组合不可用。同一绑定只能选择单个协议，或同时选择同一厂商的图像生成与图像编辑协议。",
+    "invalidRouteProtocolCombination": "当前协议组合不可用。同一绑定只能选择单个协议。",
     "systemPromptTooLong": "系统提示词不能超过 20000 个字符。",
     "invalidProtocolDefaultsConfig": "协议默认配置无效。",
     "modelAccessDenied": "当前权限组无权使用此模型。",
@@ -250,20 +250,6 @@
     "upstreamSourceUnavailable": "上游模型来源暂不可用。",
     "routeConflict": "该上游模型已存在相同平台模型和协议的绑定，请删除重复绑定后再保存。",
     "routesUnavailable": "所有模型路由都不可用。"
-  },
-  "media": {
-    "imagePromptRequired": "请输入图片提示词。",
-    "imageGenerationRejectsInputs": "图片生成不支持携带输入图片，请移除附件或选择图片编辑。",
-    "imageEditInputRequired": "图片编辑需要至少上传一张输入图片。",
-    "imageEditTooManyInputs": "图片编辑输入图片过多。",
-    "imageEditInputInvalid": "图片编辑只支持有效的图片文件。",
-    "artifactUnavailable": "生成结果暂时无法获取，请稍后重试；若问题持续，请联系管理员。",
-    "imageStreamUnsupported": "Tips：当前上游可能不支持流式响应，请管理员在模型能力中关闭“图像流式调用”（设置 image.stream=false）后重试。",
-    "routeProtocolMismatch": "当前模型路由协议与图片任务不匹配，请检查模型绑定。",
-    "invalidTask": "图片任务参数无效。",
-    "videoInputInvalid": "视频生成输入无效。",
-    "videoPromptRequired": "请输入视频提示词。",
-    "videoTooManyInputs": "视频生成输入图片过多。"
   },
   "message": {
     "feedbackTargetInvalid": "消息反馈目标无效。",
