@@ -150,7 +150,6 @@ func (s *Service) ImportRoster(
 		return nil, err
 	}
 
-	ready := make([]rosterCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		row := RosterImportRow{
 			Line:        candidate.line,
@@ -178,7 +177,6 @@ func (s *Service) ImportRoster(
 			row.Status = RosterRowReady
 			result.Ready++
 			result.appendRow(row)
-			ready = append(ready, candidate)
 			continue
 		}
 
