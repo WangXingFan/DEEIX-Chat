@@ -2084,66 +2084,6 @@ definitions:
     - userLabel
     - username
     type: object
-  ConversationExportCompatibilityResponse:
-    properties:
-      format:
-        type: string
-      notes:
-        type: string
-    required:
-    - format
-    - notes
-    type: object
-  ConversationExportResponse:
-    properties:
-      compatibility:
-        $ref: '#/definitions/ConversationExportCompatibilityResponse'
-      conversation:
-        $ref: '#/definitions/ConversationResponse'
-      defaultMessagePublicIDs:
-        items:
-          type: string
-        type: array
-      exportScope:
-        type: string
-      exportedAt:
-        type: string
-      messages:
-        items:
-          $ref: '#/definitions/MessageResponse'
-        type: array
-      runs:
-        items:
-          $ref: '#/definitions/RunResponse'
-        type: array
-      totalMessages:
-        type: integer
-      totalRuns:
-        type: integer
-      version:
-        type: integer
-    required:
-    - compatibility
-    - conversation
-    - defaultMessagePublicIDs
-    - exportScope
-    - exportedAt
-    - messages
-    - runs
-    - totalMessages
-    - totalRuns
-    - version
-    type: object
-  ConversationExportResponseDoc:
-    properties:
-      data:
-        $ref: '#/definitions/ConversationExportResponse'
-      errorMsg:
-        type: string
-    required:
-    - data
-    - errorMsg
-    type: object
   ConversationListResponseDoc:
     properties:
       data:
@@ -7421,58 +7361,6 @@ definitions:
     - data
     - errorMsg
     type: object
-  TemporaryChatHistoryMessage:
-    properties:
-      content:
-        maxLength: 200000
-        type: string
-      role:
-        enum:
-        - user
-        - assistant
-        type: string
-    required:
-    - content
-    - role
-    type: object
-  TemporaryChatMessageRequest:
-    properties:
-      clientRunID:
-        maxLength: 64
-        type: string
-      htmlVisualPrompt:
-        type: boolean
-      knowledgeBaseIDs:
-        items:
-          type: string
-        maxItems: 8
-        type: array
-      messages:
-        items:
-          $ref: '#/definitions/TemporaryChatHistoryMessage'
-        maxItems: 100
-        minItems: 1
-        type: array
-      model:
-        maxLength: 128
-        type: string
-      options:
-        additionalProperties: {}
-        type: object
-      sessionID:
-        maxLength: 64
-        type: string
-      skillIDs:
-        items:
-          type: integer
-        maxItems: 128
-        type: array
-    required:
-    - clientRunID
-    - messages
-    - model
-    - sessionID
-    type: object
   TwoFactorCodeRequest:
     properties:
       code:
@@ -10504,25 +10392,6 @@ paths:
       security:
       - BearerAuth: []
       summary: 管理员查询对话事件详情
-      tags:
-      - admin
-  /admin/conversations/export:
-    get:
-      description: 流式导出全量会话及消息为 NDJSON 文件，最后一行为 export_manifest 元数据
-      produces:
-      - application/x-ndjson
-      responses:
-        "200":
-          description: NDJSON stream
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/AdminErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 管理员导出全量对话数据
       tags:
       - admin
   /admin/knowledge-bases:
@@ -15660,41 +15529,6 @@ paths:
       summary: 设置会话归档
       tags:
       - chat
-  /conversations/{id}/export:
-    get:
-      consumes:
-      - application/json
-      description: 导出当前用户单个会话的元信息、消息、运行日志和可见处理轨迹
-      parameters:
-      - description: 会话 public_id
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ConversationExportResponseDoc'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 导出会话 JSON
-      tags:
-      - chat
   /conversations/{id}/labels:
     patch:
       consumes:
@@ -16207,25 +16041,6 @@ paths:
       security:
       - BearerAuth: []
       summary: 查询新会话默认模型候选
-      tags:
-      - chat
-  /conversations/export:
-    get:
-      description: 流式导出当前用户全部会话及消息为 NDJSON 文件
-      produces:
-      - application/x-ndjson
-      responses:
-        "200":
-          description: NDJSON stream
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 导出当前用户全部对话
       tags:
       - chat
   /conversations/project:
@@ -18263,39 +18078,6 @@ paths:
       summary: 更新我的自定义技能
       tags:
       - skills
-  /temporary-chat/messages/stream:
-    post:
-      consumes:
-      - application/json
-      - multipart/form-data
-      description: 由浏览器提交完整上下文和可选请求级附件；服务端不创建会话、消息、运行、文件或断线续传记录
-      parameters:
-      - description: 临时对话参数
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/TemporaryChatMessageRequest'
-      produces:
-      - application/x-ndjson
-      responses:
-        "200":
-          description: NDJSON stream
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/ConversationErrorDoc'
-      security:
-      - BearerAuth: []
-      summary: 流式发送临时对话消息
-      tags:
-      - chat
   /user/settings:
     get:
       description: 返回当前用户全部个人偏好配置，缺失项以默认值填充

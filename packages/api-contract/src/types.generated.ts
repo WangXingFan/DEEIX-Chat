@@ -860,29 +860,6 @@ export interface ConversationEventResponse {
   username: string;
 }
 
-export interface ConversationExportCompatibilityResponse {
-  format: string;
-  notes: string;
-}
-
-export interface ConversationExportResponse {
-  compatibility: ConversationExportCompatibilityResponse;
-  conversation: ConversationResponse;
-  defaultMessagePublicIDs: string[];
-  exportScope: string;
-  exportedAt: string;
-  messages: MessageResponse[];
-  runs: RunResponse[];
-  totalMessages: number;
-  totalRuns: number;
-  version: number;
-}
-
-export interface ConversationExportResponseDoc {
-  data: ConversationExportResponse;
-  errorMsg: string;
-}
-
 export interface ConversationListResponseDoc {
   data: {
     results: ConversationResponse[];
@@ -3307,32 +3284,6 @@ export interface SyncUpstreamModelsResponseDoc {
   errorMsg: string;
 }
 
-export interface TemporaryChatHistoryMessage {
-  /** @maxLength 200000 */
-  content: string;
-  role: "user" | "assistant";
-}
-
-export interface TemporaryChatMessageRequest {
-  /** @maxLength 64 */
-  clientRunID: string;
-  htmlVisualPrompt?: boolean;
-  /** @maxItems 8 */
-  knowledgeBaseIDs?: string[];
-  /**
-   * @maxItems 100
-   * @minItems 1
-   */
-  messages: TemporaryChatHistoryMessage[];
-  /** @maxLength 128 */
-  model: string;
-  options?: Record<string, any>;
-  /** @maxLength 64 */
-  sessionID: string;
-  /** @maxItems 128 */
-  skillIDs?: number[];
-}
-
 export interface TwoFactorCodeRequest {
   /**
    * @minLength 6
@@ -4834,22 +4785,6 @@ export namespace Admin {
     export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = ConversationEventDetailResponseDoc;
-  }
-
-  /**
-   * @description 流式导出全量会话及消息为 NDJSON 文件，最后一行为 export_manifest 元数据
-   * @tags admin
-   * @name ConversationsExportList
-   * @summary 管理员导出全量对话数据
-   * @request GET:/admin/conversations/export
-   * @secure
-   */
-  export namespace ConversationsExportList {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
   }
 
   /**
@@ -7823,22 +7758,6 @@ export namespace Conversations {
   }
 
   /**
-   * @description 流式导出当前用户全部会话及消息为 NDJSON 文件
-   * @tags chat
-   * @name ExportList
-   * @summary 导出当前用户全部对话
-   * @request GET:/conversations/export
-   * @secure
-   */
-  export namespace ExportList {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
-  }
-
-  /**
    * @description 批量设置当前用户会话的项目归属
    * @tags chat
    * @name ProjectCreate
@@ -7935,27 +7854,6 @@ export namespace Conversations {
     export type RequestBody = SetConversationArchiveRequest;
     export type RequestHeaders = {};
     export type ResponseBody = ConversationUpdateResponseDoc;
-  }
-
-  /**
-   * @description 导出当前用户单个会话的元信息、消息、运行日志和可见处理轨迹
-   * @tags chat
-   * @name ExportList2
-   * @summary 导出会话 JSON
-   * @request GET:/conversations/{id}/export
-   * @originalName exportList
-   * @duplicate
-   * @secure
-   */
-  export namespace ExportList2 {
-    export type RequestParams = {
-      /** 会话 public_id */
-      id: string;
-    };
-    export type RequestQuery = {};
-    export type RequestBody = never;
-    export type RequestHeaders = {};
-    export type ResponseBody = ConversationExportResponseDoc;
   }
 
   /**
@@ -9326,24 +9224,6 @@ export namespace Skills {
     export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = SkillResponseDoc;
-  }
-}
-
-export namespace TemporaryChat {
-  /**
-   * @description 由浏览器提交完整上下文和可选请求级附件；服务端不创建会话、消息、运行、文件或断线续传记录
-   * @tags chat
-   * @name MessagesStreamCreate
-   * @summary 流式发送临时对话消息
-   * @request POST:/temporary-chat/messages/stream
-   * @secure
-   */
-  export namespace MessagesStreamCreate {
-    export type RequestParams = {};
-    export type RequestQuery = {};
-    export type RequestBody = TemporaryChatMessageRequest;
-    export type RequestHeaders = {};
-    export type ResponseBody = string;
   }
 }
 

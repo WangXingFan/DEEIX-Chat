@@ -1698,37 +1698,6 @@
                 }
             }
         },
-        "/admin/conversations/export": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "流式导出全量会话及消息为 NDJSON 文件，最后一行为 export_manifest 元数据",
-                "produces": [
-                    "application/x-ndjson"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "管理员导出全量对话数据",
-                "responses": {
-                    "200": {
-                        "description": "NDJSON stream",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/AdminErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/admin/knowledge-bases": {
             "get": {
                 "security": [
@@ -9663,37 +9632,6 @@
                 }
             }
         },
-        "/conversations/export": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "流式导出当前用户全部会话及消息为 NDJSON 文件",
-                "produces": [
-                    "application/x-ndjson"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "导出当前用户全部对话",
-                "responses": {
-                    "200": {
-                        "description": "NDJSON stream",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/conversations/project": {
             "post": {
                 "security": [
@@ -9966,61 +9904,6 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/ConversationUpdateResponseDoc"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
-        "/conversations/{id}/export": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "导出当前用户单个会话的元信息、消息、运行日志和可见处理轨迹",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "导出会话 JSON",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "会话 public_id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationExportResponseDoc"
                         }
                     },
                     "400": {
@@ -13910,58 +13793,6 @@
                 }
             }
         },
-        "/temporary-chat/messages/stream": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "由浏览器提交完整上下文和可选请求级附件；服务端不创建会话、消息、运行、文件或断线续传记录",
-                "consumes": [
-                    "application/json",
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/x-ndjson"
-                ],
-                "tags": [
-                    "chat"
-                ],
-                "summary": "流式发送临时对话消息",
-                "parameters": [
-                    {
-                        "description": "临时对话参数",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/TemporaryChatMessageRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "NDJSON stream",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ConversationErrorDoc"
-                        }
-                    }
-                }
-            }
-        },
         "/user/settings": {
             "get": {
                 "security": [
@@ -17076,92 +16907,6 @@
                     "type": "string"
                 },
                 "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "ConversationExportCompatibilityResponse": {
-            "type": "object",
-            "required": [
-                "format",
-                "notes"
-            ],
-            "properties": {
-                "format": {
-                    "type": "string"
-                },
-                "notes": {
-                    "type": "string"
-                }
-            }
-        },
-        "ConversationExportResponse": {
-            "type": "object",
-            "required": [
-                "compatibility",
-                "conversation",
-                "defaultMessagePublicIDs",
-                "exportScope",
-                "exportedAt",
-                "messages",
-                "runs",
-                "totalMessages",
-                "totalRuns",
-                "version"
-            ],
-            "properties": {
-                "compatibility": {
-                    "$ref": "#/definitions/ConversationExportCompatibilityResponse"
-                },
-                "conversation": {
-                    "$ref": "#/definitions/ConversationResponse"
-                },
-                "defaultMessagePublicIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "exportScope": {
-                    "type": "string"
-                },
-                "exportedAt": {
-                    "type": "string"
-                },
-                "messages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/MessageResponse"
-                    }
-                },
-                "runs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/RunResponse"
-                    }
-                },
-                "totalMessages": {
-                    "type": "integer"
-                },
-                "totalRuns": {
-                    "type": "integer"
-                },
-                "version": {
-                    "type": "integer"
-                }
-            }
-        },
-        "ConversationExportResponseDoc": {
-            "type": "object",
-            "required": [
-                "data",
-                "errorMsg"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/ConversationExportResponse"
-                },
-                "errorMsg": {
                     "type": "string"
                 }
             }
@@ -24682,78 +24427,6 @@
                 },
                 "errorMsg": {
                     "type": "string"
-                }
-            }
-        },
-        "TemporaryChatHistoryMessage": {
-            "type": "object",
-            "required": [
-                "content",
-                "role"
-            ],
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "maxLength": 200000
-                },
-                "role": {
-                    "type": "string",
-                    "enum": [
-                        "user",
-                        "assistant"
-                    ]
-                }
-            }
-        },
-        "TemporaryChatMessageRequest": {
-            "type": "object",
-            "required": [
-                "clientRunID",
-                "messages",
-                "model",
-                "sessionID"
-            ],
-            "properties": {
-                "clientRunID": {
-                    "type": "string",
-                    "maxLength": 64
-                },
-                "htmlVisualPrompt": {
-                    "type": "boolean"
-                },
-                "knowledgeBaseIDs": {
-                    "type": "array",
-                    "maxItems": 8,
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "messages": {
-                    "type": "array",
-                    "maxItems": 100,
-                    "minItems": 1,
-                    "items": {
-                        "$ref": "#/definitions/TemporaryChatHistoryMessage"
-                    }
-                },
-                "model": {
-                    "type": "string",
-                    "maxLength": 128
-                },
-                "options": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "sessionID": {
-                    "type": "string",
-                    "maxLength": 64
-                },
-                "skillIDs": {
-                    "type": "array",
-                    "maxItems": 128,
-                    "items": {
-                        "type": "integer"
-                    }
                 }
             }
         },
